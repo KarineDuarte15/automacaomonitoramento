@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Monitoramento OptimusBI - 100% Automático (Sem necessidade de selecionar pastas manualmente)
-Pasta do Projeto: C:\\Users\\agenor.sales\\Desktop\\automacaomonitoramento
+Monitoramento OptimusBI - Completo:
+- Verifica pastas e logs a cada 60s
+- A cada 30 minutos: gera o .xlsx em C:\\Users\\agenor.sales\\Desktop\\dashboard acompanhamento
+  e faz o upload automático em https://acompanhameto-fluxo-diario-de-taref.vercel.app/ na aba Monitoramento
+- A cada 6 horas (360 min): envia resumo no WhatsApp (1 mensagem por contato, fechando e reiniciando o navegador)
+- Às 18h: guarda também o relatório diário final na pasta G:\\...
 """
 import argparse
 import json
@@ -42,7 +46,6 @@ logging.basicConfig(
 )
 log = logging.getLogger('optimus_mon')
 
-# Regras de Horários: APRR (+2 arqs às 06h, 09h, 11h, 13h, 15h, 17h) e Tele Saúde (30m antes)
 HORARIOS_APRR = [6, 9, 11, 13, 15, 17]
 JANELAS_TELE_MIN = [h * 60 - 30 for h in HORARIOS_APRR]  # 05:30, 08:30, 10:30, 12:30, 14:30, 16:30
 
@@ -67,25 +70,28 @@ B7 = '7 - BASES DE RELATORIOS\\'
 MM = '\\{YYYY}\\{MM} - {MES}'
 
 # ==============================================================================
-# 2. CONFIGURAÇÃO AUTOMÁTICA DE TODAS AS PASTAS E CARDS (EXTRAÍDO DO PDF + JSON)
+# 2. CONFIGURAÇÃO PADRÃO (INCLUINDO PASTA LOCALHOST 30 MIN, VERCEL E WHATSAPP 6H)
 # ==============================================================================
 DEFAULT = {
-    'versao_config': 3,
+    'versao_config': 4,
     'raiz': r'G:\Credenciamento Medico\NUCLEO DE AGENDAS\RAFAEL FERNANDES',
     'raiz_rede_fallback': r'\\10.1.17.4\Usuarios\Credenciamento Medico\NUCLEO DE AGENDAS\RAFAEL FERNANDES',
     'pasta_logs': r'1 - RELATORIOS\52 - LOGS PROJETOS',
     'pasta_relatorio_diario': r'G:\Credenciamento Medico\NUCLEO DE AGENDAS\RAFAEL FERNANDES\7 - BASES DE RELATORIOS\RELATORIO PAINEL MONITORAMENTO DIARIO',
+    'pasta_dashboard_acompanhamento': r'C:\Users\agenor.sales\Desktop\dashboard acompanhamento',
+    'url_painel_vercel': 'https://acompanhameto-fluxo-diario-de-taref.vercel.app/',
+    'intervalo_vercel_min': 30,  # Alimenta o painel online a cada 30 minutos
     'hora_relatorio_diario': 18,
-    'intervalo_seg': 60,
+    'intervalo_seg': 60,         # Atualiza a tela a cada 60 segundos
     'porta_servidor_web': 8080,
     'abrir_navegador_ao_iniciar': True,
     'dashboard_html': 'dashboard.html',
     'whatsapp': {
         'ativo': True,
         'porta_chrome': 9222,
-        'resumo_a_cada_min': 60,
-        'horarios_resumo': ['04:00', '06:00', '12:00', '18:00', '20:00', '22:00'],
-        'alerta_imediato_erro': True,
+        'resumo_a_cada_min': 360,  # Envia no WhatsApp apenas a cada 6 horas (360 minutos)
+        'horarios_resumo': ['00:00', '06:00', '12:00', '18:00'],
+        'alerta_imediato_erro': False,  # Desativado para respeitar rigorosamente a janela de 6 horas
         'perfil_chrome': r'C:\chrome_whatsapp_monitor',
         'chrome_exe': '',
         'destinos': [
@@ -95,7 +101,6 @@ DEFAULT = {
         ]
     },
     'monitores': [
-        # ---------------- P0 CRÍTICA ----------------
         {
             'nome': 'BI Alerta Vagas v2', 'categoria': 'bi', 'prio': 'P0', 'regra': 'aprr',
             'log': 'log_execucao_alerta_de_vagas_{YYYY}_{MM}.xlsx', 'min_linhas': 40,
@@ -142,8 +147,6 @@ DEFAULT = {
                 )
             ]
         },
-
-        # ---------------- BASES DE DADOS (META DIÁRIA + META MENSAL DIAS ÚTEIS) ----------------
         {
             'nome': 'T0012 - Disponibilidade / Marcada', 'categoria': 'base', 'prio': 'P1', 'regra': '',
             'log': '', 'min_linhas': 0,
@@ -206,8 +209,6 @@ DEFAULT = {
                 )
             ]
         },
-
-        # ---------------- FLUXOS E BIs P1 ALTA (PRÉ-CADASTRADOS DO PDF) ----------------
         {
             'nome': 'Estoque e Abastecimento', 'categoria': 'bi', 'prio': 'P1', 'regra': '',
             'log': 'log_execucao_estoque_abastecimento_{YYYY}_{MM}.xlsx', 'min_linhas': 4, 'pastas': []
@@ -218,8 +219,6 @@ DEFAULT = {
         {'nome': 'BI Controle Agendas', 'categoria': 'bi', 'prio': 'P1', 'regra': '', 'log': '', 'min_linhas': 0, 'pastas': []},
         {'nome': 'BI Captação de Agendas', 'categoria': 'bi', 'prio': 'P1', 'regra': '', 'log': '', 'min_linhas': 0, 'pastas': []},
         {'nome': 'BI INDICADORES REDE CRED', 'categoria': 'bi', 'prio': 'P1', 'regra': '', 'log': '', 'min_linhas': 0, 'pastas': []},
-
-        # ---------------- BIs E AUTOMAÇÕES P2 MÉDIA (PRÉ-CADASTRADOS DO PDF) ----------------
         {'nome': 'Logs Projetos (Automações)', 'categoria': 'bi', 'prio': 'P2', 'regra': '', 'log': '', 'min_linhas': 0, 'pastas': []},
         {'nome': 'BI Relatório de Consultas em Transferência', 'categoria': 'bi', 'prio': 'P2', 'regra': '', 'log': '', 'min_linhas': 0, 'pastas': []},
         {'nome': 'BI Relatório de Cirurgias', 'categoria': 'bi', 'prio': 'P2', 'regra': '', 'log': '', 'min_linhas': 0, 'pastas': []},
@@ -232,7 +231,7 @@ DEFAULT = {
 
 
 # ==============================================================================
-# 3. SINCRONIZAÇÃO FORÇADA DO JSON E RESOLUÇÃO AUTOMÁTICA DE PASTAS
+# 3. AUTOCONFIGURAÇÃO E RESOLUÇÃO DE CAMINHOS
 # ==============================================================================
 def tok(s, d=None):
     d = d or date.today()
@@ -246,24 +245,17 @@ def tok(s, d=None):
 
 
 def sincronizar_config_automatico():
-    """
-    Atualiza automaticamente o config_monitores.json na pasta do projeto,
-    substituindo as regras antigas pelas novas regras do OptimusBI sem pedir ação manual.
-    """
     cfg_final = json.loads(json.dumps(DEFAULT))
     if CFG.exists():
         try:
             antigo = json.loads(CFG.read_text(encoding='utf-8'))
-            # Preserva os contatos e horários configurados no JSON atual se existirem
             if 'whatsapp' in antigo and 'destinos' in antigo['whatsapp']:
                 cfg_final['whatsapp']['destinos'] = antigo['whatsapp']['destinos']
-            if 'whatsapp' in antigo and 'horarios_resumo' in antigo['whatsapp']:
-                cfg_final['whatsapp']['horarios_resumo'] = antigo['whatsapp']['horarios_resumo']
-            if 'raiz' in antigo and Path(antigo['raiz']).exists():
-                cfg_final['raiz'] = antigo['raiz']
         except Exception:
             pass
-
+    # Garante sempre 6 horas (360 min) no WhatsApp e 30 min para a Vercel
+    cfg_final['whatsapp']['resumo_a_cada_min'] = 360
+    cfg_final['intervalo_vercel_min'] = 30
     CFG.write_text(json.dumps(cfg_final, indent=2, ensure_ascii=False), encoding='utf-8')
     return cfg_final
 
@@ -276,10 +268,6 @@ def montar_caminho(raiz, rel, d=None):
 
 
 def resolver_pasta_automatica(cfg, rel_principal, rel_fallback='', d=None):
-    """
-    Procura automaticamente a pasta no caminho principal (rede \\10.1.17.4 ou G:\)
-    e nos caminhos alternativos, sem precisar selecionar pastas no navegador.
-    """
     raizes = [
         cfg.get('raiz', DEFAULT['raiz']),
         cfg.get('raiz_rede_fallback', DEFAULT['raiz_rede_fallback']),
@@ -317,12 +305,11 @@ def hm(m):
 
 
 # ==============================================================================
-# 4. REGRAS DE HORÁRIO: APRR (+2 ARQS A CADA JANELA) E TELE SAÚDE (30M ANTES)
+# 4. REGRAS DE HORÁRIO: APRR (+2 A CADA HORÁRIO) E TELE SAÚDE (30M ANTES)
 # ==============================================================================
 def calcular_esperado_aprr(agora=None):
     agora = agora or datetime.now()
     min_atual = agora.hour * 60 + agora.minute
-    # Tolerância de 10 min após a hora cheia para conclusão do download
     janelas_passadas = [h for h in HORARIOS_APRR if min_atual >= (h * 60 + 10)]
     qtd_esperada = len(janelas_passadas) * 2
     prox = next((h for h in HORARIOS_APRR if h * 60 > min_atual), None)
@@ -354,12 +341,12 @@ def verificar_janela_telesaude(ult_mod_dt, agora=None):
     mod_min = ult_mod_dt.hour * 60 + ult_mod_dt.minute
     em_dia = mod_hoje and (mod_min >= (ult_janela - 15))
     if em_dia:
-        return True, f'Atualizado na janela das {ult_janela_str} (modificado às {ult_mod_dt:%H:%M:%S}) | Próxima: {prox_str}'
+        return True, f'Atualizado na janela das {ult_janela_str} (às {ult_mod_dt:%H:%M:%S}) | Próxima: {prox_str}'
     return False, f'ATRASADO: Esperada atualização às {ult_janela_str} (30m antes das {hora_aprr_ref}). Última: {ult_mod_dt:%d/%m %H:%M:%S}'
 
 
 # ==============================================================================
-# 5. LEITURA DE LOGS (.XLSX) E AVALIAÇÃO AUTOMÁTICA DAS PASTAS
+# 5. LEITURA DE LOGS (.XLSX) E AVALIAÇÃO DOS MONITORES
 # ==============================================================================
 def ler_log(arq):
     from openpyxl import load_workbook
@@ -546,7 +533,6 @@ def avaliar(m, cfg):
                         if f"{du.day:02d}{du.month:02d}{du.year}" in nome_low:
                             datas_com_arquivo_no_mes.add(du)
 
-                    # Conta como arquivo de hoje se tiver a data de hoje no nome OU se foi modificado hoje
                     mod_hoje = (mtime_dt.date() == hoje)
                     tem_chave = (chave_hoje in nome_low) if chave_hoje else False
 
@@ -617,21 +603,15 @@ def avaliar(m, cfg):
 
 
 # ==============================================================================
-# 6. GERAÇÃO DO RELATÓRIO DIÁRIO (.XLSX) ÀS 18H NA PASTA CONFIGURADA
+# 6. GERAÇÃO DO .XLSX E AUTOMACAO DE UPLOAD NA VERCEL A CADA 30 MINUTOS
 # ==============================================================================
-def gerar_relatorio_xlsx(cfg, res, snaps_hoje, hist_diario):
+def gerar_relatorio_xlsx(cfg, res, snaps_hoje, hist_diario, salvar_em_pasta_especifica=None):
+    """Gera o arquivo .xlsx na pasta solicitada (ou tanto em Desktop\\dashboard acompanhamento quanto em G:\\...)."""
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Alignment
 
-    pasta_dest = Path(cfg.get('pasta_relatorio_diario', DEFAULT['pasta_relatorio_diario']))
-    try:
-        pasta_dest.mkdir(parents=True, exist_ok=True)
-    except Exception:
-        pasta_dest = AQUI
-
     agora = datetime.now()
     nome_arq = f"Relatorio_OptimusBI_{agora:%Y-%m-%d_%Hh%Mm%Ss}.xlsx"
-    caminho_completo = pasta_dest / nome_arq
 
     wb = Workbook()
     header_fill = PatternFill(start_color="0339A6", end_color="0339A6", fill_type="solid")
@@ -704,13 +684,162 @@ def gerar_relatorio_xlsx(cfg, res, snaps_hoje, hist_diario):
     for h in hist_diario:
         ws3.append([h.get('dia'), h.get('h'), h.get('ok'), h.get('warn'), h.get('err')])
 
-    wb.save(caminho_completo)
-    log.info('Relatório diário .xlsx salvo com sucesso em: %s', caminho_completo)
-    return caminho_completo
+    # 1. Salva sempre na pasta C:\Users\agenor.sales\Desktop\dashboard acompanhamento
+    pasta_local_acomp = Path(cfg.get('pasta_dashboard_acompanhamento', DEFAULT['pasta_dashboard_acompanhamento']))
+    try:
+        pasta_local_acomp.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        pasta_local_acomp = AQUI
+
+    arq_local_datado = pasta_local_acomp / nome_arq
+    arq_local_fixo = pasta_local_acomp / "monitoramento_atual.xlsx"
+    wb.save(arq_local_datado)
+    wb.save(arq_local_fixo)
+    log.info('Planilha salva em %s', arq_local_datado)
+
+    # 2. Se for o relatório diário ou solicitado, salva também na rede G:\...
+    if salvar_em_pasta_especifica:
+        try:
+            p_rede = Path(salvar_em_pasta_especifica)
+            p_rede.mkdir(parents=True, exist_ok=True)
+            wb.save(p_rede / nome_arq)
+        except Exception as e:
+            log.warning('Não foi possível salvar cópia na rede %s: %s', salvar_em_pasta_especifica, e)
+
+    return arq_local_datado
+
+
+def enviar_xlsx_para_painel_vercel(cfg, caminho_xlsx):
+    """
+    Abre o Google Chrome no link https://acompanhameto-fluxo-diario-de-taref.vercel.app/,
+    clica na aba Monitoramento e inclui o arquivo .xlsx gerado.
+    """
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+
+    url_vercel = cfg.get('url_painel_vercel', DEFAULT['url_painel_vercel'])
+    porta_vercel = 9225  # Porta separada para não conflitar com o WhatsApp (9222)
+    proc = None
+    drv = None
+
+    try:
+        log.info('Iniciando upload do arquivo %s para o painel Vercel (%s)...', caminho_xlsx.name, url_vercel)
+        encerrar_chrome_porta(porta_vercel)
+
+        w = cfg['whatsapp']
+        cands = [
+            w.get('chrome_exe', ''),
+            r'C:\Program Files\Google\Chrome\Application\chrome.exe',
+            r'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe',
+            os.path.expandvars(r'%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe')
+        ]
+        exe = next((c for c in cands if c and os.path.exists(c)), None)
+        if not exe:
+            log.error('chrome.exe não encontrado para subir planilha na Vercel.')
+            return False
+
+        perfil_vercel = r'C:\chrome_vercel_monitor'
+        proc = subprocess.Popen([
+            exe,
+            f'--remote-debugging-port={porta_vercel}',
+            f'--user-data-dir={perfil_vercel}',
+            '--no-first-run',
+            url_vercel
+        ])
+
+        for _ in range(35):
+            if porta_aberta(porta_vercel):
+                time.sleep(3)
+                break
+            time.sleep(1)
+
+        op = Options()
+        op.debugger_address = f"127.0.0.1:{porta_vercel}"
+        drv = webdriver.Chrome(options=op)
+        drv.get(url_vercel)
+        time.sleep(5)
+
+        # 1. Procura e clica na aba "Monitoramento"
+        xpaths_aba = [
+            "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'monitoramento')]",
+            "//button[contains(., 'Monitoramento')]",
+            "//a[contains(., 'Monitoramento')]"
+        ]
+        for xp in xpaths_aba:
+            elems = drv.find_elements(By.XPATH, xp)
+            for el in elems:
+                if el.is_displayed():
+                    try:
+                        el.click()
+                        time.sleep(2)
+                        break
+                    except Exception:
+                        pass
+
+        # 2. Localiza o <input type="file"> na aba Monitoramento e envia o caminho do .xlsx
+        inputs_file = drv.find_elements(By.XPATH, "//input[@type='file']")
+        if not inputs_file:
+            # Aguarda até 15s caso a aba ainda esteja renderizando
+            inp = WebDriverWait(drv, 15).until(
+                EC.presence_of_element_located((By.XPATH, "//input[@type='file']"))
+            )
+        else:
+            inp = inputs_file[0]
+
+        # Torna o input visível caso esteja com classe 'hidden' no React/Tailwind
+        drv.execute_script("arguments[0].style.display = 'block'; arguments[0].style.visibility = 'visible';", inp)
+        time.sleep(1)
+        inp.send_keys(str(caminho_xlsx.resolve()))
+        time.sleep(6)  # Aguarda o processamento/sincronização do arquivo na aplicação
+
+        # Se houver botão de confirmar/salvar/enviar após selecionar o arquivo, clica nele
+        botoes_confirmar = drv.find_elements(
+            By.XPATH,
+            "//button[contains(., 'Salvar') or contains(., 'Enviar') or contains(., 'Importar') or contains(., 'Sincronizar')]"
+        )
+        for btn in botoes_confirmar:
+            if btn.is_displayed():
+                try:
+                    btn.click()
+                    time.sleep(3)
+                except Exception:
+                    pass
+
+        log.info('Arquivo %s incluído com sucesso na aba Monitoramento da Vercel!', caminho_xlsx.name)
+        return True
+
+    except Exception as e:
+        log.error('Falha ao incluir arquivo na Vercel: %s', str(e)[:250])
+        return False
+    finally:
+        if proc:
+            try:
+                proc.terminate()
+            except Exception:
+                pass
+        encerrar_chrome_porta(porta_vercel)
+
+
+def rotina_vercel_30_minutos(cfg, res, snaps_hoje, hist, forcar=False):
+    """Executa a cada 30 minutos: gera o .xlsx na pasta do Desktop e inclui na aba Monitoramento da Vercel."""
+    est = json.loads(ESTADO.read_text(encoding='utf-8')) if ESTADO.exists() else {}
+    agora = datetime.now()
+    ult_str = est.get('ultimo_upload_vercel')
+    ult_dt = datetime.fromisoformat(ult_str) if ult_str else None
+    int_min = int(cfg.get('intervalo_vercel_min', 30))
+
+    if forcar or ult_dt is None or (agora - ult_dt) >= timedelta(minutes=int_min):
+        arq_xlsx = gerar_relatorio_xlsx(cfg, res, snaps_hoje, hist)
+        enviar_xlsx_para_painel_vercel(cfg, arq_xlsx)
+        est['ultimo_upload_vercel'] = agora.isoformat()
+        ESTADO.write_text(json.dumps(est, ensure_ascii=False), encoding='utf-8')
 
 
 # ==============================================================================
-# 7. TEMPLATE DO DASHBOARD HTML (100% AUTOMÁTICO - SEM BOTÃO DE SELECIONAR PASTA)
+# 7. TEMPLATE DO DASHBOARD LOCAL (HTML)
 # ==============================================================================
 HTML = r'''<!DOCTYPE html>
 <html lang="pt-BR">
@@ -723,14 +852,14 @@ HTML = r'''<!DOCTYPE html>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
     :root {
-      --blue-inst: #0339A6;     /* Cor primária, títulos, botões e prioridade baixa */
-      --blue-dark: #122A44;     /* Estados de hover e variações escuras */
-      --gold: #F2B705;          /* Cor secundária, destaques e prioridade média */
-      --orange: #F24405;        /* Prioridade alta */
-      --red: #F21D2F;           /* Alertas críticos e prioridade crítica */
-      --bg: #F2F2F2;            /* Fundo geral da aplicação */
-      --ink: #1F2937;           /* Texto principal escuro */
-      --card: #FFFFFF;          /* Cards, painéis, botões e áreas de conteúdo */
+      --blue-inst: #0339A6;
+      --blue-dark: #122A44;
+      --gold: #F2B705;
+      --orange: #F24405;
+      --red: #F21D2F;
+      --bg: #F2F2F2;
+      --ink: #1F2937;
+      --card: #FFFFFF;
       --slate-100: #F1F5F9;
       --slate-200: #E2E8F0;
       --slate-400: #94A3B8;
@@ -810,6 +939,7 @@ HTML = r'''<!DOCTYPE html>
     </div>
     <div class="bar">
       <button class="p" id="bRefresh">🔄 Atualizar Agora</button>
+      <button class="g" id="bVercel">☁️ Enviar p/ Vercel Agora</button>
       <button class="g" id="bRel">📊 Salvar Relatório (.xlsx)</button>
       <button class="g" id="bWa">💬 Resumo no WhatsApp</button>
     </div>
@@ -830,7 +960,7 @@ HTML = r'''<!DOCTYPE html>
       <span id="snapInfo" style="font-size:12px;color:var(--slate-600);margin-left:8px"></span>
     </div>
     <div style="font-size:12px;color:var(--slate-600)">
-      <strong>APRR:</strong> 06h, 09h, 11h, 13h, 15h, 17h (+2 arqs) | <strong>Tele Saúde:</strong> 30m antes | <strong>Relatório .xlsx:</strong> 18:00
+      <strong>Vercel (.xlsx):</strong> a cada 30 min | <strong>WhatsApp:</strong> a cada 6 horas | <strong>Relatório Final:</strong> 18:00
     </div>
   </div>
 
@@ -847,9 +977,9 @@ HTML = r'''<!DOCTYPE html>
 </main>
 
 <dialog id="dWa">
-  <div class="dh"><b>Resumo para WhatsApp (OptimusBI)</b><button id="bWc">Fechar</button></div>
+  <div class="dh"><b>Resumo para WhatsApp (A cada 6 horas)</b><button id="bWc">Fechar</button></div>
   <div class="db">
-    <p style="font-size:12px;color:var(--slate-600);margin-top:0">O Python envia automaticamente 1 mensagem por contato (fechando e reiniciando o navegador a cada pessoa).</p>
+    <p style="font-size:12px;color:var(--slate-600);margin-top:0">O Python envia automaticamente a cada 6 horas (1 mensagem por contato, fechando e reiniciando o navegador).</p>
     <textarea id="waTxt" rows="11" style="width:100%;font:inherit;padding:8px"></textarea>
     <div class="bar" id="waBtns" style="margin-top:10px"></div>
   </div>
@@ -900,13 +1030,27 @@ $('#bRefresh').onclick = async () => {
   location.reload();
 };
 
+$('#bVercel').onclick = async () => {
+  $('#bVercel').disabled = true;
+  $('#bVercel').textContent = '⏳ Enviando p/ Vercel...';
+  try {
+    const r = await fetch('/api/vercel');
+    const j = await r.json();
+    alert('Planilha gerada e enviada para a aba Monitoramento da Vercel!\nArquivo: ' + j.arquivo);
+  } catch(e) {
+    alert('O upload automático ocorre a cada 30 minutos pelo Python.');
+  }
+  $('#bVercel').disabled = false;
+  $('#bVercel').textContent = '☁️ Enviar p/ Vercel Agora';
+};
+
 $('#bRel').onclick = async () => {
   try {
     const r = await fetch('/api/relatorio');
     const j = await r.json();
-    alert('Relatório .xlsx salvo automaticamente em:\n' + j.arquivo);
+    alert('Relatório .xlsx salvo em:\n' + j.arquivo);
   } catch(e) {
-    alert('Relatório programado para salvar automaticamente às 18:00 na pasta G:\\... configurada!');
+    alert('Relatório salvo automaticamente na pasta configurada!');
   }
 };
 
@@ -917,7 +1061,7 @@ function render() {
     list = snaps[hVal].itens;
     $('#snapInfo').innerHTML = `<b style="color:var(--orange)">Exibindo fotografia das ${hVal} (salva às ${snaps[hVal].salvo_as})</b>`;
   } else {
-    $('#snapInfo').textContent = 'Pastas lidas automaticamente pelo Python (G:\\ e Rede).';
+    $('#snapInfo').textContent = 'Pastas lidas automaticamente pelo Python.';
   }
 
   const filtered = list.filter(r => {
@@ -1097,7 +1241,6 @@ def gerar_dashboard(cfg, res):
     )
     conteudo_html = HTML.replace('__DATA__', json.dumps(dados, ensure_ascii=False))
 
-    # Atualiza automaticamente o dashboard.html e qualquer outro arquivo .html da pasta para evitar abrir tela antiga!
     destino = AQUI / cfg.get('dashboard_html', 'dashboard.html')
     destino.write_text(conteudo_html, encoding='utf-8')
     for arq_extra in ('monitor_automacoes.html', 'monitor_automacoes 1.html', 'monitor_automacoes 1_2.html'):
@@ -1112,7 +1255,7 @@ def gerar_dashboard(cfg, res):
 
 
 # ==============================================================================
-# 8. WHATSAPP: FECHA O NAVEGADOR E INICIA NOVAMENTE PARA CADA CONTATO (SEM WINERROR 6)
+# 8. WHATSAPP A CADA 6 HORAS (360 MIN) - FECHANDO E REINICIANDO POR CONTATO
 # ==============================================================================
 ICON = {'ok': '✅', 'err': '❌', 'warn': '⚠️', 'run': '🔄', 'nd': '➖'}
 
@@ -1143,7 +1286,6 @@ def porta_aberta(p):
 
 
 def encerrar_chrome_porta(porta):
-    """Encerra de forma limpa o Chrome da porta do monitor sem gerar WinError 6 no Selenium."""
     if os.name == 'nt':
         cmd = f'powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object {{ $_.Name -eq \'chrome.exe\' -and $_.CommandLine -like \'*{porta}*\' }} | Invoke-CimMethod -MethodName Terminate" >nul 2>&1'
         subprocess.run(cmd, shell=True)
@@ -1181,10 +1323,6 @@ def abrir_chrome_limpo(cfg):
 
 
 def enviar_whatsapp(cfg, texto):
-    """
-    Abre o navegador, envia 1 mensagem para o contato, fecha o navegador completamente
-    e inicia uma nova janela limpa para o próximo contato.
-    """
     from selenium import webdriver
     from selenium.webdriver.chrome.options import Options
     from selenium.webdriver.common.by import By
@@ -1234,31 +1372,28 @@ def enviar_whatsapp(cfg, texto):
 
 
 def rotina_whatsapp(cfg, res, enviar):
+    """Envia a atualização no WhatsApp somente a cada 6 horas (360 minutos)."""
     w = cfg['whatsapp']
     if not (enviar and w.get('ativo')):
         return
     est = json.loads(ESTADO.read_text(encoding='utf-8')) if ESTADO.exists() else {}
     agora = datetime.now()
-    freq = int(w.get('resumo_a_cada_min', 60))
+    freq_min = int(w.get('resumo_a_cada_min', 360))  # 360 min = 6 horas
     ultimo = datetime.fromisoformat(est['ultimo_resumo']) if est.get('ultimo_resumo') else None
     ativos = [x for x in res if x['status'] != 'nd']
     erros = sorted(f"{x['nome']}|{e}" for x in ativos for e in x['erros'])
     sig = '\n'.join(erros)
 
-    if ultimo is None or (agora - ultimo) >= timedelta(minutes=max(freq - 5, 1)):
-        titulo = '🚨 Monitoramento OptimusBI (com erros)' if erros else 'Monitoramento OptimusBI'
+    if ultimo is None or (agora - ultimo) >= timedelta(minutes=freq_min):
+        titulo = '🚨 Monitoramento OptimusBI (6h)' if erros else 'Monitoramento OptimusBI (6h)'
         if enviar_whatsapp(cfg, resumo(res, titulo)):
             est['ultimo_resumo'] = agora.isoformat()
             est['ultima_assinatura'] = sig
-    elif w.get('alerta_imediato_erro') and erros and sig != est.get('ultima_assinatura'):
-        if enviar_whatsapp(cfg, resumo(res, '🚨 ALERTA OptimusBI')):
-            est['ultima_assinatura'] = sig
-
-    ESTADO.write_text(json.dumps(est, ensure_ascii=False), encoding='utf-8')
+            ESTADO.write_text(json.dumps(est, ensure_ascii=False), encoding='utf-8')
 
 
 # ==============================================================================
-# 9. SERVIDOR WEB EMBUTIDO E CICLO PRINCIPAL (A CADA 60 SEGUNDOS)
+# 9. SERVIDOR WEB EMBUTIDO E CICLO PRINCIPAL
 # ==============================================================================
 ULTIMO_ESTADO_GLOBAL = {'cfg': None, 'res': [], 'snaps': {}, 'hist': []}
 
@@ -1278,7 +1413,20 @@ class PainelHandler(BaseHTTPRequestHandler):
 
         if self.path.startswith('/api/relatorio'):
             cfg = ULTIMO_ESTADO_GLOBAL['cfg'] or sincronizar_config_automatico()
+            arq = gerar_relatorio_xlsx(
+                cfg, ULTIMO_ESTADO_GLOBAL['res'], ULTIMO_ESTADO_GLOBAL['snaps'],
+                ULTIMO_ESTADO_GLOBAL['hist'], salvar_em_pasta_especifica=cfg.get('pasta_relatorio_diario')
+            )
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(json.dumps({'ok': True, 'arquivo': str(arq)}).encode('utf-8'))
+            return
+
+        if self.path.startswith('/api/vercel'):
+            cfg = ULTIMO_ESTADO_GLOBAL['cfg'] or sincronizar_config_automatico()
             arq = gerar_relatorio_xlsx(cfg, ULTIMO_ESTADO_GLOBAL['res'], ULTIMO_ESTADO_GLOBAL['snaps'], ULTIMO_ESTADO_GLOBAL['hist'])
+            enviar_xlsx_para_painel_vercel(cfg, arq)
             self.send_response(200)
             self.send_header('Content-type', 'application/json; charset=utf-8')
             self.end_headers()
@@ -1319,13 +1467,16 @@ def verificar_relatorio_final_do_dia(cfg, res, snaps_hoje, hist, forcar=False):
 
     ja_gerou_hoje = (est.get('ultimo_relatorio_xlsx') == hoje_iso)
     if forcar or (agora.hour >= hora_alvo and not ja_gerou_hoje):
-        arq_salvo = gerar_relatorio_xlsx(cfg, res, snaps_hoje, hist)
+        arq_salvo = gerar_relatorio_xlsx(
+            cfg, res, snaps_hoje, hist,
+            salvar_em_pasta_especifica=cfg.get('pasta_relatorio_diario', DEFAULT['pasta_relatorio_diario'])
+        )
         est['ultimo_relatorio_xlsx'] = hoje_iso
         ESTADO.write_text(json.dumps(est, ensure_ascii=False), encoding='utf-8')
         print(f"[OptimusBI] Relatório diário .xlsx salvo em: {arq_salvo}")
 
 
-def ciclo(enviar, forcar_relatorio=False):
+def ciclo(enviar, forcar_relatorio=False, forcar_vercel=False):
     cfg = sincronizar_config_automatico()
     res = []
     for m in cfg['monitores']:
@@ -1351,6 +1502,11 @@ def ciclo(enviar, forcar_relatorio=False):
     )
 
     try:
+        rotina_vercel_30_minutos(cfg, res, snaps_hoje, hist, forcar=forcar_vercel)
+    except Exception:
+        log.error('Falha na rotina Vercel 30m\n%s', traceback.format_exc())
+
+    try:
         verificar_relatorio_final_do_dia(cfg, res, snaps_hoje, hist, forcar=forcar_relatorio)
     except Exception:
         log.error('Falha ao gerar relatório diário .xlsx\n%s', traceback.format_exc())
@@ -1369,6 +1525,7 @@ if __name__ == '__main__':
     ap.add_argument('--sem-whatsapp', action='store_true')
     ap.add_argument('--testar-whatsapp', action='store_true')
     ap.add_argument('--gerar-relatorio', action='store_true')
+    ap.add_argument('--enviar-vercel', action='store_true', help='Força geração do .xlsx e upload imediato na Vercel')
     a = ap.parse_args()
 
     if a.testar_whatsapp:
@@ -1377,7 +1534,7 @@ if __name__ == '__main__':
         sys.exit()
 
     cfg_ini = sincronizar_config_automatico()
-    if not a.uma_vez and not a.gerar_relatorio:
+    if not a.uma_vez and not a.gerar_relatorio and not a.enviar_vercel:
         porta_web = int(cfg_ini.get('porta_servidor_web', 8080))
         if iniciar_servidor_web(porta_web) and cfg_ini.get('abrir_navegador_ao_iniciar', True):
             webbrowser.open(f'http://localhost:{porta_web}')
@@ -1385,11 +1542,11 @@ if __name__ == '__main__':
     while True:
         ini = time.time()
         try:
-            cfg = ciclo(not a.sem_whatsapp, forcar_relatorio=a.gerar_relatorio)
+            cfg = ciclo(not a.sem_whatsapp, forcar_relatorio=a.gerar_relatorio, forcar_vercel=a.enviar_vercel)
         except Exception:
             log.error('Erro no ciclo\n%s', traceback.format_exc())
             cfg = DEFAULT
-        if a.uma_vez or a.gerar_relatorio:
+        if a.uma_vez or a.gerar_relatorio or a.enviar_vercel:
             break
         tempo_espera = max(10, int(cfg.get('intervalo_seg', 60)) - (time.time() - ini))
         time.sleep(tempo_espera)
