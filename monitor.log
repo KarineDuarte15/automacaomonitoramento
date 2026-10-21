@@ -509,3 +509,84 @@ Symbols not available. Dumping unresolved backtrace:
 2026-10-21 12:54:08,056 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
 2026-10-21 12:55:08,617 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
 2026-10-21 12:55:08,618 INFO [1/2] Iniciando janela do navegador para Agenor...
+2026-10-21 12:56:20,705 ERROR Falha WhatsApp Agenor: Message: session not created: cannot connect to chrome at 127.0.0.1:9222
+from chrome not reachable; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/trou
+2026-10-21 12:56:23,930 INFO [2/2] Iniciando janela do navegador para Miller...
+2026-10-21 12:56:58,980 ERROR Falha WhatsApp Miller: Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=155.0.8059.85)
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(N
+2026-10-21 12:57:18,720 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 12:57:18,721 INFO [1/2] Iniciando janela do navegador para Agenor...
+2026-10-21 12:57:32,129 ERROR Falha WhatsApp Agenor: Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=155.0.8059.85)
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(N
+2026-10-21 12:57:35,369 INFO [2/2] Iniciando janela do navegador para Miller...
+2026-10-21 12:57:48,629 ERROR Falha WhatsApp Miller: Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=155.0.8059.85)
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(N
+2026-10-21 12:58:20,293 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 12:58:20,295 INFO [1/2] Iniciando janela do navegador para Agenor...
+2026-10-21 12:58:53,613 INFO WhatsApp enviado para Agenor (1 mensagem). Fechando janela...
+2026-10-21 12:58:56,992 INFO [2/2] Iniciando janela do navegador para Miller...
+2026-10-21 12:59:29,346 INFO WhatsApp enviado para Miller (1 mensagem). Fechando janela...
+2026-10-21 12:59:50,642 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 13:00:46,651 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 13:01:46,545 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 13:02:46,649 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 13:03:46,756 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 13:04:46,718 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 13:04:46,720 INFO [1/2] Iniciando janela do navegador para Agenor...
+2026-10-21 13:05:58,819 ERROR Falha WhatsApp Agenor: Message: session not created: cannot connect to chrome at 127.0.0.1:9222
+from chrome not reachable; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/trou
+2026-10-21 13:06:01,931 INFO [2/2] Iniciando janela do navegador para Miller...
+2026-10-21 13:07:13,946 ERROR Falha WhatsApp Miller: Message: session not created: cannot connect to chrome at 127.0.0.1:9222
+from chrome not reachable; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/trou
+2026-10-21 13:07:31,139 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 13:07:31,141 INFO [1/2] Iniciando janela do navegador para Agenor...
+2026-10-21 13:07:46,580 ERROR Falha WhatsApp Agenor: Message: invalid session id: session deleted as the browser has closed the connection
+from disconnected: not connected to DevTools
+  (Session info: chrome=155.0.8059.85); For documentation on this err
+2026-10-21 13:07:49,743 INFO [2/2] Iniciando janela do navegador para Miller...
+2026-10-21 13:08:08,376 ERROR Falha WhatsApp Miller: Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=155.0.8059.85)
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(N
+2026-10-21 13:08:35,234 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 13:08:35,235 INFO [1/2] Iniciando janela do navegador para Agenor...
+2026-10-21 13:09:47,336 ERROR Falha WhatsApp Agenor: Message: session not created: cannot connect to chrome at 127.0.0.1:9222
+from chrome not reachable; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/trou
+2026-10-21 13:09:50,460 INFO [2/2] Iniciando janela do navegador para Miller...
+2026-10-21 13:11:02,444 ERROR Falha WhatsApp Miller: Message: session not created: cannot connect to chrome at 127.0.0.1:9222
+from chrome not reachable; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/trou
+2026-10-21 13:11:19,429 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 13:11:19,431 INFO [1/2] Iniciando janela do navegador para Agenor...
+2026-10-21 13:11:29,848 ERROR Falha WhatsApp Agenor: Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=155.0.8059.85)
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(N
+2026-10-21 13:11:33,092 INFO [2/2] Iniciando janela do navegador para Miller...
+2026-10-21 13:12:15,308 INFO WhatsApp enviado para Miller (1 mensagem). Fechando janela...
+2026-10-21 13:12:36,464 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 13:12:36,465 INFO [1/2] Iniciando janela do navegador para Agenor...
+2026-10-21 13:13:09,037 INFO WhatsApp enviado para Agenor (1 mensagem). Fechando janela...
+2026-10-21 13:13:12,198 INFO [2/2] Iniciando janela do navegador para Miller...
+2026-10-21 13:14:24,156 ERROR Falha WhatsApp Miller: Message: session not created: cannot connect to chrome at 127.0.0.1:9222
+from chrome not reachable; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/trou
+2026-10-21 13:14:42,812 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 13:14:42,814 INFO [1/2] Iniciando janela do navegador para Agenor...
+2026-10-21 13:15:54,910 ERROR Falha WhatsApp Agenor: Message: session not created: cannot connect to chrome at 127.0.0.1:9222
+from chrome not reachable; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/trou
+2026-10-21 13:15:58,020 INFO [2/2] Iniciando janela do navegador para Miller...
