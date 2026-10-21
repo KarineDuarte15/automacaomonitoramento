@@ -1,347 +1,75 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="refresh" content="60">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Monitoramento OptimusBI</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-  <style>
-    :root {
-      --blue-inst: #0339A6;     /* Cor primária, títulos, botões e prioridade baixa */
-      --blue-dark: #122A44;     /* Estados de hover e variações escuras */
-      --gold: #F2B705;          /* Cor secundária, destaques e prioridade média */
-      --orange: #F24405;        /* Prioridade alta */
-      --red: #F21D2F;           /* Alertas críticos e prioridade crítica */
-      --bg: #F2F2F2;            /* Fundo geral da aplicação */
-      --ink: #1F2937;           /* Texto principal escuro */
-      --card: #FFFFFF;          /* Cards, painéis, botões e áreas de conteúdo */
-      --slate-100: #F1F5F9;
-      --slate-200: #E2E8F0;
-      --slate-400: #94A3B8;
-      --slate-600: #475569;
-      --amber-50: #FFFBEB;
-      --amber-800: #92400E;
-      --ok: #10B981;
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 'IBM Plex Sans', system-ui, sans-serif; }
-    header { background: var(--blue-inst); color: var(--card); padding: 12px 24px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.12); position: sticky; top: 0; z-index: 50; }
-    .header-top { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; padding-bottom: 12px; }
-    .brand { display: flex; align-items: center; gap: 12px; }
-    .logo-box { width: 46px; height: 46px; background: var(--card); border-radius: 8px; border: 2px solid var(--gold); display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; }
-    .logo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
-    h1 { font-size: 20px; margin: 0; font-weight: 700; color: var(--card); }
-    .sub { color: var(--slate-200); font-size: 12.5px; display: flex; align-items: center; gap: 8px; margin-top: 2px; flex-wrap: wrap; }
-    .badge { background: var(--blue-dark); color: var(--gold); padding: 2px 8px; border-radius: 4px; font-family: monospace; font-weight: 700; font-size: 13px; }
-    .bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    button, select { font: inherit; font-size: 13px; font-weight: 600; border: 1px solid var(--slate-200); background: var(--card); color: var(--ink); padding: 7px 14px; border-radius: 6px; cursor: pointer; transition: 0.15s; }
-    button:hover { background: var(--blue-dark); color: var(--card); border-color: var(--blue-dark); }
-    button.p { background: var(--gold); color: var(--blue-dark); border-color: var(--gold); }
-    button.p:hover { background: var(--blue-dark); color: var(--gold); }
-    button.g { background: var(--blue-dark); color: var(--card); border-color: var(--blue-dark); }
-    .nav-tabs { display: flex; gap: 4px; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 8px; overflow-x: auto; }
-    .nav-tab { background: transparent; color: var(--slate-200); border: none; border-bottom: 3px solid transparent; border-radius: 6px 6px 0 0; padding: 8px 18px; font-weight: 600; cursor: pointer; }
-    .nav-tab:hover { background: var(--blue-dark); color: var(--card); }
-    .nav-tab.active { background: var(--bg); color: var(--blue-inst); border-bottom-color: var(--gold); }
-    main { padding: 20px 24px; max-width: 1440px; margin: auto; }
-    .filter-bar { background: var(--card); border: 1px solid var(--slate-200); border-left: 5px solid var(--blue-inst); border-radius: 8px; padding: 10px 16px; margin-bottom: 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
-    .sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
-    .k { background: var(--card); border: 1px solid var(--slate-200); border-left: 5px solid var(--c); border-radius: 8px; padding: 12px 14px; }
-    .k b { font-size: 26px; display: block; line-height: 1.1; color: var(--ink); }
-    .k span { color: var(--slate-600); font-size: 12px; }
-    .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 14px; margin-bottom: 18px; }
-    .box { background: var(--card); border: 1px solid var(--slate-200); border-radius: 8px; padding: 14px; }
-    .box h3 { margin: 0 0 10px; font-size: 13.5px; color: var(--blue-inst); font-weight: 700; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 14px; }
-    .m { background: var(--card); border: 1px solid var(--slate-200); border-top: 4px solid var(--c); border-radius: 8px; padding: 15px; }
-    .m:hover { border-color: var(--blue-dark); }
-    .m h2 { font-size: 15.5px; margin: 0; color: var(--blue-inst); display: flex; justify-content: space-between; gap: 8px; }
-    .chip { font-size: 11px; font-weight: 700; color: #fff; background: var(--c); border-radius: 99px; padding: 2px 10px; white-space: nowrap; }
-    .meta { display: flex; gap: 6px; margin: 4px 0 10px; font-size: 11px; font-weight: 700; }
-    .p-tag { padding: 2px 8px; border-radius: 4px; color: #fff; }
-    .p-P0 { background: var(--red); } .p-P1 { background: var(--orange); } .p-P2 { background: var(--gold); color: var(--ink); } .p-P3 { background: var(--blue-inst); }
-    .c-tag { background: var(--slate-100); color: var(--slate-600); padding: 2px 8px; border-radius: 4px; }
-    .row { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px dashed var(--slate-200); font-size: 13px; }
-    .row:last-of-type { border: 0; } .row span:first-child { color: var(--slate-600); }
-    .msg { margin-top: 8px; padding: 8px 10px; border-radius: 6px; background: #FEE2E2; color: var(--red); border-left: 3px solid var(--red); font-size: 12.5px; font-weight: 500; }
-    .msg.w { background: var(--amber-50); color: var(--amber-800); border-left-color: var(--gold); }
-    .msg.i { background: var(--slate-100); color: var(--blue-inst); border-left-color: var(--blue-inst); }
-    .ok { --c: var(--ok); } .err { --c: var(--red); } .warn { --c: var(--gold); } .run { --c: var(--blue-inst); } .nd { --c: var(--slate-400); }
-    dialog { border: 0; border-radius: 10px; width: min(880px, 95vw); padding: 0; } dialog::backdrop { background: rgba(18,42,68,0.65); }
-    .dh { padding: 14px 18px; background: var(--blue-inst); color: #fff; display: flex; justify-content: space-between; align-items: center; }
-    .db { padding: 16px 18px; background: #fff; }
-    .hidden { display: none !important; }
-    @media(max-width:600px){ .grid, .charts { grid-template-columns: 1fr; } }
-  </style>
-</head>
-<body>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta http-equiv="refresh" content="60"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Monitor de Automações</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#f3f5f8;--card:#fff;--ink:#16202e;--mut:#667386;--line:#e0e5ec;--ok:#1b8a5a;--err:#c93b3b;--warn:#c98a12;--run:#2563c9;--nd:#8a94a3}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 'IBM Plex Sans',system-ui,sans-serif}
+header{background:#16202e;color:#fff;padding:14px 24px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+h1{font-size:18px;margin:0;font-weight:600}.sub{color:#9fb0c6;font-size:12px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button,select{font:inherit;border:1px solid var(--line);background:#fff;color:var(--ink);padding:6px 12px;border-radius:6px;cursor:pointer}
+button.p{background:#2563c9;color:#fff;border-color:#2563c9}button.g{background:#1b8a5a;color:#fff;border-color:#1b8a5a}button:hover{filter:brightness(.95)}
+main{padding:20px 24px;max-width:1400px;margin:auto}
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.k{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--c);border-radius:8px;padding:12px 14px}
+.k b{font-size:26px;display:block;line-height:1.1}.k span{color:var(--mut);font-size:12px}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:12px;margin-bottom:16px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px}.box h3{margin:0 0 8px;font-size:13px;color:var(--mut);font-weight:500}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:12px}
+.m{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:8px;padding:14px}
+.m h2{font-size:15px;margin:0;display:flex;justify-content:space-between;gap:8px}
+.chip{font-size:11px;font-weight:600;color:#fff;background:var(--c);border-radius:99px;padding:2px 10px;white-space:nowrap}
+.pr{font-size:11px;color:var(--mut);margin:2px 0 8px}
+.row{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px dashed var(--line);font-size:13px}.row:last-child{border:0}.row span:first-child{color:var(--mut)}
+.msg{margin-top:8px;padding:8px 10px;border-radius:6px;background:#fbeaea;color:#8d2323;font-size:12.5px;word-break:break-word}
+.msg.w{background:#fdf3de;color:#7a5200}.msg.i{background:#eaf1fc;color:#1d4a94}
+.ok{--c:var(--ok)}.err{--c:var(--err)}.warn{--c:var(--warn)}.run{--c:var(--run)}.nd{--c:var(--nd)}
+dialog{border:0;border-radius:10px;width:min(900px,95vw);max-height:90vh;padding:0}dialog::backdrop{background:#0008}
+.dh{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff}
+.db{padding:14px 18px}fieldset{border:1px solid var(--line);border-radius:8px;margin:0 0 12px;padding:10px 12px}
+legend{font-weight:600;padding:0 6px}label{display:block;font-size:12px;color:var(--mut)}
+input[type=text],input[type=number]{width:100%;font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:5px}
+.f{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:8px}
+.fo{background:#f7f9fb;border-radius:6px;padding:8px;margin-top:8px}
+.hint{font-size:12px;color:var(--mut)}
+@media(max-width:480px){.grid{grid-template-columns:1fr}.charts{grid-template-columns:1fr}}
+</style></head><body>
 <header>
-  <div class="header-top">
-    <div class="brand">
-      <div class="logo-box" id="logoBox" title="Clique para selecionar a logo OptimusBI">
-        <img id="logoImg" src="logo.png" alt="OptimusBI" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-        <span style="display:none;color:var(--blue-inst);font-weight:800;font-size:10px;text-align:center">OPTIMUS<br>BI</span>
-      </div>
-      <input type="file" id="logoFile" accept="image/*" class="hidden">
-      <div>
-        <h1>Monitoramento OptimusBI</h1>
-        <div class="sub">
-          <span id="last"></span>
-          <span>| Relógio: <b class="badge" id="liveClock">--:--:--</b></span>
-          <span>| Atualização: <b class="badge" id="cd">60s</b></span>
-        </div>
-      </div>
-    </div>
-    <div class="bar">
-      <button class="p" id="bRefresh">🔄 Atualizar Agora</button>
-      <button class="g" id="bRel">📊 Salvar Relatório (.xlsx)</button>
-      <button class="g" id="bWa">💬 Resumo no WhatsApp</button>
-    </div>
-  </div>
-  <nav class="nav-tabs" id="tabs">
-    <button class="nav-tab active" data-tab="all">Visão Geral (Todos)</button>
-    <button class="nav-tab" data-tab="bi">Painéis BI</button>
-    <button class="nav-tab" data-tab="base">Bases de Dados (Diário + Mensal)</button>
-    <button class="nav-tab" data-tab="charts">Gráficos & Evolução (Hora / Dia)</button>
-  </nav>
+<div><h1>Monitor de Automações</h1><div class="sub" id="last"></div></div>
+<div class="bar"><button class="p" onclick="location.reload()">Atualizar agora</button><button class="g" id="bWa">Resumo no WhatsApp</button></div>
 </header>
-
 <main>
-  <div class="filter-bar">
-    <div>
-      <strong>⏱️ Filtro de Estado por Hora: </strong>
-      <select id="hourSel"><option value="now">Tempo Real (Última Leitura)</option></select>
-      <span id="snapInfo" style="font-size:12px;color:var(--slate-600);margin-left:8px"></span>
-    </div>
-    <div style="font-size:12px;color:var(--slate-600)">
-      <strong>APRR:</strong> 06h, 09h, 11h, 13h, 15h, 17h (+2 arqs) | <strong>Tele Saúde:</strong> 30m antes | <strong>Relatório .xlsx:</strong> 18:00
-    </div>
-  </div>
-
-  <div class="sum" id="sum"></div>
-
-  <div class="charts" id="chartsBox">
-    <div class="box"><h3>Erros e Sucessos por Hora/Minuto (Hoje)</h3><canvas id="cHora" height="170"></canvas></div>
-    <div class="box"><h3>Evolução Diária (Sucessos vs Erros por Dia)</h3><canvas id="cDia" height="170"></canvas></div>
-    <div class="box"><h3>Tempo Médio de Execução por Processo (min)</h3><canvas id="c1" height="170"></canvas></div>
-    <div class="box"><h3>Tempo Médio por Arquivo Baixado (min / arquivo)</h3><canvas id="cArq" height="170"></canvas></div>
-  </div>
-
-  <div class="grid" id="grid"></div>
+<div class="sum" id="sum"></div>
+<div class="charts">
+<div class="box"><h3>Tempo médio de execução por processo (min, mês atual)</h3><canvas id="c1" height="170"></canvas></div>
+<div class="box"><h3>Execuções de hoje: sucesso e erro</h3><canvas id="c2" height="170"></canvas></div>
+</div>
+<div class="grid" id="grid"></div>
 </main>
-
-<dialog id="dWa">
-  <div class="dh"><b>Resumo para WhatsApp (OptimusBI)</b><button id="bWc">Fechar</button></div>
-  <div class="db">
-    <p style="font-size:12px;color:var(--slate-600);margin-top:0">O Python envia automaticamente 1 mensagem por contato (fechando e reiniciando o navegador a cada pessoa).</p>
-    <textarea id="waTxt" rows="11" style="width:100%;font:inherit;padding:8px"></textarea>
-    <div class="bar" id="waBtns" style="margin-top:10px"></div>
-  </div>
-</dialog>
-
+<dialog id="dWa"><div class="dh"><b>Resumo para WhatsApp</b><button id="bWc">Fechar</button></div><div class="db">
+<p class="hint">Envio manual: abre o WhatsApp Web com a mensagem pronta. O envio automático é feito pelo Python a cada hora.</p>
+<textarea id="waTxt" rows="12" style="width:100%;font:inherit;padding:8px"></textarea>
+<div class="bar" id="waBtns" style="margin-top:10px"></div></div></dialog>
 <script>
-const D = {"gerado": "21/10/2026 11:18:08", "intervalo": 60, "r": [{"nome": "BI Alerta Vagas v2", "categoria": "bi", "prio": "P0", "regra": "aprr", "status": "err", "erros": ["FLUXO_PROC.py (11:15:00): 0 | Processo encerrado com código 1", "NÃO BAIXOU: T22APRR tem 4 de 6 arquivos hoje", "NÃO BAIXOU: T22APRR_PROC tem 4 de 6 arquivos hoje"], "avisos": [], "infos": ["Regra APRR (06h,09h,11h,13h,15h,17h): 3/6 janelas -> Esperado agora: 6 arqs/pasta"], "pastas": [{"rotulo": "T22APRR", "esperado": 6, "n": 4, "conf_mensal": false, "n_mes": 4, "esperado_mes": null, "dias_uteis_ok": 1, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.55}, {"rotulo": "T22APRR_PROC", "esperado": 6, "n": 4, "conf_mensal": false, "n_mes": 4, "esperado_mes": null, "dias_uteis_ok": 1, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.55}, {"rotulo": "T22APRR_VS", "esperado": 6, "n": 6, "conf_mensal": false, "n_mes": 6, "esperado_mes": null, "dias_uteis_ok": 1, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.04}, {"rotulo": "T22APRR_TRANSF", "esperado": 6, "n": 6, "conf_mensal": false, "n_mes": 6, "esperado_mes": null, "dias_uteis_ok": 1, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.04}], "quando": "21/10/2026 11:18:04", "quando_hms": "11:18:04", "linhas_hoje": 23, "ok_hoje": 22, "err_hoje": 1, "media_min": 6.22, "media_arq_min": 0.31, "ultimo_fim": "11:16:00", "eventos_hoje": [{"h": "06:00", "hms": "06:00:00", "st": "SUC"}, {"h": "06:03", "hms": "06:03:00", "st": "SUC"}, {"h": "06:09", "hms": "06:09:00", "st": "SUC"}, {"h": "06:14", "hms": "06:14:00", "st": "SUC"}, {"h": "07:24", "hms": "07:24:00", "st": "SUC"}, {"h": "07:27", "hms": "07:27:00", "st": "SUC"}, {"h": "07:28", "hms": "07:28:00", "st": "SUC"}, {"h": "07:28", "hms": "07:28:00", "st": "SUC"}, {"h": "07:29", "hms": "07:29:00", "st": "SUC"}, {"h": "07:30", "hms": "07:30:00", "st": "SUC"}, {"h": "09:00", "hms": "09:00:00", "st": "SUC"}, {"h": "09:04", "hms": "09:04:00", "st": "SUC"}, {"h": "09:09", "hms": "09:09:00", "st": "SUC"}, {"h": "09:17", "hms": "09:17:00", "st": "SUC"}, {"h": "10:24", "hms": "10:24:00", "st": "SUC"}, {"h": "10:27", "hms": "10:27:00", "st": "SUC"}, {"h": "10:28", "hms": "10:28:00", "st": "SUC"}, {"h": "10:28", "hms": "10:28:00", "st": "SUC"}, {"h": "10:29", "hms": "10:29:00", "st": "SUC"}, {"h": "10:30", "hms": "10:30:00", "st": "SUC"}, {"h": "11:00", "hms": "11:00:00", "st": "SUC"}, {"h": "11:04", "hms": "11:04:00", "st": "SUC"}, {"h": "11:15", "hms": "11:15:00", "st": "ERR"}]}, {"nome": "BI Alerta Vagas Tele Saúde", "categoria": "bi", "prio": "P0", "regra": "tele", "status": "ok", "erros": [], "avisos": [], "infos": ["Atualizado na janela das 10:30 (modificado às 11:04:34) | Próxima: 12:30"], "pastas": [{"rotulo": "47 - BI_TELESSAUDE FATO", "esperado": 1, "n": 1, "conf_mensal": false, "n_mes": 2, "esperado_mes": null, "dias_uteis_ok": 2, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.97}], "quando": "21/10/2026 11:18:04", "quando_hms": "11:18:04", "linhas_hoje": 5, "ok_hoje": 5, "err_hoje": 0, "media_min": 1.97, "media_arq_min": 1.97, "ultimo_fim": "11:04:00", "eventos_hoje": [{"h": "07:00", "hms": "07:00:00", "st": "SUC"}, {"h": "08:00", "hms": "08:00:00", "st": "SUC"}, {"h": "09:00", "hms": "09:00:00", "st": "SUC"}, {"h": "10:00", "hms": "10:00:00", "st": "SUC"}, {"h": "11:00", "hms": "11:00:00", "st": "SUC"}]}, {"nome": "BI Necessidade de Compra", "categoria": "bi", "prio": "P0", "regra": "", "status": "ok", "erros": [], "avisos": [], "infos": [], "pastas": [{"rotulo": "46 FATO", "esperado": 1, "n": 1, "conf_mensal": false, "n_mes": 1, "esperado_mes": null, "dias_uteis_ok": 1, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 0.86}, {"rotulo": "46 DIMENSOES", "esperado": 3, "n": 3, "conf_mensal": false, "n_mes": 3, "esperado_mes": null, "dias_uteis_ok": 1, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 0.29}], "quando": "21/10/2026 11:18:04", "quando_hms": "11:18:04", "linhas_hoje": 6, "ok_hoje": 6, "err_hoje": 0, "media_min": 0.86, "media_arq_min": 0.21, "ultimo_fim": "10:15:00", "eventos_hoje": [{"h": "09:29", "hms": "09:29:00", "st": "SUC"}, {"h": "09:32", "hms": "09:32:00", "st": "SUC"}, {"h": "09:34", "hms": "09:34:00", "st": "SUC"}, {"h": "09:35", "hms": "09:35:00", "st": "SUC"}, {"h": "09:36", "hms": "09:36:00", "st": "SUC"}, {"h": "10:13", "hms": "10:13:00", "st": "SUC"}]}, {"nome": "T0012 - Disponibilidade / Marcada", "categoria": "base", "prio": "P1", "regra": "", "status": "err", "erros": ["NÃO BAIXOU: T0012 MARCADA tem 14 de 15 arquivos hoje"], "avisos": ["T0012 DISPONIBILIDADE: Falta arquivo em 13 dia(s) útil(eis) do mês (02/10, 05/10, 06/10, 07/10, 08/10)", "T0012 MARCADA: Falta arquivo em 13 dia(s) útil(eis) do mês (02/10, 05/10, 06/10, 07/10, 08/10)"], "infos": [], "pastas": [{"rotulo": "T0012 DISPONIBILIDADE", "esperado": 15, "n": 15, "conf_mensal": true, "n_mes": 20, "esperado_mes": 225, "dias_uteis_ok": 2, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 0.1}, {"rotulo": "T0012 MARCADA", "esperado": 15, "n": 14, "conf_mensal": true, "n_mes": 19, "esperado_mes": 225, "dias_uteis_ok": 2, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 0.1}], "quando": "21/10/2026 11:18:04", "quando_hms": "11:18:04", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": 0.1, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "T22J2 - Consultas Disponibilizadas", "categoria": "base", "prio": "P1", "regra": "", "status": "warn", "erros": [], "avisos": ["Nenhuma execução registrada hoje no log", "T22J2 BASE MENSAL: Falta arquivo em 13 dia(s) útil(eis) do mês (01/10, 02/10, 05/10, 06/10, 08/10)"], "infos": [], "pastas": [{"rotulo": "T22J2 BASE MENSAL", "esperado": 15, "n": 15, "conf_mensal": true, "n_mes": 20, "esperado_mes": 225, "dias_uteis_ok": 2, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 0.09}], "quando": "21/10/2026 11:18:06", "quando_hms": "11:18:06", "linhas_hoje": 0, "ok_hoje": 0, "err_hoje": 0, "media_min": 1.29, "media_arq_min": 0.09, "ultimo_fim": "-", "eventos_hoje": []}, {"nome": "T22J3 - Base diária", "categoria": "base", "prio": "P1", "regra": "", "status": "warn", "erros": [], "avisos": ["T22J3: Falta arquivo em 2 dia(s) útil(eis) do mês (12/10, 13/10)"], "infos": [], "pastas": [{"rotulo": "T22J3", "esperado": 1, "n": 1, "conf_mensal": true, "n_mes": 13, "esperado_mes": 15, "dias_uteis_ok": 13, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.0}], "quando": "21/10/2026 11:18:06", "quando_hms": "11:18:06", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": 1.0, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "T9016 - Base mensal", "categoria": "base", "prio": "P1", "regra": "", "status": "err", "erros": ["NÃO BAIXOU: T9016 tem 0 de 5 arquivos hoje"], "avisos": ["T9016: Falta arquivo em 13 dia(s) útil(eis) do mês (01/10, 02/10, 05/10, 06/10, 07/10)"], "infos": [], "pastas": [{"rotulo": "T9016", "esperado": 5, "n": 0, "conf_mensal": true, "n_mes": 5, "esperado_mes": 75, "dias_uteis_ok": 2, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": null}], "quando": "21/10/2026 11:18:07", "quando_hms": "11:18:07", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "T9033 - Atraso Médico", "categoria": "base", "prio": "P2", "regra": "", "status": "warn", "erros": [], "avisos": ["ATRASO MEDICO: Falta arquivo em 3 dia(s) útil(eis) do mês (12/10, 13/10, 14/10)"], "infos": [], "pastas": [{"rotulo": "ATRASO MEDICO", "esperado": 1, "n": 1, "conf_mensal": true, "n_mes": 15, "esperado_mes": 15, "dias_uteis_ok": 12, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.0}], "quando": "21/10/2026 11:18:07", "quando_hms": "11:18:07", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": 1.0, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "T9033 - Horas Médicos", "categoria": "base", "prio": "P2", "regra": "", "status": "warn", "erros": [], "avisos": ["HORAS MEDICOS: Falta arquivo em 2 dia(s) útil(eis) do mês (12/10, 13/10)"], "infos": [], "pastas": [{"rotulo": "HORAS MEDICOS", "esperado": 5, "n": 5, "conf_mensal": true, "n_mes": 80, "esperado_mes": 75, "dias_uteis_ok": 13, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.49}], "quando": "21/10/2026 11:18:07", "quando_hms": "11:18:07", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": 1.49, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "Estoque e Abastecimento", "categoria": "bi", "prio": "P1", "regra": "", "status": "ok", "erros": [], "avisos": [], "infos": [], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": 5, "ok_hoje": 5, "err_hoje": 0, "media_min": 0.45, "media_arq_min": null, "ultimo_fim": "08:43:00", "eventos_hoje": [{"h": "08:35", "hms": "08:35:00", "st": "SUC"}, {"h": "08:35", "hms": "08:35:00", "st": "SUC"}, {"h": "08:36", "hms": "08:36:00", "st": "SUC"}, {"h": "08:41", "hms": "08:41:00", "st": "SUC"}, {"h": "08:42", "hms": "08:42:00", "st": "SUC"}]}, {"nome": "BI Painel dos Médicos", "categoria": "bi", "prio": "P1", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Farol ICH (DGE)", "categoria": "bi", "prio": "P1", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Relatório de Consultas Disponibilizadas", "categoria": "bi", "prio": "P1", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Controle Agendas", "categoria": "bi", "prio": "P1", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Captação de Agendas", "categoria": "bi", "prio": "P1", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI INDICADORES REDE CRED", "categoria": "bi", "prio": "P1", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "Logs Projetos (Automações)", "categoria": "bi", "prio": "P2", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Relatório de Consultas em Transferência", "categoria": "bi", "prio": "P2", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Relatório de Cirurgias", "categoria": "bi", "prio": "P2", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Relatório Atraso dos Médicos", "categoria": "bi", "prio": "P2", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Relatório de Acompanhamento de Mensageria", "categoria": "bi", "prio": "P2", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Relatorio_SAC", "categoria": "bi", "prio": "P2", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "CAPTADOS FORA DE ALERTA", "categoria": "bi", "prio": "P2", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}], "hist": [{"dia": "2026-10-20", "h": "19:31", "ok": 6, "warn": 1, "err": 3}, {"dia": "2026-10-20", "h": "19:31", "ok": 6, "warn": 1, "err": 3}, {"dia": "2026-10-20", "h": "19:32", "ok": 6, "warn": 1, "err": 3}, {"dia": "2026-10-20", "h": "19:36", "ok": 6, "warn": 1, "err": 3}, {"dia": "2026-10-20", "h": "19:40", "ok": 6, "warn": 1, "err": 3}, {"dia": "2026-10-20", "h": "20:00", "ok": 6, "warn": 1, "err": 3}, {"dia": "2026-10-20", "h": "20:59", "ok": 6, "warn": 1, "err": 3}, {"dia": "2026-10-20", "h": "21:59", "ok": 6, "warn": 1, "err": 3}, {"dia": "2026-10-20", "h": "23:00", "ok": 6, "warn": 1, "err": 3}, {"dia": "2026-10-21", "h": "00:00", "ok": 4, "warn": 1, "err": 5}, {"dia": "2026-10-21", "h": "00:59", "ok": 0, "warn": 2, "err": 8}, {"dia": "2026-10-21", "h": "02:00", "ok": 0, "warn": 2, "err": 8}, {"dia": "2026-10-21", "h": "03:00", "ok": 0, "warn": 2, "err": 8}, {"dia": "2026-10-21", "h": "04:00", "ok": 0, "warn": 2, "err": 8}, {"dia": "2026-10-21", "h": "05:00", "ok": 0, "warn": 2, "err": 8}, {"dia": "2026-10-21", "h": "06:00", "ok": 0, "warn": 2, "err": 8}, {"dia": "2026-10-21", "h": "07:00", "ok": 0, "warn": 3, "err": 7}, {"dia": "2026-10-21", "h": "08:00", "ok": 2, "warn": 3, "err": 5}, {"dia": "2026-10-21", "h": "09:00", "ok": 3, "warn": 2, "err": 5}, {"dia": "2026-10-21", "h": "10:00", "ok": 3, "warn": 2, "err": 5}, {"dia": "2026-10-21", "h": "10:42:28", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "10:43:53", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "10:45:41", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "10:46:15", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "10:46:37", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "10:47:37", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "10:48:38", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "10:49:38", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "10:50:37", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "10:51:37", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "10:51:39", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "10:52:37", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "10:53:38", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "10:54:37", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "10:55:37", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "10:57:09", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "10:58:05", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "10:59:05", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "11:00", "ok": 4, "warn": 3, "err": 3}, {"dia": "2026-10-21", "h": "11:00:07", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "11:01:05", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "11:02:04", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "11:03:05", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "11:04:05", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "11:05:06", "ok": 4, "warn": 4, "err": 2}, {"dia": "2026-10-21", "h": "11:06:41", "ok": 4, "warn": 4, "err": 2}, {"dia": "2026-10-21", "h": "11:07:37", "ok": 4, "warn": 4, "err": 2}, {"dia": "2026-10-21", "h": "11:08:36", "ok": 4, "warn": 4, "err": 2}, {"dia": "2026-10-21", "h": "11:09:36", "ok": 4, "warn": 4, "err": 2}, {"dia": "2026-10-21", "h": "11:10:37", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "11:11:42", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "11:13:28", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "11:16:13", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "11:18:03", "ok": 3, "warn": 4, "err": 3}, {"dia": "2026-10-21", "h": "11:18:08", "ok": 3, "warn": 4, "err": 3}], "snaps": {"10:00": {"salvo_as": "10:59:05", "itens": [{"nome": "BI Alerta Vagas v2", "categoria": "bi", "prio": "P0", "regra": "aprr", "status": "ok", "erros": [], "avisos": [], "infos": ["Regra APRR (06h,09h,11h,13h,15h,17h): 2/6 janelas -> Esperado agora: 4 arqs/pasta"], "pastas": [{"rotulo": "T22APRR", "esperado": 4, "n": 4, "conf_mensal": false, "n_mes": 4, "esperado_mes": null, "dias_uteis_ok": 1, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.55}, {"rotulo": "T22APRR_PROC", "esperado": 4, "n": 4, "conf_mensal": false, "n_mes": 4, "esperado_mes": null, "dias_uteis_ok": 1, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.55}, {"rotulo": "T22APRR_VS", "esperado": 4, "n": 4, "conf_mensal": false, "n_mes": 4, "esperado_mes": null, "dias_uteis_ok": 1, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.55}, {"rotulo": "T22APRR_TRANSF", "esperado": 4, "n": 4, "conf_mensal": false, "n_mes": 4, "esperado_mes": null, "dias_uteis_ok": 1, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.55}], "quando": "21/10/2026 10:59:02", "quando_hms": "10:59:02", "linhas_hoje": 20, "ok_hoje": 20, "err_hoje": 0, "media_min": 6.22, "media_arq_min": 0.39, "ultimo_fim": "10:43:00", "eventos_hoje": [{"h": "06:00", "hms": "06:00:00", "st": "SUC"}, {"h": "06:03", "hms": "06:03:00", "st": "SUC"}, {"h": "06:09", "hms": "06:09:00", "st": "SUC"}, {"h": "06:14", "hms": "06:14:00", "st": "SUC"}, {"h": "07:24", "hms": "07:24:00", "st": "SUC"}, {"h": "07:27", "hms": "07:27:00", "st": "SUC"}, {"h": "07:28", "hms": "07:28:00", "st": "SUC"}, {"h": "07:28", "hms": "07:28:00", "st": "SUC"}, {"h": "07:29", "hms": "07:29:00", "st": "SUC"}, {"h": "07:30", "hms": "07:30:00", "st": "SUC"}, {"h": "09:00", "hms": "09:00:00", "st": "SUC"}, {"h": "09:04", "hms": "09:04:00", "st": "SUC"}, {"h": "09:09", "hms": "09:09:00", "st": "SUC"}, {"h": "09:17", "hms": "09:17:00", "st": "SUC"}, {"h": "10:24", "hms": "10:24:00", "st": "SUC"}, {"h": "10:27", "hms": "10:27:00", "st": "SUC"}, {"h": "10:28", "hms": "10:28:00", "st": "SUC"}, {"h": "10:28", "hms": "10:28:00", "st": "SUC"}, {"h": "10:29", "hms": "10:29:00", "st": "SUC"}, {"h": "10:30", "hms": "10:30:00", "st": "SUC"}]}, {"nome": "BI Alerta Vagas Tele Saúde", "categoria": "bi", "prio": "P0", "regra": "tele", "status": "err", "erros": ["ATRASADO: Esperada atualização às 10:30 (30m antes das 11:00). Última: 21/10 10:04:41"], "avisos": [], "infos": [], "pastas": [{"rotulo": "47 - BI_TELESSAUDE FATO", "esperado": 1, "n": 1, "conf_mensal": false, "n_mes": 2, "esperado_mes": null, "dias_uteis_ok": 2, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.95}], "quando": "21/10/2026 10:59:02", "quando_hms": "10:59:02", "linhas_hoje": 4, "ok_hoje": 4, "err_hoje": 0, "media_min": 1.95, "media_arq_min": 1.95, "ultimo_fim": "10:04:00", "eventos_hoje": [{"h": "07:00", "hms": "07:00:00", "st": "SUC"}, {"h": "08:00", "hms": "08:00:00", "st": "SUC"}, {"h": "09:00", "hms": "09:00:00", "st": "SUC"}, {"h": "10:00", "hms": "10:00:00", "st": "SUC"}]}, {"nome": "BI Necessidade de Compra", "categoria": "bi", "prio": "P0", "regra": "", "status": "ok", "erros": [], "avisos": [], "infos": [], "pastas": [{"rotulo": "46 FATO", "esperado": 1, "n": 1, "conf_mensal": false, "n_mes": 1, "esperado_mes": null, "dias_uteis_ok": 1, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 0.86}, {"rotulo": "46 DIMENSOES", "esperado": 3, "n": 3, "conf_mensal": false, "n_mes": 3, "esperado_mes": null, "dias_uteis_ok": 1, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 0.29}], "quando": "21/10/2026 10:59:02", "quando_hms": "10:59:02", "linhas_hoje": 6, "ok_hoje": 6, "err_hoje": 0, "media_min": 0.86, "media_arq_min": 0.21, "ultimo_fim": "10:15:00", "eventos_hoje": [{"h": "09:29", "hms": "09:29:00", "st": "SUC"}, {"h": "09:32", "hms": "09:32:00", "st": "SUC"}, {"h": "09:34", "hms": "09:34:00", "st": "SUC"}, {"h": "09:35", "hms": "09:35:00", "st": "SUC"}, {"h": "09:36", "hms": "09:36:00", "st": "SUC"}, {"h": "10:13", "hms": "10:13:00", "st": "SUC"}]}, {"nome": "T0012 - Disponibilidade / Marcada", "categoria": "base", "prio": "P1", "regra": "", "status": "err", "erros": ["NÃO BAIXOU: T0012 MARCADA tem 14 de 15 arquivos hoje"], "avisos": ["T0012 DISPONIBILIDADE: Falta arquivo em 13 dia(s) útil(eis) do mês (02/10, 05/10, 06/10, 07/10, 08/10)", "T0012 MARCADA: Falta arquivo em 13 dia(s) útil(eis) do mês (02/10, 05/10, 06/10, 07/10, 08/10)"], "infos": [], "pastas": [{"rotulo": "T0012 DISPONIBILIDADE", "esperado": 15, "n": 15, "conf_mensal": true, "n_mes": 20, "esperado_mes": 225, "dias_uteis_ok": 2, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 0.1}, {"rotulo": "T0012 MARCADA", "esperado": 15, "n": 14, "conf_mensal": true, "n_mes": 19, "esperado_mes": 225, "dias_uteis_ok": 2, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 0.1}], "quando": "21/10/2026 10:59:02", "quando_hms": "10:59:02", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": 0.1, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "T22J2 - Consultas Disponibilizadas", "categoria": "base", "prio": "P1", "regra": "", "status": "warn", "erros": [], "avisos": ["Nenhuma execução registrada hoje no log", "T22J2 BASE MENSAL: Falta arquivo em 13 dia(s) útil(eis) do mês (01/10, 02/10, 05/10, 06/10, 08/10)"], "infos": [], "pastas": [{"rotulo": "T22J2 BASE MENSAL", "esperado": 15, "n": 15, "conf_mensal": true, "n_mes": 20, "esperado_mes": 225, "dias_uteis_ok": 2, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 0.09}], "quando": "21/10/2026 10:59:03", "quando_hms": "10:59:03", "linhas_hoje": 0, "ok_hoje": 0, "err_hoje": 0, "media_min": 1.29, "media_arq_min": 0.09, "ultimo_fim": "-", "eventos_hoje": []}, {"nome": "T22J3 - Base diária", "categoria": "base", "prio": "P1", "regra": "", "status": "warn", "erros": [], "avisos": ["T22J3: Falta arquivo em 2 dia(s) útil(eis) do mês (12/10, 13/10)"], "infos": [], "pastas": [{"rotulo": "T22J3", "esperado": 1, "n": 1, "conf_mensal": true, "n_mes": 13, "esperado_mes": 15, "dias_uteis_ok": 13, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.0}], "quando": "21/10/2026 10:59:04", "quando_hms": "10:59:04", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": 1.0, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "T9016 - Base mensal", "categoria": "base", "prio": "P1", "regra": "", "status": "err", "erros": ["NÃO BAIXOU: T9016 tem 0 de 5 arquivos hoje"], "avisos": ["T9016: Falta arquivo em 13 dia(s) útil(eis) do mês (01/10, 02/10, 05/10, 06/10, 07/10)"], "infos": [], "pastas": [{"rotulo": "T9016", "esperado": 5, "n": 0, "conf_mensal": true, "n_mes": 5, "esperado_mes": 75, "dias_uteis_ok": 2, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": null}], "quando": "21/10/2026 10:59:04", "quando_hms": "10:59:04", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "T9033 - Atraso Médico", "categoria": "base", "prio": "P2", "regra": "", "status": "warn", "erros": [], "avisos": ["ATRASO MEDICO: Falta arquivo em 3 dia(s) útil(eis) do mês (12/10, 13/10, 14/10)"], "infos": [], "pastas": [{"rotulo": "ATRASO MEDICO", "esperado": 1, "n": 1, "conf_mensal": true, "n_mes": 15, "esperado_mes": 15, "dias_uteis_ok": 12, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.0}], "quando": "21/10/2026 10:59:04", "quando_hms": "10:59:04", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": 1.0, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "T9033 - Horas Médicos", "categoria": "base", "prio": "P2", "regra": "", "status": "warn", "erros": [], "avisos": ["HORAS MEDICOS: Falta arquivo em 2 dia(s) útil(eis) do mês (12/10, 13/10)"], "infos": [], "pastas": [{"rotulo": "HORAS MEDICOS", "esperado": 5, "n": 5, "conf_mensal": true, "n_mes": 80, "esperado_mes": 75, "dias_uteis_ok": 13, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.49}], "quando": "21/10/2026 10:59:04", "quando_hms": "10:59:04", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": 1.49, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "Estoque e Abastecimento", "categoria": "bi", "prio": "P1", "regra": "", "status": "ok", "erros": [], "avisos": [], "infos": [], "pastas": [], "quando": "21/10/2026 10:59:05", "quando_hms": "10:59:05", "linhas_hoje": 5, "ok_hoje": 5, "err_hoje": 0, "media_min": 0.45, "media_arq_min": null, "ultimo_fim": "08:43:00", "eventos_hoje": [{"h": "08:35", "hms": "08:35:00", "st": "SUC"}, {"h": "08:35", "hms": "08:35:00", "st": "SUC"}, {"h": "08:36", "hms": "08:36:00", "st": "SUC"}, {"h": "08:41", "hms": "08:41:00", "st": "SUC"}, {"h": "08:42", "hms": "08:42:00", "st": "SUC"}]}, {"nome": "BI Painel dos Médicos", "categoria": "bi", "prio": "P1", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 10:59:05", "quando_hms": "10:59:05", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Farol ICH (DGE)", "categoria": "bi", "prio": "P1", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 10:59:05", "quando_hms": "10:59:05", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Relatório de Consultas Disponibilizadas", "categoria": "bi", "prio": "P1", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 10:59:05", "quando_hms": "10:59:05", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Controle Agendas", "categoria": "bi", "prio": "P1", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 10:59:05", "quando_hms": "10:59:05", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Captação de Agendas", "categoria": "bi", "prio": "P1", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 10:59:05", "quando_hms": "10:59:05", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI INDICADORES REDE CRED", "categoria": "bi", "prio": "P1", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 10:59:05", "quando_hms": "10:59:05", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "Logs Projetos (Automações)", "categoria": "bi", "prio": "P2", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 10:59:05", "quando_hms": "10:59:05", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Relatório de Consultas em Transferência", "categoria": "bi", "prio": "P2", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 10:59:05", "quando_hms": "10:59:05", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Relatório de Cirurgias", "categoria": "bi", "prio": "P2", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 10:59:05", "quando_hms": "10:59:05", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Relatório Atraso dos Médicos", "categoria": "bi", "prio": "P2", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 10:59:05", "quando_hms": "10:59:05", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Relatório de Acompanhamento de Mensageria", "categoria": "bi", "prio": "P2", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 10:59:05", "quando_hms": "10:59:05", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Relatorio_SAC", "categoria": "bi", "prio": "P2", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 10:59:05", "quando_hms": "10:59:05", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "CAPTADOS FORA DE ALERTA", "categoria": "bi", "prio": "P2", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 10:59:05", "quando_hms": "10:59:05", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}]}, "11:00": {"salvo_as": "11:18:08", "itens": [{"nome": "BI Alerta Vagas v2", "categoria": "bi", "prio": "P0", "regra": "aprr", "status": "err", "erros": ["FLUXO_PROC.py (11:15:00): 0 | Processo encerrado com código 1", "NÃO BAIXOU: T22APRR tem 4 de 6 arquivos hoje", "NÃO BAIXOU: T22APRR_PROC tem 4 de 6 arquivos hoje"], "avisos": [], "infos": ["Regra APRR (06h,09h,11h,13h,15h,17h): 3/6 janelas -> Esperado agora: 6 arqs/pasta"], "pastas": [{"rotulo": "T22APRR", "esperado": 6, "n": 4, "conf_mensal": false, "n_mes": 4, "esperado_mes": null, "dias_uteis_ok": 1, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.55}, {"rotulo": "T22APRR_PROC", "esperado": 6, "n": 4, "conf_mensal": false, "n_mes": 4, "esperado_mes": null, "dias_uteis_ok": 1, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.55}, {"rotulo": "T22APRR_VS", "esperado": 6, "n": 6, "conf_mensal": false, "n_mes": 6, "esperado_mes": null, "dias_uteis_ok": 1, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.04}, {"rotulo": "T22APRR_TRANSF", "esperado": 6, "n": 6, "conf_mensal": false, "n_mes": 6, "esperado_mes": null, "dias_uteis_ok": 1, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.04}], "quando": "21/10/2026 11:18:04", "quando_hms": "11:18:04", "linhas_hoje": 23, "ok_hoje": 22, "err_hoje": 1, "media_min": 6.22, "media_arq_min": 0.31, "ultimo_fim": "11:16:00", "eventos_hoje": [{"h": "06:00", "hms": "06:00:00", "st": "SUC"}, {"h": "06:03", "hms": "06:03:00", "st": "SUC"}, {"h": "06:09", "hms": "06:09:00", "st": "SUC"}, {"h": "06:14", "hms": "06:14:00", "st": "SUC"}, {"h": "07:24", "hms": "07:24:00", "st": "SUC"}, {"h": "07:27", "hms": "07:27:00", "st": "SUC"}, {"h": "07:28", "hms": "07:28:00", "st": "SUC"}, {"h": "07:28", "hms": "07:28:00", "st": "SUC"}, {"h": "07:29", "hms": "07:29:00", "st": "SUC"}, {"h": "07:30", "hms": "07:30:00", "st": "SUC"}, {"h": "09:00", "hms": "09:00:00", "st": "SUC"}, {"h": "09:04", "hms": "09:04:00", "st": "SUC"}, {"h": "09:09", "hms": "09:09:00", "st": "SUC"}, {"h": "09:17", "hms": "09:17:00", "st": "SUC"}, {"h": "10:24", "hms": "10:24:00", "st": "SUC"}, {"h": "10:27", "hms": "10:27:00", "st": "SUC"}, {"h": "10:28", "hms": "10:28:00", "st": "SUC"}, {"h": "10:28", "hms": "10:28:00", "st": "SUC"}, {"h": "10:29", "hms": "10:29:00", "st": "SUC"}, {"h": "10:30", "hms": "10:30:00", "st": "SUC"}, {"h": "11:00", "hms": "11:00:00", "st": "SUC"}, {"h": "11:04", "hms": "11:04:00", "st": "SUC"}, {"h": "11:15", "hms": "11:15:00", "st": "ERR"}]}, {"nome": "BI Alerta Vagas Tele Saúde", "categoria": "bi", "prio": "P0", "regra": "tele", "status": "ok", "erros": [], "avisos": [], "infos": ["Atualizado na janela das 10:30 (modificado às 11:04:34) | Próxima: 12:30"], "pastas": [{"rotulo": "47 - BI_TELESSAUDE FATO", "esperado": 1, "n": 1, "conf_mensal": false, "n_mes": 2, "esperado_mes": null, "dias_uteis_ok": 2, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.97}], "quando": "21/10/2026 11:18:04", "quando_hms": "11:18:04", "linhas_hoje": 5, "ok_hoje": 5, "err_hoje": 0, "media_min": 1.97, "media_arq_min": 1.97, "ultimo_fim": "11:04:00", "eventos_hoje": [{"h": "07:00", "hms": "07:00:00", "st": "SUC"}, {"h": "08:00", "hms": "08:00:00", "st": "SUC"}, {"h": "09:00", "hms": "09:00:00", "st": "SUC"}, {"h": "10:00", "hms": "10:00:00", "st": "SUC"}, {"h": "11:00", "hms": "11:00:00", "st": "SUC"}]}, {"nome": "BI Necessidade de Compra", "categoria": "bi", "prio": "P0", "regra": "", "status": "ok", "erros": [], "avisos": [], "infos": [], "pastas": [{"rotulo": "46 FATO", "esperado": 1, "n": 1, "conf_mensal": false, "n_mes": 1, "esperado_mes": null, "dias_uteis_ok": 1, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 0.86}, {"rotulo": "46 DIMENSOES", "esperado": 3, "n": 3, "conf_mensal": false, "n_mes": 3, "esperado_mes": null, "dias_uteis_ok": 1, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 0.29}], "quando": "21/10/2026 11:18:04", "quando_hms": "11:18:04", "linhas_hoje": 6, "ok_hoje": 6, "err_hoje": 0, "media_min": 0.86, "media_arq_min": 0.21, "ultimo_fim": "10:15:00", "eventos_hoje": [{"h": "09:29", "hms": "09:29:00", "st": "SUC"}, {"h": "09:32", "hms": "09:32:00", "st": "SUC"}, {"h": "09:34", "hms": "09:34:00", "st": "SUC"}, {"h": "09:35", "hms": "09:35:00", "st": "SUC"}, {"h": "09:36", "hms": "09:36:00", "st": "SUC"}, {"h": "10:13", "hms": "10:13:00", "st": "SUC"}]}, {"nome": "T0012 - Disponibilidade / Marcada", "categoria": "base", "prio": "P1", "regra": "", "status": "err", "erros": ["NÃO BAIXOU: T0012 MARCADA tem 14 de 15 arquivos hoje"], "avisos": ["T0012 DISPONIBILIDADE: Falta arquivo em 13 dia(s) útil(eis) do mês (02/10, 05/10, 06/10, 07/10, 08/10)", "T0012 MARCADA: Falta arquivo em 13 dia(s) útil(eis) do mês (02/10, 05/10, 06/10, 07/10, 08/10)"], "infos": [], "pastas": [{"rotulo": "T0012 DISPONIBILIDADE", "esperado": 15, "n": 15, "conf_mensal": true, "n_mes": 20, "esperado_mes": 225, "dias_uteis_ok": 2, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 0.1}, {"rotulo": "T0012 MARCADA", "esperado": 15, "n": 14, "conf_mensal": true, "n_mes": 19, "esperado_mes": 225, "dias_uteis_ok": 2, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 0.1}], "quando": "21/10/2026 11:18:04", "quando_hms": "11:18:04", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": 0.1, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "T22J2 - Consultas Disponibilizadas", "categoria": "base", "prio": "P1", "regra": "", "status": "warn", "erros": [], "avisos": ["Nenhuma execução registrada hoje no log", "T22J2 BASE MENSAL: Falta arquivo em 13 dia(s) útil(eis) do mês (01/10, 02/10, 05/10, 06/10, 08/10)"], "infos": [], "pastas": [{"rotulo": "T22J2 BASE MENSAL", "esperado": 15, "n": 15, "conf_mensal": true, "n_mes": 20, "esperado_mes": 225, "dias_uteis_ok": 2, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 0.09}], "quando": "21/10/2026 11:18:06", "quando_hms": "11:18:06", "linhas_hoje": 0, "ok_hoje": 0, "err_hoje": 0, "media_min": 1.29, "media_arq_min": 0.09, "ultimo_fim": "-", "eventos_hoje": []}, {"nome": "T22J3 - Base diária", "categoria": "base", "prio": "P1", "regra": "", "status": "warn", "erros": [], "avisos": ["T22J3: Falta arquivo em 2 dia(s) útil(eis) do mês (12/10, 13/10)"], "infos": [], "pastas": [{"rotulo": "T22J3", "esperado": 1, "n": 1, "conf_mensal": true, "n_mes": 13, "esperado_mes": 15, "dias_uteis_ok": 13, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.0}], "quando": "21/10/2026 11:18:06", "quando_hms": "11:18:06", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": 1.0, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "T9016 - Base mensal", "categoria": "base", "prio": "P1", "regra": "", "status": "err", "erros": ["NÃO BAIXOU: T9016 tem 0 de 5 arquivos hoje"], "avisos": ["T9016: Falta arquivo em 13 dia(s) útil(eis) do mês (01/10, 02/10, 05/10, 06/10, 07/10)"], "infos": [], "pastas": [{"rotulo": "T9016", "esperado": 5, "n": 0, "conf_mensal": true, "n_mes": 5, "esperado_mes": 75, "dias_uteis_ok": 2, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": null}], "quando": "21/10/2026 11:18:07", "quando_hms": "11:18:07", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "T9033 - Atraso Médico", "categoria": "base", "prio": "P2", "regra": "", "status": "warn", "erros": [], "avisos": ["ATRASO MEDICO: Falta arquivo em 3 dia(s) útil(eis) do mês (12/10, 13/10, 14/10)"], "infos": [], "pastas": [{"rotulo": "ATRASO MEDICO", "esperado": 1, "n": 1, "conf_mensal": true, "n_mes": 15, "esperado_mes": 15, "dias_uteis_ok": 12, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.0}], "quando": "21/10/2026 11:18:07", "quando_hms": "11:18:07", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": 1.0, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "T9033 - Horas Médicos", "categoria": "base", "prio": "P2", "regra": "", "status": "warn", "erros": [], "avisos": ["HORAS MEDICOS: Falta arquivo em 2 dia(s) útil(eis) do mês (12/10, 13/10)"], "infos": [], "pastas": [{"rotulo": "HORAS MEDICOS", "esperado": 5, "n": 5, "conf_mensal": true, "n_mes": 80, "esperado_mes": 75, "dias_uteis_ok": 13, "total_dias_uteis": 15, "erro": null, "tempo_medio_arq": 1.49}], "quando": "21/10/2026 11:18:07", "quando_hms": "11:18:07", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": 1.49, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "Estoque e Abastecimento", "categoria": "bi", "prio": "P1", "regra": "", "status": "ok", "erros": [], "avisos": [], "infos": [], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": 5, "ok_hoje": 5, "err_hoje": 0, "media_min": 0.45, "media_arq_min": null, "ultimo_fim": "08:43:00", "eventos_hoje": [{"h": "08:35", "hms": "08:35:00", "st": "SUC"}, {"h": "08:35", "hms": "08:35:00", "st": "SUC"}, {"h": "08:36", "hms": "08:36:00", "st": "SUC"}, {"h": "08:41", "hms": "08:41:00", "st": "SUC"}, {"h": "08:42", "hms": "08:42:00", "st": "SUC"}]}, {"nome": "BI Painel dos Médicos", "categoria": "bi", "prio": "P1", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Farol ICH (DGE)", "categoria": "bi", "prio": "P1", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Relatório de Consultas Disponibilizadas", "categoria": "bi", "prio": "P1", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Controle Agendas", "categoria": "bi", "prio": "P1", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Captação de Agendas", "categoria": "bi", "prio": "P1", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI INDICADORES REDE CRED", "categoria": "bi", "prio": "P1", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "Logs Projetos (Automações)", "categoria": "bi", "prio": "P2", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Relatório de Consultas em Transferência", "categoria": "bi", "prio": "P2", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Relatório de Cirurgias", "categoria": "bi", "prio": "P2", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Relatório Atraso dos Médicos", "categoria": "bi", "prio": "P2", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Relatório de Acompanhamento de Mensageria", "categoria": "bi", "prio": "P2", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "BI Relatorio_SAC", "categoria": "bi", "prio": "P2", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}, {"nome": "CAPTADOS FORA DE ALERTA", "categoria": "bi", "prio": "P2", "regra": "", "status": "nd", "erros": [], "avisos": [], "infos": ["Card pré-cadastrado no painel OptimusBI"], "pastas": [], "quando": "21/10/2026 11:18:08", "quando_hms": "11:18:08", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "media_arq_min": null, "ultimo_fim": null, "eventos_hoje": []}]}}, "texto": "*Monitoramento OptimusBI* - 21/10/2026 11:18:08\n✅ OK: 3 | ⚠️ Alerta: 4 | ❌ Erro: 3\n\n❌ [P0] BI Alerta Vagas v2\n   - FLUXO_PROC.py (11:15:00): 0 | Processo encerrado com código 1\n   - NÃO BAIXOU: T22APRR tem 4 de 6 arquivos hoje\n   - NÃO BAIXOU: T22APRR_PROC tem 4 de 6 arquivos hoje\n✅ [P0] BI Alerta Vagas Tele Saúde\n✅ [P0] BI Necessidade de Compra\n❌ [P1] T0012 - Disponibilidade / Marcada\n   - NÃO BAIXOU: T0012 MARCADA tem 14 de 15 arquivos hoje\n⚠️ [P1] T22J2 - Consultas Disponibilizadas\n   - Nenhuma execução registrada hoje no log\n⚠️ [P1] T22J3 - Base diária\n   - T22J3: Falta arquivo em 2 dia(s) útil(eis) do mês (12/10, 13/10)\n❌ [P1] T9016 - Base mensal\n   - NÃO BAIXOU: T9016 tem 0 de 5 arquivos hoje\n✅ [P1] Estoque e Abastecimento\n⚠️ [P2] T9033 - Atraso Médico\n   - ATRASO MEDICO: Falta arquivo em 3 dia(s) útil(eis) do mês (12/10, 13/10, 14/10)\n⚠️ [P2] T9033 - Horas Médicos\n   - HORAS MEDICOS: Falta arquivo em 2 dia(s) útil(eis) do mês (12/10, 13/10)", "destinos": [{"nome": "Agenor", "numero": "558589768794"}, {"nome": "Miller", "numero": "553199300997"}]};
-const $ = s => document.querySelector(s);
-const $$ = s => document.querySelectorAll(s);
-const p2 = n => String(n).padStart(2, '0');
-const fmtHMS = (d = new Date()) => `${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;
-const L = { ok: 'OK', err: 'ERRO', warn: 'ALERTA', run: 'RODANDO', nd: 'PRÉ-CADASTRADO' };
-
-let activeTab = 'all';
-let charts = {};
-let secLeft = 60;
-
-const savedLogo = localStorage.getItem('optimusLogo');
-if (savedLogo) { $('#logoImg').src = savedLogo; $('#logoImg').style.display = 'block'; }
-$('#logoBox').onclick = () => $('#logoFile').click();
-$('#logoFile').onchange = e => {
-  const f = e.target.files[0]; if (!f) return;
-  const rd = new FileReader();
-  rd.onload = () => { localStorage.setItem('optimusLogo', rd.result); location.reload(); };
-  rd.readAsDataURL(f);
-};
-
-const snaps = D.snaps || {};
-Object.keys(snaps).sort().forEach(h => {
-  const s = snaps[h];
-  const errs = (s.itens || []).filter(x => x.status === 'err').length;
-  $('#hourSel').insertAdjacentHTML('beforeend', `<option value="${h}">Estado às ${h} (Registrado às ${s.salvo_as} - ${errs} erro(s))</option>`);
-});
-
-$('#hourSel').onchange = render;
-$$('#tabs .nav-tab').forEach(b => b.onclick = () => {
-  $$('#tabs .nav-tab').forEach(x => x.classList.remove('active'));
-  b.classList.add('active');
-  activeTab = b.dataset.tab;
-  render();
-});
-
-$('#bRefresh').onclick = async () => {
-  $('#bRefresh').disabled = true;
-  $('#bRefresh').textContent = '⏳ Atualizando...';
-  $('#last').textContent = 'Atualizado em: ' + new Date().toLocaleDateString('pt-BR') + ' ' + fmtHMS();
-  try { await fetch('/api/atualizar'); } catch(e) {}
-  location.reload();
-};
-
-$('#bRel').onclick = async () => {
-  try {
-    const r = await fetch('/api/relatorio');
-    const j = await r.json();
-    alert('Relatório .xlsx salvo automaticamente em:\n' + j.arquivo);
-  } catch(e) {
-    alert('Relatório programado para salvar automaticamente às 18:00 na pasta G:\\... configurada!');
-  }
-};
-
-function render() {
-  const hVal = $('#hourSel').value;
-  let list = D.r;
-  if (hVal !== 'now' && snaps[hVal]) {
-    list = snaps[hVal].itens;
-    $('#snapInfo').innerHTML = `<b style="color:var(--orange)">Exibindo fotografia das ${hVal} (salva às ${snaps[hVal].salvo_as})</b>`;
-  } else {
-    $('#snapInfo').textContent = 'Pastas lidas automaticamente pelo Python (G:\\ e Rede).';
-  }
-
-  const filtered = list.filter(r => {
-    if (activeTab === 'bi') return r.categoria === 'bi';
-    if (activeTab === 'base') return r.categoria === 'base';
-    return true;
-  });
-
-  const c = { ok: 0, err: 0, warn: 0, run: 0 };
-  filtered.forEach(r => { if (c[r.status] != null) c[r.status]++; });
-  $('#sum').innerHTML = [
-    ['Monitorados', filtered.length, 'var(--blue-inst)'],
-    ['Status OK', c.ok, 'var(--ok)'],
-    ['Rodando', c.run, 'var(--blue-dark)'],
-    ['Alertas (Média)', c.warn, 'var(--gold)'],
-    ['Crítico / Erro', c.err, 'var(--red)']
-  ].map(([a, b, col]) => `<div class="k" style="--c:${col}"><b>${b}</b><span>${a}</span></div>`).join('');
-
-  $('#chartsBox').classList.toggle('hidden', activeTab === 'bi' || activeTab === 'base');
-  $('#grid').classList.toggle('hidden', activeTab === 'charts');
-
-  $('#grid').innerHTML = [...filtered].sort((a, b) => a.prio.localeCompare(b.prio)).map(r => {
-    const w = [];
-    if (r.linhas_hoje != null) {
-      w.push(
-        ['Execuções hoje', `${r.linhas_hoje} (${r.ok_hoje} ok / ${r.err_hoje} erro)`],
-        ['Último fim (HH:MM:SS)', r.ultimo_fim || '-'],
-        ['Tempo médio processo', r.media_min == null ? '-' : r.media_min.toFixed(2) + ' min']
-      );
-    }
-    if (r.media_arq_min != null || (r.pastas && r.pastas.length)) {
-      w.push(['Tempo médio / arquivo baixado', r.media_arq_min == null ? '-' : r.media_arq_min.toFixed(2) + ' min/arq']);
-    }
-
-    r.pastas.forEach(f => {
-      const tArq = f.tempo_medio_arq != null ? ` (${f.tempo_medio_arq} min/arq)` : '';
-      w.push([
-        f.rotulo + ' (Meta Diária)',
-        f.erro ? `<b style="color:var(--red)">${f.erro}</b>` : `<b>${f.n}/${f.esperado} hoje</b>${tArq} ` + (f.n >= f.esperado ? '✔' : '✖')
-      ]);
-      if (f.conf_mensal) {
-        w.push([
-          f.rotulo + ' (Meta Mensal Útil)',
-          `${f.n_mes}/${f.esperado_mes} no mês (${f.dias_uteis_ok}/${f.total_dias_uteis} dias úteis) ` + (f.dias_uteis_ok >= f.total_dias_uteis ? '✔' : '⚠️')
-        ]);
-      }
-    });
-    w.push(['Verificado em (Hora:Min:Seg)', `<b>${r.quando}</b>`]);
-
-    return `<div class="m ${r.status}">
-      <h2><span>${r.nome}</span><span class="chip">${L[r.status]}</span></h2>
-      <div class="meta">
-        <span class="p-tag p-${r.prio}">Prioridade ${r.prio}</span>
-        <span class="c-tag">${r.categoria === 'bi' ? 'Painel BI' : 'Base de Dados'}</span>
-      </div>
-      ${w.map(x => `<div class="row"><span>${x[0]}</span><span>${x[1]}</span></div>`).join('')}
-      ${(r.erros || []).map(x => `<div class="msg">${x}</div>`).join('')}
-      ${(r.avisos || []).map(x => `<div class="msg w">${x}</div>`).join('')}
-      ${(r.infos || []).map(x => `<div class="msg i">${x}</div>`).join('')}
-    </div>`;
-  }).join('');
-
-  renderCharts(list);
-}
-
-function renderCharts(list) {
-  const mk = (id, cfg) => { charts[id]?.destroy(); charts[id] = new Chart($('#' + id), cfg); };
-
-  const hMap = {};
-  for (let h = 5; h <= 20; h++) hMap[p2(h) + ':00'] = { ok: 0, err: 0 };
-  list.forEach(r => (r.eventos_hoje || []).forEach(ev => {
-    const hk = (ev.h || '00:00').slice(0, 2) + ':00';
-    if (!hMap[hk]) hMap[hk] = { ok: 0, err: 0 };
-    if (ev.st === 'SUC') hMap[hk].ok++;
-    if (ev.st === 'ERR') hMap[hk].err++;
-  }));
-  const hKeys = Object.keys(hMap).sort();
-  mk('cHora', {
-    data: {
-      labels: hKeys,
-      datasets: [
-        { type: 'line', label: 'Linha de Erros', data: hKeys.map(k => hMap[k].err), borderColor: '#F21D2F', backgroundColor: '#F21D2F', tension: 0.3 },
-        { type: 'bar', label: 'Sucessos', data: hKeys.map(k => hMap[k].ok), backgroundColor: '#0339A6' },
-        { type: 'bar', label: 'Erros', data: hKeys.map(k => hMap[k].err), backgroundColor: '#F24405' }
-      ]
-    },
-    options: { animation: false }
-  });
-
-  const dayMap = {};
-  (D.hist || []).forEach(x => { dayMap[x.dia] = x; });
-  const dKeys = Object.keys(dayMap).sort().slice(-15);
-  mk('cDia', {
-    type: 'line',
-    data: {
-      labels: dKeys,
-      datasets: [
-        { label: 'Processos OK no Dia', data: dKeys.map(k => dayMap[k].ok), borderColor: '#0339A6', backgroundColor: '#0339A6', tension: 0.25 },
-        { label: 'Processos com Erro no Dia', data: dKeys.map(k => dayMap[k].err), borderColor: '#F21D2F', backgroundColor: '#F21D2F', tension: 0.25 }
-      ]
-    },
-    options: { animation: false }
-  });
-
-  const lg = list.filter(r => r.media_min != null);
-  mk('c1', {
-    type: 'bar',
-    data: { labels: lg.map(r => r.nome), datasets: [{ data: lg.map(r => r.media_min), backgroundColor: '#0339A6' }] },
-    options: { indexAxis: 'y', plugins: { legend: { display: false } }, animation: false }
-  });
-
-  const fa = list.filter(r => r.media_arq_min != null);
-  mk('cArq', {
-    type: 'bar',
-    data: { labels: fa.map(r => r.nome), datasets: [{ data: fa.map(r => r.media_arq_min), backgroundColor: '#F2B705' }] },
-    options: { plugins: { legend: { display: false } }, animation: false }
-  });
-}
-
-$('#last').textContent = 'Último monitoramento registrado: ' + D.gerado;
-setInterval(() => {
-  $('#liveClock').textContent = fmtHMS(new Date());
-  secLeft = Math.max(0, secLeft - 1);
-  $('#cd').textContent = secLeft + 's';
-  if (secLeft === 0) location.reload();
-}, 1000);
-
-$('#bWa').onclick = () => {
-  $('#waTxt').value = D.texto;
-  const lk = p => `https://web.whatsapp.com/send?phone=${p.numero}&text=${encodeURIComponent($('#waTxt').value)}`;
-  $('#waBtns').innerHTML = D.destinos.map((p, i) => `<button class="g" data-i="${i}">Abrir: ${p.nome}</button>`).join('') + '<button id="bCp">Copiar texto</button>';
-  $$('#waBtns [data-i]').forEach(x => x.onclick = () => window.open(lk(D.destinos[x.dataset.i]), 'wa' + x.dataset.i));
-  $('#bCp').onclick = () => navigator.clipboard.writeText($('#waTxt').value);
-  $('#dWa').showModal();
-};
-$('#bWc').onclick = () => $('#dWa').close();
-
-render();
-</script>
-</body>
-</html>
+const D={"gerado": "21/10/2026 12:00:00", "intervalo": 60, "r": [{"nome": "BI Alerta Vagas v2", "prio": "P0", "status": "err", "erros": ["FLUXO_PROC.py (11:15): 0 | Processo encerrado com código 1"], "avisos": [], "infos": [], "pastas": [{"rotulo": "T22APRR", "esperado": 2, "n": 4, "erro": null}, {"rotulo": "T22APRR_PROC", "esperado": 2, "n": 6, "erro": null}, {"rotulo": "T22APRR_VS", "esperado": 2, "n": 6, "erro": null}, {"rotulo": "T22APRR_TRANSF", "esperado": 2, "n": 6, "erro": null}], "quando": "21/10/2026 11:59:55", "linhas_hoje": 23, "ok_hoje": 22, "err_hoje": 1, "media_min": 6.2, "ultimo_fim": "11:16"}, {"nome": "BI Alerta Vagas Tele Saúde", "prio": "P0", "status": "warn", "erros": [], "avisos": ["Log com 5 linhas hoje; esperado 12 ou mais"], "infos": [], "pastas": [{"rotulo": "47 - BI_TELESSAUDE FATO", "esperado": 1, "n": 1, "erro": null}], "quando": "21/10/2026 11:59:57", "linhas_hoje": 5, "ok_hoje": 5, "err_hoje": 0, "media_min": 2.0, "ultimo_fim": "11:04"}, {"nome": "BI Necessidade de Compra", "prio": "P0", "status": "ok", "erros": [], "avisos": [], "infos": [], "pastas": [{"rotulo": "46 FATO", "esperado": 1, "n": 1, "erro": null}, {"rotulo": "46 DIMENSOES", "esperado": 3, "n": 3, "erro": null}], "quando": "21/10/2026 11:59:57", "linhas_hoje": 6, "ok_hoje": 6, "err_hoje": 0, "media_min": 0.9, "ultimo_fim": "10:15"}, {"nome": "T0012 - Disponibilidade / Marcada", "prio": "P1", "status": "ok", "erros": [], "avisos": [], "infos": [], "pastas": [{"rotulo": "T0012 DISPONIBILIDADE", "esperado": 10, "n": 15, "erro": null}, {"rotulo": "T0012 MARCADA", "esperado": 10, "n": 14, "erro": null}], "quando": "21/10/2026 11:59:57", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "ultimo_fim": null}, {"nome": "T22J2 - Consultas Disponibilizadas", "prio": "P1", "status": "warn", "erros": [], "avisos": ["Nenhuma execução registrada hoje no log"], "infos": [], "pastas": [{"rotulo": "T22J2 BASE MENSAL", "esperado": 15, "n": 15, "erro": null}], "quando": "21/10/2026 11:59:59", "linhas_hoje": 0, "ok_hoje": 0, "err_hoje": 0, "media_min": 1.3, "ultimo_fim": "-"}, {"nome": "T22J3 - Base diária", "prio": "P1", "status": "ok", "erros": [], "avisos": [], "infos": [], "pastas": [{"rotulo": "T22J3", "esperado": 1, "n": 1, "erro": null}], "quando": "21/10/2026 12:00:00", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "ultimo_fim": null}, {"nome": "T9016 - Base mensal", "prio": "P1", "status": "err", "erros": ["NÃO BAIXOU: T9016 tem 0 de 5 arquivos hoje"], "avisos": [], "infos": [], "pastas": [{"rotulo": "T9016", "esperado": 5, "n": 0, "erro": null}], "quando": "21/10/2026 12:00:00", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "ultimo_fim": null}, {"nome": "T9033 - Atraso Médico", "prio": "P2", "status": "ok", "erros": [], "avisos": [], "infos": [], "pastas": [{"rotulo": "ATRASO MEDICO", "esperado": 1, "n": 1, "erro": null}], "quando": "21/10/2026 12:00:00", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "ultimo_fim": null}, {"nome": "T9033 - Horas Médicos", "prio": "P2", "status": "err", "erros": ["NÃO BAIXOU: HORAS MEDICOS tem 0 de 5 arquivos hoje"], "avisos": [], "infos": [], "pastas": [{"rotulo": "HORAS MEDICOS", "esperado": 5, "n": 0, "erro": null}], "quando": "21/10/2026 12:00:00", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "ultimo_fim": null}, {"nome": "Estoque e Abastecimento", "prio": "P1", "status": "ok", "erros": [], "avisos": [], "infos": [], "pastas": [], "quando": "21/10/2026 12:00:00", "linhas_hoje": 5, "ok_hoje": 5, "err_hoje": 0, "media_min": 0.4, "ultimo_fim": "08:43"}, {"nome": "BI Painel dos Médicos", "prio": "P1", "status": "nd", "erros": [], "avisos": [], "infos": [], "pastas": [], "quando": "21/10/2026 12:00:00", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "ultimo_fim": null}, {"nome": "BI Farol ICH (DGE)", "prio": "P1", "status": "nd", "erros": [], "avisos": [], "infos": [], "pastas": [], "quando": "21/10/2026 12:00:00", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "ultimo_fim": null}, {"nome": "BI Relatório de Consultas Disponibilizadas", "prio": "P1", "status": "nd", "erros": [], "avisos": [], "infos": [], "pastas": [], "quando": "21/10/2026 12:00:00", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "ultimo_fim": null}, {"nome": "BI Controle Agendas", "prio": "P1", "status": "nd", "erros": [], "avisos": [], "infos": [], "pastas": [], "quando": "21/10/2026 12:00:00", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "ultimo_fim": null}, {"nome": "BI Captação de Agendas", "prio": "P1", "status": "nd", "erros": [], "avisos": [], "infos": [], "pastas": [], "quando": "21/10/2026 12:00:00", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "ultimo_fim": null}, {"nome": "BI INDICADORES REDE CRED", "prio": "P1", "status": "nd", "erros": [], "avisos": [], "infos": [], "pastas": [], "quando": "21/10/2026 12:00:00", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "ultimo_fim": null}, {"nome": "Logs Projetos (Automações)", "prio": "P2", "status": "nd", "erros": [], "avisos": [], "infos": [], "pastas": [], "quando": "21/10/2026 12:00:00", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "ultimo_fim": null}, {"nome": "BI Relatório de Consultas em Transferência", "prio": "P2", "status": "nd", "erros": [], "avisos": [], "infos": [], "pastas": [], "quando": "21/10/2026 12:00:00", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "ultimo_fim": null}, {"nome": "BI Relatório de Cirurgias", "prio": "P2", "status": "nd", "erros": [], "avisos": [], "infos": [], "pastas": [], "quando": "21/10/2026 12:00:00", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "ultimo_fim": null}, {"nome": "BI Relatório Atraso dos Médicos", "prio": "P2", "status": "nd", "erros": [], "avisos": [], "infos": [], "pastas": [], "quando": "21/10/2026 12:00:00", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "ultimo_fim": null}, {"nome": "BI Relatório de Acompanhamento de Mensageria", "prio": "P2", "status": "nd", "erros": [], "avisos": [], "infos": [], "pastas": [], "quando": "21/10/2026 12:00:00", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "ultimo_fim": null}, {"nome": "BI Relatorio_SAC", "prio": "P2", "status": "nd", "erros": [], "avisos": [], "infos": [], "pastas": [], "quando": "21/10/2026 12:00:00", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "ultimo_fim": null}, {"nome": "CAPTADOS FORA DE ALERTA", "prio": "P2", "status": "nd", "erros": [], "avisos": [], "infos": [], "pastas": [], "quando": "21/10/2026 12:00:00", "linhas_hoje": null, "ok_hoje": null, "err_hoje": null, "media_min": null, "ultimo_fim": null}], "texto": "*Resumo do monitoramento* - 21/10/2026 12:00\n✅ OK: 5 | ⚠️ Alerta: 2 | ❌ Erro: 3\n\n❌ P0 BI Alerta Vagas v2\n   - FLUXO_PROC.py (11:15): 0 | Processo encerrado com código 1\n⚠️ P0 BI Alerta Vagas Tele Saúde\n   - Log com 5 linhas hoje; esperado 12 ou mais\n✅ P0 BI Necessidade de Compra\n✅ P1 T0012 - Disponibilidade / Marcada\n⚠️ P1 T22J2 - Consultas Disponibilizadas\n   - Nenhuma execução registrada hoje no log\n✅ P1 T22J3 - Base diária\n❌ P1 T9016 - Base mensal\n   - NÃO BAIXOU: T9016 tem 0 de 5 arquivos hoje\n✅ P1 Estoque e Abastecimento\n➖ P1 BI Painel dos Médicos\n➖ P1 BI Farol ICH (DGE)\n➖ P1 BI Relatório de Consultas Disponibilizadas\n➖ P1 BI Controle Agendas\n➖ P1 BI Captação de Agendas\n➖ P1 BI INDICADORES REDE CRED\n✅ P2 T9033 - Atraso Médico\n❌ P2 T9033 - Horas Médicos\n   - NÃO BAIXOU: HORAS MEDICOS tem 0 de 5 arquivos hoje\n➖ P2 Logs Projetos (Automações)\n➖ P2 BI Relatório de Consultas em Transferência\n➖ P2 BI Relatório de Cirurgias\n➖ P2 BI Relatório Atraso dos Médicos\n➖ P2 BI Relatório de Acompanhamento de Mensageria\n➖ P2 BI Relatorio_SAC\n➖ P2 CAPTADOS FORA DE ALERTA", "destinos": [{"nome": "Agenor", "numero": "558589768794"}, {"nome": "Miller", "numero": "553199300997"}]},$=s=>document.querySelector(s);
+const L={ok:'OK',err:'ERRO',warn:'ALERTA',run:'RODANDO',nd:'SEM CONFIG'};
+$('#last').textContent='Último monitoramento: '+D.gerado+' | o Python verifica a cada '+D.intervalo+' min | a página se atualiza sozinha';
+const c={ok:0,err:0,warn:0,run:0};D.r.forEach(r=>{if(c[r.status]!=null)c[r.status]++});
+$('#sum').innerHTML=[['Processos',D.r.length,'#16202e'],['OK',c.ok,'var(--ok)'],['Rodando',c.run,'var(--run)'],['Alertas',c.warn,'var(--warn)'],['Com erro',c.err,'var(--err)']].map(([a,b,col])=>`<div class="k" style="--c:${col}"><b>${b}</b><span>${a}</span></div>`).join('');
+$('#grid').innerHTML=[...D.r].sort((a,b)=>a.prio.localeCompare(b.prio)).map(r=>{const w=[];
+if(r.linhas_hoje!=null)w.push(['Execuções hoje',`${r.linhas_hoje} (${r.ok_hoje} ok / ${r.err_hoje} erro)`],['Último fim',r.ultimo_fim],['Tempo médio (mês)',r.media_min==null?'-':r.media_min.toFixed(1)+' min']);
+r.pastas.forEach(f=>w.push([f.rotulo,f.erro?'<b style="color:var(--err)">falha na leitura</b>':`${f.n}/${f.esperado} arquivos`+(f.n>=f.esperado?' ✔':' ✖')]));
+w.push(['Verificado em',r.quando]);
+return `<div class="m ${r.status}"><h2><span>${r.nome}</span><span class="chip">${L[r.status]}</span></h2><div class="pr">Prioridade ${r.prio}</div>${w.map(x=>`<div class="row"><span>${x[0]}</span><span>${x[1]}</span></div>`).join('')}${r.erros.map(x=>`<div class="msg">${x}</div>`).join('')}${r.avisos.map(x=>`<div class="msg w">${x}</div>`).join('')}${r.infos.map(x=>`<div class="msg i">${x}</div>`).join('')}</div>`}).join('');
+const col={ok:'#1b8a5a',err:'#c93b3b',warn:'#c98a12',run:'#2563c9',nd:'#8a94a3'};
+const lg=D.r.filter(r=>r.media_min!=null),tl=D.r.filter(r=>r.linhas_hoje!=null);
+new Chart($('#c1'),{type:'bar',data:{labels:lg.map(r=>r.nome),datasets:[{data:lg.map(r=>r.media_min),backgroundColor:lg.map(r=>col[r.status])}]},options:{indexAxis:'y',plugins:{legend:{display:false}},animation:false}});
+new Chart($('#c2'),{type:'bar',data:{labels:tl.map(r=>r.nome),datasets:[{label:'Sucesso',data:tl.map(r=>r.ok_hoje),backgroundColor:'#1b8a5a'},{label:'Erro',data:tl.map(r=>r.err_hoje),backgroundColor:'#c93b3b'}]},options:{indexAxis:'y',scales:{x:{stacked:true},y:{stacked:true}},animation:false}});
+$('#bWa').onclick=()=>{$('#waTxt').value=D.texto;const lk=p=>`https://web.whatsapp.com/send?phone=${p.numero}&text=${encodeURIComponent($('#waTxt').value)}`;
+$('#waBtns').innerHTML=D.destinos.map((p,i)=>`<button class="g" data-i="${i}">Abrir conversa: ${p.nome}</button>`).join('')+'<button id="bCp">Copiar texto</button>';
+document.querySelectorAll('#waBtns [data-i]').forEach(x=>x.onclick=()=>window.open(lk(D.destinos[x.dataset.i]),'wa'+x.dataset.i));
+$('#bCp').onclick=()=>navigator.clipboard.writeText($('#waTxt').value);$('#dWa').showModal()};
+$('#bWc').onclick=()=>$('#dWa').close();
+</script></body></html>

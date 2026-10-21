@@ -466,3 +466,7 @@ Stacktrace:
 Symbols not available. Dumping unresolved backtrace:
 	(N
 2026-10-21 11:18:26,896 INFO [2/2] Iniciando janela do navegador para Miller...
+2026-10-21 12:00:00,770 INFO Ciclo concluído: {'ok': 5, 'warn': 2, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 12:00:11,839 INFO Chrome do monitor aberto automaticamente
+2026-10-21 12:00:49,320 INFO WhatsApp enviado para Agenor
+2026-10-21 12:01:12,363 INFO WhatsApp enviado para Miller
