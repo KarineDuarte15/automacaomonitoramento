@@ -5,7 +5,7 @@
   "pasta_logs": "1 - RELATORIOS\\52 - LOGS PROJETOS",
   "pasta_relatorio_diario": "G:\\Credenciamento Medico\\NUCLEO DE AGENDAS\\RAFAEL FERNANDES\\7 - BASES DE RELATORIOS\\RELATORIO PAINEL MONITORAMENTO DIARIO",
   "hora_relatorio_diario": 18,
-  "minuto_relatorio_diario": 0,
+  "minuto_relatorio_diario": 360,
   "intervalo_seg": 60,
   "porta_servidor_web": 8080,
   "abrir_navegador_ao_iniciar": true,
@@ -15,12 +15,11 @@
     "porta_chrome": 9222,
     "resumo_a_cada_min": 360,
     "horarios_resumo": [
-      "04:00",
+      "00:00",
       "06:00",
       "12:00",
       "18:00",
-      "20:00",
-      "22:00"
+      "23:59"
     ],
     "alerta_imediato_erro": true,
     "perfil_chrome": "C:\\chrome_whatsapp_monitor",
