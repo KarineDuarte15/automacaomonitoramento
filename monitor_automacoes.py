@@ -96,8 +96,7 @@ DEFAULT = {
         'chrome_exe': '',
         'destinos': [
             {'nome': 'Agenor', 'numero': '558589768794'},
-            {'nome': 'Miller', 'numero': '553199300997'},
-            {'nome': 'Carla',  'numero': '553184492339'}
+            {'nome': 'Miller', 'numero': '553199300997'}
         ]
     },
     'monitores': [
