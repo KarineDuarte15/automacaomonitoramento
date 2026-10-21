@@ -470,3 +470,42 @@ Symbols not available. Dumping unresolved backtrace:
 2026-10-21 12:00:11,839 INFO Chrome do monitor aberto automaticamente
 2026-10-21 12:00:49,320 INFO WhatsApp enviado para Agenor
 2026-10-21 12:01:12,363 INFO WhatsApp enviado para Miller
+2026-10-21 12:39:46,263 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 12:39:46,665 INFO [1/2] Iniciando janela do navegador para Agenor...
+2026-10-21 12:40:11,494 ERROR Falha WhatsApp Agenor: Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=155.0.8059.85)
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(N
+2026-10-21 12:40:14,730 INFO [2/2] Iniciando janela do navegador para Miller...
+2026-10-21 12:41:26,740 ERROR Falha WhatsApp Miller: Message: session not created: cannot connect to chrome at 127.0.0.1:9222
+from chrome not reachable; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/trou
+2026-10-21 12:41:45,906 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 12:41:45,908 INFO [1/2] Iniciando janela do navegador para Agenor...
+2026-10-21 12:42:57,855 ERROR Falha WhatsApp Agenor: Message: session not created: cannot connect to chrome at 127.0.0.1:9222
+from chrome not reachable; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/trou
+2026-10-21 12:43:00,950 INFO [2/2] Iniciando janela do navegador para Miller...
+2026-10-21 12:43:13,147 ERROR Falha WhatsApp Miller: Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=155.0.8059.85)
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(N
+2026-10-21 12:43:36,805 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 12:43:36,810 INFO [1/2] Iniciando janela do navegador para Agenor...
+2026-10-21 12:44:14,427 INFO WhatsApp enviado para Agenor (1 mensagem). Fechando janela...
+2026-10-21 12:44:18,045 INFO [2/2] Iniciando janela do navegador para Miller...
+2026-10-21 12:44:50,308 INFO WhatsApp enviado para Miller (1 mensagem). Fechando janela...
+2026-10-21 12:45:11,867 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 12:46:07,245 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 12:47:07,321 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 12:48:07,072 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 12:49:07,632 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 12:50:08,321 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 12:51:08,420 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 12:52:07,900 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 12:53:08,472 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 12:54:08,056 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 12:55:08,617 INFO Ciclo concluído: {'ok': 2, 'warn': 4, 'err': 4, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 12:55:08,618 INFO [1/2] Iniciando janela do navegador para Agenor...
