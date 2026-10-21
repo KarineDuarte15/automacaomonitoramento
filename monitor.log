@@ -1,0 +1,468 @@
+2026-10-20 19:30:57,922 INFO config_monitores.json criado com os valores padrão
+2026-10-20 19:31:02,481 INFO Ciclo concluído: {'ok': 6, 'warn': 1, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-20 19:31:14,914 INFO Ciclo concluído: {'ok': 6, 'warn': 1, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-20 19:32:18,655 ERROR Falha na rotina WhatsApp
+Traceback (most recent call last):
+  File "C:\Users\agenor.sales\Desktop\automacaomonitoramento\monitor_automacoes.py", line 261, in ciclo
+    try: rotina_whatsapp(cfg, res, enviar)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\agenor.sales\Desktop\automacaomonitoramento\monitor_automacoes.py", line 243, in rotina_whatsapp
+    if enviar_whatsapp(cfg, resumo(res)): enviados.append(h)
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\agenor.sales\Desktop\automacaomonitoramento\monitor_automacoes.py", line 219, in enviar_whatsapp
+    drv = webdriver.Chrome(options=op); ok_all = True
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\chrome\webdriver.py", line 45, in __init__
+    super().__init__(
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\chromium\webdriver.py", line 66, in __init__
+    super().__init__(command_executor=executor, options=self.options)
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\common\webdriver.py", line 25, in __init__
+    super().__init__(*args, **kwargs)
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 296, in __init__
+    self.start_session(capabilities)
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 401, in start_session
+    response = self.execute(Command.NEW_SESSION, caps)["value"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 506, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.SessionNotCreatedException: Message: session not created: cannot connect to chrome at 127.0.0.1:9222
+from chrome not reachable; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#sessionnotcreatedexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(No symbol) [0x7ff6be47e745]
+	(No symbol) [0x7ff6be033d00]
+	(No symbol) [0x7ff6bde63d36]
+	(No symbol) [0x7ff6bde54c1a]
+	(No symbol) [0x7ff6bdeacc9b]
+	(No symbol) [0x7ff6bdea1739]
+	(No symbol) [0x7ff6bdef6e6f]
+	(No symbol) [0x7ff6bdef66d6]
+	(No symbol) [0x7ff6bdeb1462]
+	(No symbol) [0x7ff6bdeb2273]
+	(No symbol) [0x7ff6be5217b1]
+	(No symbol) [0x7ff6be5587c7]
+	(No symbol) [0x7ff6be54c85e]
+	(No symbol) [0x7ff6be1f884e]
+	(No symbol) [0x7ff6be040415]
+	(No symbol) [0x7ff6be03bdf4]
+	(No symbol) [0x7ff6be03bf84]
+	(No symbol) [0x7ff6be027f7c]
+	(No symbol) [0x7ffa5798dda7]
+	(No symbol) [0x7ffa588fee4c]
+
+
+2026-10-20 19:32:30,126 INFO Ciclo concluído: {'ok': 6, 'warn': 1, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-20 19:33:33,556 ERROR Falha na rotina WhatsApp
+Traceback (most recent call last):
+  File "C:\Users\agenor.sales\Desktop\automacaomonitoramento\monitor_automacoes.py", line 261, in ciclo
+    try: rotina_whatsapp(cfg, res, enviar)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\agenor.sales\Desktop\automacaomonitoramento\monitor_automacoes.py", line 243, in rotina_whatsapp
+    if enviar_whatsapp(cfg, resumo(res)): enviados.append(h)
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\agenor.sales\Desktop\automacaomonitoramento\monitor_automacoes.py", line 219, in enviar_whatsapp
+    drv = webdriver.Chrome(options=op); ok_all = True
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\chrome\webdriver.py", line 45, in __init__
+    super().__init__(
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\chromium\webdriver.py", line 66, in __init__
+    super().__init__(command_executor=executor, options=self.options)
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\common\webdriver.py", line 25, in __init__
+    super().__init__(*args, **kwargs)
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 296, in __init__
+    self.start_session(capabilities)
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 401, in start_session
+    response = self.execute(Command.NEW_SESSION, caps)["value"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 506, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.SessionNotCreatedException: Message: session not created: cannot connect to chrome at 127.0.0.1:9222
+from chrome not reachable; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#sessionnotcreatedexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(No symbol) [0x7ff6be47e745]
+	(No symbol) [0x7ff6be033d00]
+	(No symbol) [0x7ff6bde63d36]
+	(No symbol) [0x7ff6bde54c1a]
+	(No symbol) [0x7ff6bdeacc9b]
+	(No symbol) [0x7ff6bdea1739]
+	(No symbol) [0x7ff6bdef6e6f]
+	(No symbol) [0x7ff6bdef66d6]
+	(No symbol) [0x7ff6bdeb1462]
+	(No symbol) [0x7ff6bdeb2273]
+	(No symbol) [0x7ff6be5217b1]
+	(No symbol) [0x7ff6be5587c7]
+	(No symbol) [0x7ff6be54c85e]
+	(No symbol) [0x7ff6be1f884e]
+	(No symbol) [0x7ff6be040415]
+	(No symbol) [0x7ff6be03bdf4]
+	(No symbol) [0x7ff6be03bf84]
+	(No symbol) [0x7ff6be027f7c]
+	(No symbol) [0x7ffa5798dda7]
+	(No symbol) [0x7ffa588fee4c]
+
+
+2026-10-20 19:36:22,824 INFO Ciclo concluído: {'ok': 6, 'warn': 1, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-20 19:37:26,288 ERROR Falha na rotina WhatsApp
+Traceback (most recent call last):
+  File "c:\Users\agenor.sales\Desktop\automacaomonitoramento\monitor_automacoes.py", line 261, in ciclo
+    try: rotina_whatsapp(cfg, res, enviar)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\agenor.sales\Desktop\automacaomonitoramento\monitor_automacoes.py", line 243, in rotina_whatsapp
+    if enviar_whatsapp(cfg, resumo(res)): enviados.append(h)
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\agenor.sales\Desktop\automacaomonitoramento\monitor_automacoes.py", line 219, in enviar_whatsapp
+    drv = webdriver.Chrome(options=op); ok_all = True
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\chrome\webdriver.py", line 45, in __init__
+    super().__init__(
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\chromium\webdriver.py", line 66, in __init__
+    super().__init__(command_executor=executor, options=self.options)
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\common\webdriver.py", line 25, in __init__
+    super().__init__(*args, **kwargs)
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 296, in __init__
+    self.start_session(capabilities)
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 401, in start_session
+    response = self.execute(Command.NEW_SESSION, caps)["value"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 506, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.SessionNotCreatedException: Message: session not created: cannot connect to chrome at 127.0.0.1:9222
+from chrome not reachable; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#sessionnotcreatedexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(No symbol) [0x7ff6be47e745]
+	(No symbol) [0x7ff6be033d00]
+	(No symbol) [0x7ff6bde63d36]
+	(No symbol) [0x7ff6bde54c1a]
+	(No symbol) [0x7ff6bdeacc9b]
+	(No symbol) [0x7ff6bdea1739]
+	(No symbol) [0x7ff6bdef6e6f]
+	(No symbol) [0x7ff6bdef66d6]
+	(No symbol) [0x7ff6bdeb1462]
+	(No symbol) [0x7ff6bdeb2273]
+	(No symbol) [0x7ff6be5217b1]
+	(No symbol) [0x7ff6be5587c7]
+	(No symbol) [0x7ff6be54c85e]
+	(No symbol) [0x7ff6be1f884e]
+	(No symbol) [0x7ff6be040415]
+	(No symbol) [0x7ff6be03bdf4]
+	(No symbol) [0x7ff6be03bf84]
+	(No symbol) [0x7ff6be027f7c]
+	(No symbol) [0x7ffa5798dda7]
+	(No symbol) [0x7ffa588fee4c]
+
+
+2026-10-20 19:40:00,525 INFO Ciclo concluído: {'ok': 6, 'warn': 1, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-20 19:41:04,123 ERROR Falha na rotina WhatsApp
+Traceback (most recent call last):
+  File "C:\Users\agenor.sales\Desktop\automacaomonitoramento\monitor_automacoes.py", line 261, in ciclo
+    try: rotina_whatsapp(cfg, res, enviar)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\agenor.sales\Desktop\automacaomonitoramento\monitor_automacoes.py", line 243, in rotina_whatsapp
+    if enviar_whatsapp(cfg, resumo(res)): enviados.append(h)
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\agenor.sales\Desktop\automacaomonitoramento\monitor_automacoes.py", line 219, in enviar_whatsapp
+    drv = webdriver.Chrome(options=op); ok_all = True
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\chrome\webdriver.py", line 45, in __init__
+    super().__init__(
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\chromium\webdriver.py", line 66, in __init__
+    super().__init__(command_executor=executor, options=self.options)
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\common\webdriver.py", line 25, in __init__
+    super().__init__(*args, **kwargs)
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 296, in __init__
+    self.start_session(capabilities)
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 401, in start_session
+    response = self.execute(Command.NEW_SESSION, caps)["value"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 506, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.SessionNotCreatedException: Message: session not created: cannot connect to chrome at 127.0.0.1:9222
+from chrome not reachable; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#sessionnotcreatedexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(No symbol) [0x7ff6be47e745]
+	(No symbol) [0x7ff6be033d00]
+	(No symbol) [0x7ff6bde63d36]
+	(No symbol) [0x7ff6bde54c1a]
+	(No symbol) [0x7ff6bdeacc9b]
+	(No symbol) [0x7ff6bdea1739]
+	(No symbol) [0x7ff6bdef6e6f]
+	(No symbol) [0x7ff6bdef66d6]
+	(No symbol) [0x7ff6bdeb1462]
+	(No symbol) [0x7ff6bdeb2273]
+	(No symbol) [0x7ff6be5217b1]
+	(No symbol) [0x7ff6be5587c7]
+	(No symbol) [0x7ff6be54c85e]
+	(No symbol) [0x7ff6be1f884e]
+	(No symbol) [0x7ff6be040415]
+	(No symbol) [0x7ff6be03bdf4]
+	(No symbol) [0x7ff6be03bf84]
+	(No symbol) [0x7ff6be027f7c]
+	(No symbol) [0x7ffa5798dda7]
+	(No symbol) [0x7ffa588fee4c]
+
+
+2026-10-20 19:56:22,945 INFO WhatsApp enviado para Agenor
+2026-10-20 19:56:40,764 INFO WhatsApp enviado para Miller
+2026-10-20 19:56:57,939 INFO WhatsApp enviado para Carla
+2026-10-20 19:56:57,971 ERROR Error terminating service process.
+Traceback (most recent call last):
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\common\service.py", line 164, in stop
+    if self.process.poll() is None:
+       ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\subprocess.py", line 1236, in poll
+    return self._internal_poll()
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\subprocess.py", line 1575, in _internal_poll
+    if _WaitForSingleObject(self._handle, 0) == _WAIT_OBJECT_0:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OSError: [WinError 6] Identificador inválido
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\site-packages\selenium\webdriver\common\service.py", line 180, in _terminate_process
+    if self.process.poll() is None:
+       ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\subprocess.py", line 1236, in poll
+    return self._internal_poll()
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\agenor.sales\AppData\Local\Programs\Python\Python312\Lib\subprocess.py", line 1575, in _internal_poll
+    if _WaitForSingleObject(self._handle, 0) == _WAIT_OBJECT_0:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OSError: [WinError 6] Identificador inválido
+2026-10-20 20:00:00,940 INFO Ciclo concluído: {'ok': 6, 'warn': 1, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-20 20:00:50,298 INFO WhatsApp enviado para Agenor
+2026-10-20 20:01:09,812 INFO WhatsApp enviado para Miller
+2026-10-20 20:01:28,067 INFO WhatsApp enviado para Carla
+2026-10-20 20:59:59,422 INFO Ciclo concluído: {'ok': 6, 'warn': 1, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-20 21:00:43,885 INFO WhatsApp enviado para Agenor
+2026-10-20 21:01:13,929 INFO WhatsApp enviado para Miller
+2026-10-20 21:01:42,676 INFO WhatsApp enviado para Carla
+2026-10-20 21:59:59,261 INFO Ciclo concluído: {'ok': 6, 'warn': 1, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-20 22:00:35,978 INFO WhatsApp enviado para Agenor
+2026-10-20 22:01:04,134 INFO WhatsApp enviado para Miller
+2026-10-20 22:01:31,917 INFO WhatsApp enviado para Carla
+2026-10-20 23:00:00,578 INFO Ciclo concluído: {'ok': 6, 'warn': 1, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-20 23:01:34,815 ERROR Falha WhatsApp Agenor: Message: 
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(No symbol) [0x7ff67ed7e745]
+	(No symbol) [0x7ff67e933d00]
+	(No symbol) [0x7ff67e763f3d]
+	(No symbol) [0x7ff67e7bf6ed]
+	(No  (se aparecer QR code no Chrome do monitor, escaneie uma vez; ou o número não tem WhatsApp)
+2026-10-20 23:02:03,890 INFO WhatsApp enviado para Miller
+2026-10-20 23:02:32,879 INFO WhatsApp enviado para Carla
+2026-10-21 00:00:03,346 INFO Ciclo concluído: {'ok': 4, 'warn': 1, 'err': 5, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 00:00:46,188 INFO WhatsApp enviado para Agenor
+2026-10-21 00:01:15,681 INFO WhatsApp enviado para Miller
+2026-10-21 00:01:47,169 INFO WhatsApp enviado para Carla
+2026-10-21 00:59:59,409 INFO Ciclo concluído: {'ok': 0, 'warn': 2, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 01:01:32,323 ERROR Falha WhatsApp Agenor: Message: 
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(No symbol) [0x7ff67ed7e745]
+	(No symbol) [0x7ff67e933d00]
+	(No symbol) [0x7ff67e763f3d]
+	(No symbol) [0x7ff67e7bf6ed]
+	(No  (se aparecer QR code no Chrome do monitor, escaneie uma vez; ou o número não tem WhatsApp)
+2026-10-21 01:02:00,924 INFO WhatsApp enviado para Miller
+2026-10-21 01:02:30,510 INFO WhatsApp enviado para Carla
+2026-10-21 02:00:00,176 INFO Ciclo concluído: {'ok': 0, 'warn': 2, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 02:00:35,246 INFO WhatsApp enviado para Agenor
+2026-10-21 02:01:03,965 INFO WhatsApp enviado para Miller
+2026-10-21 02:01:31,981 INFO WhatsApp enviado para Carla
+2026-10-21 03:00:00,337 INFO Ciclo concluído: {'ok': 0, 'warn': 2, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 03:01:33,564 ERROR Falha WhatsApp Agenor: Message: 
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(No symbol) [0x7ff67ed7e745]
+	(No symbol) [0x7ff67e933d00]
+	(No symbol) [0x7ff67e763f3d]
+	(No symbol) [0x7ff67e7bf6ed]
+	(No  (se aparecer QR code no Chrome do monitor, escaneie uma vez; ou o número não tem WhatsApp)
+2026-10-21 03:02:01,751 INFO WhatsApp enviado para Miller
+2026-10-21 03:02:30,481 INFO WhatsApp enviado para Carla
+2026-10-21 04:00:00,517 INFO Ciclo concluído: {'ok': 0, 'warn': 2, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 04:00:39,258 INFO WhatsApp enviado para Agenor
+2026-10-21 04:01:09,846 INFO WhatsApp enviado para Miller
+2026-10-21 04:01:40,381 INFO WhatsApp enviado para Carla
+2026-10-21 05:00:00,717 INFO Ciclo concluído: {'ok': 0, 'warn': 2, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 05:01:33,598 ERROR Falha WhatsApp Agenor: Message: 
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(No symbol) [0x7ff67ed7e745]
+	(No symbol) [0x7ff67e933d00]
+	(No symbol) [0x7ff67e763f3d]
+	(No symbol) [0x7ff67e7bf6ed]
+	(No  (se aparecer QR code no Chrome do monitor, escaneie uma vez; ou o número não tem WhatsApp)
+2026-10-21 05:02:06,809 INFO WhatsApp enviado para Miller
+2026-10-21 05:02:36,957 INFO WhatsApp enviado para Carla
+2026-10-21 06:00:00,881 INFO Ciclo concluído: {'ok': 0, 'warn': 2, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 06:01:35,384 ERROR Falha WhatsApp Agenor: Message: 
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(No symbol) [0x7ff67ed7e745]
+	(No symbol) [0x7ff67e933d00]
+	(No symbol) [0x7ff67e763f3d]
+	(No symbol) [0x7ff67e7bf6ed]
+	(No  (se aparecer QR code no Chrome do monitor, escaneie uma vez; ou o número não tem WhatsApp)
+2026-10-21 06:02:06,866 INFO WhatsApp enviado para Miller
+2026-10-21 06:02:37,669 INFO WhatsApp enviado para Carla
+2026-10-21 07:00:00,862 INFO Ciclo concluído: {'ok': 0, 'warn': 3, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 07:01:35,033 ERROR Falha WhatsApp Agenor: Message: 
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(No symbol) [0x7ff67ed7e745]
+	(No symbol) [0x7ff67e933d00]
+	(No symbol) [0x7ff67e763f3d]
+	(No symbol) [0x7ff67e7bf6ed]
+	(No  (se aparecer QR code no Chrome do monitor, escaneie uma vez; ou o número não tem WhatsApp)
+2026-10-21 07:02:06,902 INFO WhatsApp enviado para Miller
+2026-10-21 07:02:41,030 INFO WhatsApp enviado para Carla
+2026-10-21 08:00:01,144 INFO Ciclo concluído: {'ok': 2, 'warn': 3, 'err': 5, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 08:00:12,164 INFO Chrome do monitor aberto automaticamente
+2026-10-21 08:00:44,296 INFO WhatsApp enviado para Agenor
+2026-10-21 08:01:13,299 INFO WhatsApp enviado para Miller
+2026-10-21 08:01:41,374 INFO WhatsApp enviado para Carla
+2026-10-21 09:00:01,046 INFO Ciclo concluído: {'ok': 3, 'warn': 2, 'err': 5, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 09:00:12,084 INFO Chrome do monitor aberto automaticamente
+2026-10-21 09:00:19,801 ERROR Falha WhatsApp Agenor: Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=155.0.8059.85)
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(N (se aparecer QR code no Chrome do monitor, escaneie uma vez; ou o número não tem WhatsApp)
+2026-10-21 09:00:19,803 ERROR Falha WhatsApp Miller: Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=155.0.8059.85)
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(N (se aparecer QR code no Chrome do monitor, escaneie uma vez; ou o número não tem WhatsApp)
+2026-10-21 09:00:19,804 ERROR Falha WhatsApp Carla: Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=155.0.8059.85)
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(N (se aparecer QR code no Chrome do monitor, escaneie uma vez; ou o número não tem WhatsApp)
+2026-10-21 10:00:01,300 INFO Ciclo concluído: {'ok': 3, 'warn': 2, 'err': 5, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 10:00:12,338 INFO Chrome do monitor aberto automaticamente
+2026-10-21 10:01:03,097 INFO WhatsApp enviado para Agenor
+2026-10-21 10:01:34,181 INFO WhatsApp enviado para Miller
+2026-10-21 10:42:28,292 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 10:42:28,830 INFO [1/2] Iniciando janela do navegador para Agenor...
+2026-10-21 10:42:54,747 ERROR Falha WhatsApp Agenor: Message: target frame detached
+  (failed to check if window was closed: disconnected: Unable to receive message from renderer)
+  (Session info: chrome=155.0.8059.85)
+Stacktrace:
+Symbols not available.
+2026-10-21 10:42:58,697 INFO [2/2] Iniciando janela do navegador para Miller...
+2026-10-21 10:43:32,015 INFO WhatsApp enviado para Miller (1 mensagem). Fechando janela...
+2026-10-21 10:43:53,521 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 10:43:53,522 INFO [1/2] Iniciando janela do navegador para Agenor...
+2026-10-21 10:44:38,607 INFO WhatsApp enviado para Agenor (1 mensagem). Fechando janela...
+2026-10-21 10:44:42,487 INFO [2/2] Iniciando janela do navegador para Miller...
+2026-10-21 10:45:20,221 INFO WhatsApp enviado para Miller (1 mensagem). Fechando janela...
+2026-10-21 10:45:41,613 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 10:46:15,370 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 10:46:37,781 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 10:47:38,001 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 10:48:38,474 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 10:49:38,997 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 10:50:37,515 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 10:51:37,795 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 10:51:39,376 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 10:52:37,613 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 10:53:38,549 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 10:54:37,797 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 10:55:37,851 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 10:55:37,853 INFO [1/2] Iniciando janela do navegador para Agenor...
+2026-10-21 10:56:14,010 INFO WhatsApp enviado para Agenor (1 mensagem). Fechando janela...
+2026-10-21 10:56:17,949 INFO [2/2] Iniciando janela do navegador para Miller...
+2026-10-21 10:56:48,345 INFO WhatsApp enviado para Miller (1 mensagem). Fechando janela...
+2026-10-21 10:57:09,500 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 10:58:05,853 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 10:59:05,684 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 11:00:00,665 INFO Ciclo concluído: {'ok': 4, 'warn': 3, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 11:00:07,932 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 11:00:11,689 INFO Chrome do monitor aberto automaticamente
+2026-10-21 11:00:32,603 INFO WhatsApp enviado para Agenor
+2026-10-21 11:00:43,805 ERROR Falha WhatsApp Miller: Message: invalid session id: session deleted as the browser has closed the connection
+from disconnected: not connected to DevTools
+  (Session info: chrome=155.0.8059.85); For documentation on this err (se aparecer QR code no Chrome do monitor, escaneie uma vez; ou o número não tem WhatsApp)
+2026-10-21 11:01:05,329 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 11:02:04,956 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 11:03:05,842 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 11:04:05,120 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 11:05:06,288 INFO Ciclo concluído: {'ok': 4, 'warn': 4, 'err': 2, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 11:05:06,289 INFO [1/2] Iniciando janela do navegador para Agenor...
+2026-10-21 11:05:42,801 INFO WhatsApp enviado para Agenor (1 mensagem). Fechando janela...
+2026-10-21 11:05:46,593 INFO [2/2] Iniciando janela do navegador para Miller...
+2026-10-21 11:06:19,277 INFO WhatsApp enviado para Miller (1 mensagem). Fechando janela...
+2026-10-21 11:06:41,389 INFO Ciclo concluído: {'ok': 4, 'warn': 4, 'err': 2, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 11:07:37,284 INFO Ciclo concluído: {'ok': 4, 'warn': 4, 'err': 2, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 11:08:36,598 INFO Ciclo concluído: {'ok': 4, 'warn': 4, 'err': 2, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 11:09:36,518 INFO Ciclo concluído: {'ok': 4, 'warn': 4, 'err': 2, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 11:10:37,365 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 11:10:37,366 INFO [1/2] Iniciando janela do navegador para Agenor...
+2026-10-21 11:11:01,185 ERROR Falha WhatsApp Agenor: Message: invalid session id: session deleted as the browser has closed the connection
+from disconnected: not connected to DevTools
+  (Session info: chrome=155.0.8059.85); For documentation on this err
+2026-10-21 11:11:04,982 INFO [2/2] Iniciando janela do navegador para Miller...
+2026-10-21 11:11:21,586 ERROR Falha WhatsApp Miller: Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=155.0.8059.85)
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(N
+2026-10-21 11:11:42,796 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 11:11:42,798 INFO [1/2] Iniciando janela do navegador para Agenor...
+2026-10-21 11:12:26,035 ERROR Falha WhatsApp Agenor: Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=155.0.8059.85)
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(N
+2026-10-21 11:12:29,536 INFO [2/2] Iniciando janela do navegador para Miller...
+2026-10-21 11:13:06,263 ERROR Falha WhatsApp Miller: Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=155.0.8059.85)
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(N
+2026-10-21 11:13:28,040 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 11:13:28,042 INFO [1/2] Iniciando janela do navegador para Agenor...
+2026-10-21 11:14:40,388 ERROR Falha WhatsApp Agenor: Message: session not created: cannot connect to chrome at 127.0.0.1:9222
+from chrome not reachable; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/trou
+2026-10-21 11:14:43,864 INFO [2/2] Iniciando janela do navegador para Miller...
+2026-10-21 11:15:56,105 ERROR Falha WhatsApp Miller: Message: session not created: cannot connect to chrome at 127.0.0.1:9222
+from chrome not reachable; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/trou
+2026-10-21 11:16:13,706 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 11:16:13,707 INFO [1/2] Iniciando janela do navegador para Agenor...
+2026-10-21 11:17:26,123 ERROR Falha WhatsApp Agenor: Message: session not created: cannot connect to chrome at 127.0.0.1:9222
+from chrome not reachable; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/trou
+2026-10-21 11:17:29,512 INFO [2/2] Iniciando janela do navegador para Miller...
+2026-10-21 11:17:44,487 ERROR Falha WhatsApp Miller: Message: invalid session id: session deleted as the browser has closed the connection
+from disconnected: not connected to DevTools
+  (Session info: chrome=155.0.8059.85); For documentation on this err
+2026-10-21 11:18:03,661 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 11:18:03,663 INFO [1/2] Iniciando janela do navegador para Agenor...
+2026-10-21 11:18:08,685 INFO Ciclo concluído: {'ok': 3, 'warn': 4, 'err': 3, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-21 11:18:23,385 ERROR Falha WhatsApp Agenor: Message: no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=155.0.8059.85)
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(N
+2026-10-21 11:18:26,896 INFO [2/2] Iniciando janela do navegador para Miller...

@@ -1,0 +1,448 @@
+{
+  "versao_config": 3,
+  "raiz": "G:\\Credenciamento Medico\\NUCLEO DE AGENDAS\\RAFAEL FERNANDES",
+  "raiz_rede_fallback": "\\\\10.1.17.4\\Usuarios\\Credenciamento Medico\\NUCLEO DE AGENDAS\\RAFAEL FERNANDES",
+  "pasta_logs": "1 - RELATORIOS\\52 - LOGS PROJETOS",
+  "pasta_relatorio_diario": "G:\\Credenciamento Medico\\NUCLEO DE AGENDAS\\RAFAEL FERNANDES\\7 - BASES DE RELATORIOS\\RELATORIO PAINEL MONITORAMENTO DIARIO",
+  "hora_relatorio_diario": 18,
+  "intervalo_seg": 60,
+  "porta_servidor_web": 8080,
+  "abrir_navegador_ao_iniciar": true,
+  "dashboard_html": "dashboard.html",
+  "whatsapp": {
+    "ativo": true,
+    "porta_chrome": 9222,
+    "resumo_a_cada_min": 60,
+    "horarios_resumo": [
+      "04:00",
+      "06:00",
+      "12:00",
+      "18:00",
+      "20:00",
+      "22:00"
+    ],
+    "alerta_imediato_erro": true,
+    "perfil_chrome": "C:\\chrome_whatsapp_monitor",
+    "chrome_exe": "",
+    "destinos": [
+      {
+        "nome": "Agenor",
+        "numero": "558589768794"
+      },
+      {
+        "nome": "Miller",
+        "numero": "553199300997"
+      }
+    ]
+  },
+  "monitores": [
+    {
+      "nome": "BI Alerta Vagas v2",
+      "categoria": "bi",
+      "prio": "P0",
+      "regra": "aprr",
+      "log": "log_execucao_alerta_de_vagas_{YYYY}_{MM}.xlsx",
+      "min_linhas": 40,
+      "pastas": [
+        {
+          "rotulo": "T22APRR",
+          "caminho": "7 - BASES DE RELATORIOS\\T22APRR - DIARIA\\{YYYY}\\{MM} - {MES}\\{DD}",
+          "caminho_fallback": "",
+          "esperado": 2,
+          "contem": "",
+          "so_hoje": true,
+          "regra": "aprr",
+          "conf_mensal": false,
+          "arquivos_obrigatorios": [],
+          "prefixos": []
+        },
+        {
+          "rotulo": "T22APRR_PROC",
+          "caminho": "7 - BASES DE RELATORIOS\\T22APRR_PROC - DIARIA\\{YYYY}\\{MM} - {MES}\\{DD}",
+          "caminho_fallback": "",
+          "esperado": 2,
+          "contem": "",
+          "so_hoje": true,
+          "regra": "aprr",
+          "conf_mensal": false,
+          "arquivos_obrigatorios": [],
+          "prefixos": []
+        },
+        {
+          "rotulo": "T22APRR_VS",
+          "caminho": "7 - BASES DE RELATORIOS\\T22APRR_VS - DIARIA\\{YYYY}\\{MM} - {MES}\\{DD}",
+          "caminho_fallback": "",
+          "esperado": 2,
+          "contem": "",
+          "so_hoje": true,
+          "regra": "aprr",
+          "conf_mensal": false,
+          "arquivos_obrigatorios": [],
+          "prefixos": []
+        },
+        {
+          "rotulo": "T22APRR_TRANSF",
+          "caminho": "7 - BASES DE RELATORIOS\\T22APRR_TRANSF - DIARIA\\{YYYY}\\{MM} - {MES}\\{DD}",
+          "caminho_fallback": "",
+          "esperado": 2,
+          "contem": "",
+          "so_hoje": true,
+          "regra": "aprr",
+          "conf_mensal": false,
+          "arquivos_obrigatorios": [],
+          "prefixos": []
+        }
+      ]
+    },
+    {
+      "nome": "BI Alerta Vagas Tele Saúde",
+      "categoria": "bi",
+      "prio": "P0",
+      "regra": "tele",
+      "log": "log_bi_telesaude_{YYYY}_{MM}.xlsx",
+      "min_linhas": 12,
+      "pastas": [
+        {
+          "rotulo": "47 - BI_TELESSAUDE FATO",
+          "caminho": "\\\\10.1.17.4\\Usuarios\\Credenciamento Medico\\NUCLEO DE AGENDAS\\RAFAEL FERNANDES\\1 - RELATORIOS\\47 - BI_TELESSAUDE\\FATO",
+          "caminho_fallback": "1 - RELATORIOS\\47 - BI_TELESSAUDE\\FATO",
+          "esperado": 1,
+          "contem": "F_vagas_atual.parquet",
+          "so_hoje": true,
+          "regra": "tele",
+          "conf_mensal": false,
+          "arquivos_obrigatorios": [
+            "F_vagas_atual.parquet"
+          ],
+          "prefixos": []
+        }
+      ]
+    },
+    {
+      "nome": "BI Necessidade de Compra",
+      "categoria": "bi",
+      "prio": "P0",
+      "regra": "",
+      "log": "log_Necessidade_de_Compra_{YYYY}_{MM}.xlsx",
+      "min_linhas": 6,
+      "pastas": [
+        {
+          "rotulo": "46 FATO",
+          "caminho": "1 - RELATORIOS\\46 - BI NECESSIDADE COMPRA\\FATO",
+          "caminho_fallback": "1 - RELATORIOS\\46 - BI NECESSIDADE COMPRA FATO",
+          "esperado": 1,
+          "contem": "",
+          "so_hoje": true,
+          "regra": "",
+          "conf_mensal": false,
+          "arquivos_obrigatorios": [
+            "BASE_FATO_NECESSIDADE_COMPRA.parquet"
+          ],
+          "prefixos": []
+        },
+        {
+          "rotulo": "46 DIMENSOES",
+          "caminho": "1 - RELATORIOS\\46 - BI NECESSIDADE COMPRA\\DIMENSOES",
+          "caminho_fallback": "1 - RELATORIOS\\46 - BI NECESSIDADE COMPRA DIMENSOES",
+          "esperado": 3,
+          "contem": "",
+          "so_hoje": true,
+          "regra": "",
+          "conf_mensal": false,
+          "arquivos_obrigatorios": [
+            "DIM_CIDADE.parquet",
+            "DIM_ESPECIALIDADE.parquet",
+            "DIM_NECESSIDADE_COMPRA.parquet"
+          ],
+          "prefixos": []
+        }
+      ]
+    },
+    {
+      "nome": "T0012 - Disponibilidade / Marcada",
+      "categoria": "base",
+      "prio": "P1",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": [
+        {
+          "rotulo": "T0012 DISPONIBILIDADE",
+          "caminho": "7 - BASES DE RELATORIOS\\T0012 - ULTIMA BASE DISPONIBILIDADE MENSAL\\{YYYY}",
+          "caminho_fallback": "",
+          "esperado": 10,
+          "contem": "",
+          "so_hoje": true,
+          "regra": "",
+          "conf_mensal": true,
+          "arquivos_obrigatorios": [],
+          "prefixos": []
+        },
+        {
+          "rotulo": "T0012 MARCADA",
+          "caminho": "7 - BASES DE RELATORIOS\\T0012 - ULTIMA BASE MARCADA MENSAL\\{YYYY}",
+          "caminho_fallback": "",
+          "esperado": 10,
+          "contem": "",
+          "so_hoje": true,
+          "regra": "",
+          "conf_mensal": true,
+          "arquivos_obrigatorios": [],
+          "prefixos": []
+        }
+      ]
+    },
+    {
+      "nome": "T22J2 - Consultas Disponibilizadas",
+      "categoria": "base",
+      "prio": "P1",
+      "regra": "",
+      "log": "log_execucao_disponibilizadas_t22j2_{YYYY}_{MM}.xlsx",
+      "min_linhas": 5,
+      "pastas": [
+        {
+          "rotulo": "T22J2 BASE MENSAL",
+          "caminho": "7 - BASES DE RELATORIOS\\T22J2 - BASE MENSAL\\{YYYY}",
+          "caminho_fallback": "",
+          "esperado": 15,
+          "contem": "",
+          "so_hoje": true,
+          "regra": "",
+          "conf_mensal": true,
+          "arquivos_obrigatorios": [],
+          "prefixos": [
+            "CCG",
+            "CLINIPAM",
+            "NDI",
+            "NDISPRJ",
+            "HAP"
+          ]
+        }
+      ]
+    },
+    {
+      "nome": "T22J3 - Base diária",
+      "categoria": "base",
+      "prio": "P1",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": [
+        {
+          "rotulo": "T22J3",
+          "caminho": "7 - BASES DE RELATORIOS\\T22J3 - BASE DIARIA\\{YYYY}\\{MM} - {MES}",
+          "caminho_fallback": "",
+          "esperado": 1,
+          "contem": "{DD}{MM}{YYYY}",
+          "so_hoje": true,
+          "regra": "",
+          "conf_mensal": true,
+          "arquivos_obrigatorios": [],
+          "prefixos": []
+        }
+      ]
+    },
+    {
+      "nome": "T9016 - Base mensal",
+      "categoria": "base",
+      "prio": "P1",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": [
+        {
+          "rotulo": "T9016",
+          "caminho": "7 - BASES DE RELATORIOS\\T9016 - BASE MENSAL\\{YYYY}\\{MM} - {MES}",
+          "caminho_fallback": "",
+          "esperado": 5,
+          "contem": "{DD}{MM}{YYYY}",
+          "so_hoje": true,
+          "regra": "",
+          "conf_mensal": true,
+          "arquivos_obrigatorios": [],
+          "prefixos": [
+            "CCG",
+            "CLINIPAM",
+            "NDI",
+            "NDISPRJ"
+          ]
+        }
+      ]
+    },
+    {
+      "nome": "T9033 - Atraso Médico",
+      "categoria": "base",
+      "prio": "P2",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": [
+        {
+          "rotulo": "ATRASO MEDICO",
+          "caminho": "7 - BASES DE RELATORIOS\\BASE_PAINEL DOS MEDICOS\\BASE_ATRASO MEDICO\\{YYYY}\\{MM} - {MES}",
+          "caminho_fallback": "7 - BASES DE RELATORIOS\\BASE_PAINEL DOS MEDICOS BASE_ATRASO MEDICO\\{YYYY}\\{MM} - {MES}",
+          "esperado": 1,
+          "contem": "",
+          "so_hoje": true,
+          "regra": "",
+          "conf_mensal": true,
+          "arquivos_obrigatorios": [],
+          "prefixos": []
+        }
+      ]
+    },
+    {
+      "nome": "T9033 - Horas Médicos",
+      "categoria": "base",
+      "prio": "P2",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": [
+        {
+          "rotulo": "HORAS MEDICOS",
+          "caminho": "7 - BASES DE RELATORIOS\\BASE_PAINEL DOS MEDICOS\\BASE HORAS MEDICOS\\{YYYY}\\{MM} - {MES}",
+          "caminho_fallback": "7 - BASES DE RELATORIOS\\BASE PAINEL DOS MEDICOS BASE HORAS MEDICOS\\{YYYY}\\{MM} - {MES}",
+          "esperado": 5,
+          "contem": "{DD}{MM}{YYYY}",
+          "so_hoje": true,
+          "regra": "",
+          "conf_mensal": true,
+          "arquivos_obrigatorios": [],
+          "prefixos": [
+            "CCG",
+            "CLINIPAM",
+            "NDI",
+            "NDISPRJ"
+          ]
+        }
+      ]
+    },
+    {
+      "nome": "Estoque e Abastecimento",
+      "categoria": "bi",
+      "prio": "P1",
+      "regra": "",
+      "log": "log_execucao_estoque_abastecimento_{YYYY}_{MM}.xlsx",
+      "min_linhas": 4,
+      "pastas": []
+    },
+    {
+      "nome": "BI Painel dos Médicos",
+      "categoria": "bi",
+      "prio": "P1",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": []
+    },
+    {
+      "nome": "BI Farol ICH (DGE)",
+      "categoria": "bi",
+      "prio": "P1",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": []
+    },
+    {
+      "nome": "BI Relatório de Consultas Disponibilizadas",
+      "categoria": "bi",
+      "prio": "P1",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": []
+    },
+    {
+      "nome": "BI Controle Agendas",
+      "categoria": "bi",
+      "prio": "P1",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": []
+    },
+    {
+      "nome": "BI Captação de Agendas",
+      "categoria": "bi",
+      "prio": "P1",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": []
+    },
+    {
+      "nome": "BI INDICADORES REDE CRED",
+      "categoria": "bi",
+      "prio": "P1",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": []
+    },
+    {
+      "nome": "Logs Projetos (Automações)",
+      "categoria": "bi",
+      "prio": "P2",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": []
+    },
+    {
+      "nome": "BI Relatório de Consultas em Transferência",
+      "categoria": "bi",
+      "prio": "P2",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": []
+    },
+    {
+      "nome": "BI Relatório de Cirurgias",
+      "categoria": "bi",
+      "prio": "P2",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": []
+    },
+    {
+      "nome": "BI Relatório Atraso dos Médicos",
+      "categoria": "bi",
+      "prio": "P2",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": []
+    },
+    {
+      "nome": "BI Relatório de Acompanhamento de Mensageria",
+      "categoria": "bi",
+      "prio": "P2",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": []
+    },
+    {
+      "nome": "BI Relatorio_SAC",
+      "categoria": "bi",
+      "prio": "P2",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": []
+    },
+    {
+      "nome": "CAPTADOS FORA DE ALERTA",
+      "categoria": "bi",
+      "prio": "P2",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": []
+    }
+  ]
+}
