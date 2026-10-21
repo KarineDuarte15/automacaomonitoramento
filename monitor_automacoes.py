@@ -90,7 +90,7 @@ DEFAULT = {
         'ativo': True,
         'porta_chrome': 9222,
         'resumo_a_cada_min': 360,  # Envia no WhatsApp apenas a cada 6 horas (360 minutos)
-        'horarios_resumo': ['00:00', '06:00', '12:00', '18:00'],
+        'horarios_resumo': ['00:00', '06:00', '12:00', '18:00', '23:59'],
         'alerta_imediato_erro': False,  # Desativado para respeitar rigorosamente a janela de 6 horas
         'perfil_chrome': r'C:\chrome_whatsapp_monitor',
         'chrome_exe': '',
