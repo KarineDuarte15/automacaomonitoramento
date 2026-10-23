@@ -51,8 +51,9 @@ JANELAS_TELE_MIN = [h * 60 - 30 for h in HORARIOS_APRR]  # 05:30, 08:30, 10:30, 
 
 
 def F(rotulo, caminho, esperado, contem='', so_hoje=True, regra='', conf_mensal=False,
-      arquivos_obrigatorios=None, prefixos=None, caminho_fallback=''):
+      arquivos_obrigatorios=None, prefixos=None, caminho_fallback='', **extra):
     return dict(
+        **extra,
         rotulo=rotulo,
         caminho=caminho,
         caminho_fallback=caminho_fallback,
@@ -230,6 +231,94 @@ DEFAULT = {
 
 
 # ==============================================================================
+# NOVAS REGRAS (documento MAPEAMENTO_DAS_PASTAS atualizado)
+# ==============================================================================
+def _mon(nome):
+    return next(x for x in DEFAULT['monitores'] if x['nome'] == nome)
+
+
+def _bi(nome, busca, prio, regra='diaria', **kw):
+    return dict(nome=nome, busca=busca, prio=prio, regra=regra, **kw)
+
+
+DEFAULT['versao_config'] = 5
+DEFAULT['pasta_pbix'] = r'3 - ATUALIZAÇÃO PBIX\PBIX OFICIAL'
+DEFAULT['hora_limite_manha'] = '11:00'          # painéis da manhã: atualizados até 11h
+DEFAULT['bi_checar_fim_de_semana'] = False
+DEFAULT['logs_ignorar'] = []                    # trechos de nome de logs que não devem ser auditados
+_APRR_H = ['06:00', '09:00', '11:00', '13:00', '15:00', '17:00']
+DEFAULT['bis_pbix'] = [
+    _bi('Alerta de Vagas v2', ['alerta', 'vagas', 'v2'], 'P0', 'horarios', horarios=_APRR_H, tolerancia_min=150, excluir=['sub', 'tele']),
+    _bi('Alerta Diário de Vagas_Sub', ['alerta', 'vagas', 'sub'], 'P0', 'horarios', horarios=_APRR_H, tolerancia_min=150),
+    _bi('BI Alerta Vagas Tele Saúde', ['vagas', 'tele'], 'P0', 'horarios', horarios=_APRR_H, tolerancia_min=150),
+    _bi('BI Necessidade de Compra', ['necessidade', 'compra'], 'P0'),
+    _bi('Painel Médicos Hapclinicas V2', ['painel', 'medicos'], 'P1'),
+    _bi('Relatório Indicadores Rede Cred', ['indicadores', 'rede'], 'P1'),
+    _bi('Relatório de Consultas Disponibilizadas v2', ['consultas', 'disponibilizadas'], 'P1'),
+    _bi('Captação de Agendas', ['captacao', 'agendas'], 'P1', 'ate_hora', hora_limite='17:00', tolerancia_min=30),
+    _bi('Controle de Agendas', ['controle', 'agendas'], 'P1', 'ate_hora', hora_limite='17:00', tolerancia_min=30),
+    _bi('Farol de Índice Consultas por Hora - ICH', ['farol'], 'P1', 'ate_hora', hora_limite='14:00', tolerancia_min=30),
+    _bi('Relatório de Estoque e Abastecimento v2', ['estoque', 'abastecimento'], 'P1'),
+    _bi('Acompanhamento de Pagamentos Prestadores', ['pagamentos', 'prestadores'], 'P1', 'ultima'),
+    _bi('Escala Especial', ['escala', 'especial'], 'P2'),
+    _bi('Relatório Atraso dos Médicos', ['atraso', 'medicos'], 'P2'),
+    _bi('Relatório de Consultas em Transferência', ['transferencia'], 'P2'),
+    _bi('Relatório de Cancelamento v2', ['cancelamento'], 'P2'),
+    _bi('Relatório de Acompanhamento de Mensageria', ['mensageria'], 'P2'),
+    _bi('Monitoramento de Marcação', ['monitoramento', 'marcacao'], 'P2', 'ate_hora', hora_limite='06:00', tolerancia_min=60),
+    _bi('Relatório de Cirurgias', ['cirurgias'], 'P2'),
+    _bi('Relatório SAC (mensal)', ['sac'], 'P2', 'mensal', excluir=['nip']),
+    _bi('Relatório de SAC e NIP', ['sac', 'nip'], 'P2', 'horarios', horarios=['07:30', '09:00', '13:00', '22:30'], tolerancia_min=90),
+    _bi('Relatório de Tagueamento', ['tagueamento'], 'P2', 'horarios', horarios=['08:00', '11:30', '17:00'], tolerancia_min=90),
+    _bi('Acompanhamento de Valores Pagos por Especialidade', ['valores', 'pagos', 'especialidade'], 'P2', 'ate_hora', hora_limite='05:00', tolerancia_min=60),
+    _bi('Relatório Check-up da Mulher', ['check', 'mulher'], 'P2', 'ultima'),
+    _bi('Forecast Monitoramento Limites e Mediana', ['forecast'], 'P2', 'ultima'),
+    _bi('Relatório Pacotes', ['pacotes'], 'P2', 'ignorar'),
+]
+
+# Bases: T0012 passa a 14 arquivos/dia e ganha o DB mensal (3 arquivos)
+for _p in _mon('T0012 - Disponibilidade / Marcada')['pastas']:
+    _p['esperado'] = 14
+DEFAULT['monitores'].append({
+    'nome': 'DB T0012 (mensal)', 'categoria': 'base', 'prio': 'P1', 'regra': '', 'log': '', 'min_linhas': 0,
+    'pastas': [F('DB_T0012 FLUXO PYTHON', B7 + r'DB_T0012\FLUXO PYTHON', 3, '', True, '', conf_mensal=True)]
+})
+# T9016: só baixa nos dias 1, 5 e 10; 5 arquivos no mês (um por empresa)
+_p = _mon('T9016 - Base mensal')['pastas'][0]
+_p.update(esperado=5, contem='', conf_mensal=False, dias_mes=[1, 5, 10],
+          prefixos=['T9016_', 'NDISPRJ', 'NDIMINAS', 'CLINIPAM', 'CCG'])
+# Indicadores Rede Cred: base atualizada até as 10h
+DEFAULT['monitores'].append({
+    'nome': 'Indicadores Rede Cred (bases)', 'categoria': 'base', 'prio': 'P1', 'regra': '', 'log': '', 'min_linhas': 0,
+    'pastas': [
+        F('CLIENTE_OCULTO HISTORICO', B7 + r'BI_INDICADORES_CRED\CLIENTE_OCULTO\HISTORICO', 1, '', True, '', conf_mensal=True, hora_limite='10:00'),
+        F('CLIENTE_OCULTO MENSAL', B7 + r'BI_INDICADORES_CRED\CLIENTE_OCULTO', 1, '', True, '', conf_mensal=True, hora_limite='10:00'),
+    ]
+})
+# Base DGE: 1 arquivo do mês atual em cada pasta
+DEFAULT['monitores'].append({
+    'nome': 'Base DGE (produtividade / pagamento)', 'categoria': 'base', 'prio': 'P2', 'regra': '', 'log': '', 'min_linhas': 0,
+    'pastas': [
+        F('48 - PRODUTIVIDADE V2 DGE', r'1 - RELATORIOS\48 - RELATORIO DE PRODUTIVIDADE V2\DGE', 1, '', False, '', so_mes=True),
+        F('BASES DGE PRODUTIVIDADE', B7 + r'BASES DGE\PRODUTIVIDADE', 1, '', False, '', so_mes=True),
+        F('BASES DGE TIPO PAGAMENTO', B7 + r'BASES DGE\TIPO PAGAMENTO', 1, '', False, '', so_mes=True),
+    ]
+})
+# Logs (Pasta 52) e janelas de execução dos BIs que antes eram só cartões pré-cadastrados
+for _n, _log, _min, _ini, _fim in [
+    ('BI Painel dos Médicos', 'log_execucao_painel_medicos_{YYYY}_{MM}.xlsx', 8, '07:10', '11:30'),
+    ('BI Farol ICH (DGE)', 'log_execucao_farol_de_indice_consultas_por_hora_ich_{YYYY}_{MM}.xlsx', 4, '14:50', '15:10'),
+    ('BI Relatório de Consultas Disponibilizadas', 'log_execucao_consultas_disponibilizadas_{YYYY}_{MM}.xlsx', 5, '02:00', '03:30'),
+    ('BI Controle Agendas', 'log_controle_agendas_{YYYY}_{MM}.xlsx', 5, '16:50', '17:30'),
+    ('BI Relatório de Consultas em Transferência', 'log_execucao_consultas_em_transferencia_{YYYY}_{MM}.xlsx', 4, '22:00', '22:30'),
+    ('BI Relatório Atraso dos Médicos', 'log_Atraso_dos_Medicos_{YYYY}_{MM}.xlsx', 6, '07:30', '09:00'),
+    ('BI Relatório de Acompanhamento de Mensageria', 'log_relatorio_mensageria_{YYYY}_{MM}.xlsx', 4, '22:00', '22:30'),
+    ('CAPTADOS FORA DE ALERTA', 'log_Script_Tabela_Captados_Fora_Alerta_{YYYY}_{MM}.xlsx', 8, '01:00', '01:30'),
+]:
+    _mon(_n).update(log=_log, min_linhas=_min, hora_inicio=_ini, hora_fim=_fim)
+
+
+# ==============================================================================
 # 3. AUTOCONFIGURAÇÃO E RESOLUÇÃO DE CAMINHOS
 # ==============================================================================
 def tok(s, d=None):
@@ -345,6 +434,200 @@ def verificar_janela_telesaude(ult_mod_dt, agora=None):
 
 
 # ==============================================================================
+# 4B. MONITORAMENTO DOS BIs (PBIX OFICIAL) + AUDITORIA DOS LOGS DA PASTA 52
+# ==============================================================================
+import calendar
+import unicodedata
+
+_CACHE_LOGS = {'t': 0.0, 'item': None, 'datas': {}}
+
+
+def _norm(s):
+    s = unicodedata.normalize('NFKD', str(s)).encode('ascii', 'ignore').decode().lower()
+    return ' ' + re.sub(r'[^a-z0-9]+', ' ', s).strip() + ' '
+
+
+def _hora_dt(h, d):
+    a, b = h.split(':')
+    return datetime.combine(d, dtime(int(a), int(b)))
+
+
+def _item_base(nome, prio, categoria):
+    agora = datetime.now()
+    return dict(
+        nome=nome, categoria=categoria, prio=prio, regra='', status='ok', erros=[], avisos=[], infos=[], pastas=[],
+        quando=agora.strftime('%d/%m/%Y %H:%M:%S'), quando_hms=agora.strftime('%H:%M:%S'),
+        linhas_hoje=None, ok_hoje=None, err_hoje=None, media_min=None, media_arq_min=None, ultimo_fim=None, eventos_hoje=[]
+    )
+
+
+def _regra_pbix(b, mt, agora):
+    """Retorna (status, motivo, esperado, atraso_min) conforme a regra do BI."""
+    hoje = agora.date()
+    regra = b.get('regra', 'diaria')
+    if regra == 'mensal':
+        ok = (mt.year, mt.month) == (hoje.year, hoje.month)
+        return ('ok' if ok else 'err', f'Atualizado em {mt:%d/%m/%Y}' if ok else f'Sem atualização neste mês (última: {mt:%d/%m/%Y})', 'Atualização mensal', 0)
+    if regra == 'ultima':
+        dias = (agora - mt).days
+        lim = int(b.get('limite_dias', 3))
+        return ('ok' if dias <= lim else 'warn', f'Última atualização há {dias} dia(s)', f'Conferir última atualização (limite {lim} dias)', max(0, (dias - lim) * 1440))
+    if hoje.weekday() >= 5 and not b.get('checar_fim_de_semana', False):
+        return 'ok', 'Fim de semana: sem exigência diária', 'Dias úteis', 0
+    if regra == 'horarios':
+        tol = int(b.get('tolerancia_min', 90))
+        sl = [_hora_dt(h, hoje) for h in b['horarios']]
+        passadas = [s for s in sl if s + timedelta(minutes=tol) <= agora]
+        prox = next((s for s in sl if s > agora), None)
+        esp = 'Horários: ' + ', '.join(b['horarios']) + (f' | próximo {prox:%H:%M}' if prox else ' | encerrado hoje')
+        if not passadas:
+            return 'ok', 'Aguardando o 1º horário do dia', esp, 0
+        ult = passadas[-1]
+        if mt >= ult - timedelta(minutes=5):
+            return 'ok', f'Atualizado após o horário das {ult:%H:%M} (às {mt:%H:%M:%S})', esp, 0
+        atraso = int((agora - ult).total_seconds() // 60)
+        return 'err', f'ATRASADO: esperada atualização do horário das {ult:%H:%M} (+{tol} min). Última: {mt:%d/%m %H:%M:%S}', esp, atraso
+    prazo = _hora_dt(b['hora_limite'], hoje) + timedelta(minutes=int(b.get('tolerancia_min', 0)))
+    esp = f"Atualizar até {b['hora_limite']}" + (f" (+{b['tolerancia_min']} min)" if b.get('tolerancia_min') else '')
+    if mt.date() == hoje:
+        return 'ok', f'Atualizado hoje às {mt:%H:%M:%S}', esp, 0
+    if agora < prazo:
+        return 'ok', f'Aguardando atualização (prazo {prazo:%H:%M})', esp, 0
+    return 'err', f'ATRASADO: sem atualização hoje (prazo {prazo:%H:%M}). Última: {mt:%d/%m/%Y %H:%M:%S}', esp, int((agora - prazo).total_seconds() // 60)
+
+
+def avaliar_pbix(cfg):
+    agora = datetime.now()
+    pasta = resolver_pasta_automatica(cfg, cfg.get('pasta_pbix', ''))
+    try:
+        arquivos = [(e, datetime.fromtimestamp(e.stat().st_mtime)) for e in pasta.iterdir()
+                    if e.is_file() and e.suffix.lower() in ('.pbix', '.pbit')] if pasta.is_dir() else None
+    except Exception:
+        arquivos = None
+    if arquivos is None:
+        r = _item_base('PBIX · Pasta PBIX OFICIAL', 'P0', 'pbix')
+        r['status'] = 'err'
+        r['erros'].append(f'Pasta dos BIs não encontrada ou ilegível: {pasta}')
+        return [r]
+
+    itens = []
+    for b in cfg.get('bis_pbix', []):
+        if b.get('regra') == 'ignorar':
+            continue
+        b = {'hora_limite': cfg.get('hora_limite_manha', '11:00'), 'checar_fim_de_semana': cfg.get('bi_checar_fim_de_semana', False), **b}
+        r = _item_base('PBIX · ' + b['nome'], b['prio'], 'pbix')
+        ach = [(e, mt) for e, mt in arquivos
+               if all(k in _norm(e.name) for k in b['busca']) and not any(k in _norm(e.name) for k in b.get('excluir', []))]
+        if not ach:
+            r['status'] = 'warn'
+            r['avisos'].append(f"Arquivo .pbix não localizado (busca: {', '.join(b['busca'])}). Ajuste 'busca' em bis_pbix.")
+            r['pbix'] = dict(arquivo=None, ultima=None, ultima_iso=None, idade_h=None, esperado='-', atraso_min=0, regra=b['regra'])
+        else:
+            e, mt = max(ach, key=lambda x: x[1])
+            st, motivo, esp, atraso = _regra_pbix(b, mt, agora)
+            if st == 'err' and b['prio'] == 'P2':
+                st = 'warn'
+            r['status'] = st
+            {'err': r['erros'], 'warn': r['avisos']}.get(st, r['infos']).append(motivo)
+            if len(ach) > 1:
+                r['infos'].append(f'{len(ach)} arquivos casam com a busca; usando o mais recente ({e.name})')
+            r['pbix'] = dict(arquivo=e.name, ultima=mt.strftime('%d/%m/%Y %H:%M:%S'), ultima_iso=mt.isoformat(timespec='seconds'),
+                             idade_h=round((agora - mt).total_seconds() / 3600, 1), esperado=esp, atraso_min=atraso, regra=b['regra'])
+        itens.append(r)
+    return itens
+
+
+def _dia_util_anterior(d):
+    d = d - timedelta(days=1)
+    while d.weekday() >= 5:
+        d -= timedelta(days=1)
+    return d
+
+
+def auditar_logs_52(cfg, forcar=False):
+    """Regra Pasta 52: log do mês atual atualizado diariamente; logs de meses anteriores com a última data do mês;
+    família de log cuja última data está 3+ meses atrás da referência do mês = DESATUALIZADO."""
+    if not forcar and _CACHE_LOGS['item'] and time.time() - _CACHE_LOGS['t'] < 600:
+        item = json.loads(json.dumps(_CACHE_LOGS['item']))
+        agora = datetime.now()
+        item['quando'], item['quando_hms'] = agora.strftime('%d/%m/%Y %H:%M:%S'), agora.strftime('%H:%M:%S')
+        return item
+
+    hoje = date.today()
+    r = _item_base('Auditoria de Logs (Pasta 52)', 'P1', 'logs')
+    pasta = resolver_pasta_automatica(cfg, cfg['pasta_logs'])
+    if not pasta.is_dir():
+        r['status'] = 'err'
+        r['erros'].append(f'Pasta 52 não encontrada: {pasta}')
+        return r
+
+    mes_hoje = hoje.year * 12 + hoje.month
+    ignorar = [_norm(x) for x in cfg.get('logs_ignorar', [])]
+    fams = {}
+    for arq in pasta.glob('*.xlsx'):
+        m = re.search(r'_(\d{4})_(\d{2})\.xlsx$', arq.name, re.I)
+        if not m or arq.name.startswith('~$'):
+            continue
+        ref = (int(m[1]), int(m[2]))
+        if mes_hoje - (ref[0] * 12 + ref[1]) > 4 or any(i.strip() in _norm(arq.name) for i in ignorar):
+            continue
+        mt = arq.stat().st_mtime
+        chave = (arq.name, mt)
+        if chave not in _CACHE_LOGS['datas']:
+            try:
+                ds = [x['d'] for x in ler_log(arq) if x['d']]
+                _CACHE_LOGS['datas'][chave] = max(ds) if ds else None
+            except Exception:
+                _CACHE_LOGS['datas'][chave] = None
+        fams.setdefault(arq.name[:m.start()], []).append(dict(arquivo=arq.name, ref=ref, ult=_CACHE_LOGS['datas'][chave]))
+
+    det, util_ant = [], _dia_util_anterior(hoje)
+    for fam, arqs in fams.items():
+        arqs.sort(key=lambda x: x['ref'])
+        for i, a in enumerate(arqs):
+            ult, ref = a['ult'], a['ref']
+            ult_s = ult.strftime('%d/%m/%Y') if ult else '-'
+            ultimo_da_familia = (i == len(arqs) - 1)
+            if ref == (hoje.year, hoje.month):
+                if ult == hoje or (hoje.weekday() >= 5 and ult and ult >= util_ant):
+                    st, msg = 'ok', 'Atualizado hoje'
+                elif ult and ult >= util_ant:
+                    st, msg = 'warn', f'Última data {ult_s} (dia útil anterior); ainda sem execução hoje'
+                else:
+                    st, msg = 'err', f'DESATUALIZADO: última data {ult_s}, esperado hoje'
+            else:
+                fim = date(ref[0], ref[1], calendar.monthrange(*ref)[1])
+                meses_atras = (mes_hoje - (ult.year * 12 + ult.month)) if ult else 99
+                if ultimo_da_familia and meses_atras >= 3:
+                    st, msg = 'err', f'DESATUALIZADO: última data {ult_s} (3+ meses atrás) e sem log do mês atual'
+                elif ultimo_da_familia:
+                    st, msg = 'warn', f'Sem log do mês atual (último: {ref[1]:02d}/{ref[0]}, até {ult_s})'
+                elif ult and ult >= fim - timedelta(days=int(cfg.get('log_tolerancia_fim_mes_dias', 3))):
+                    st, msg = 'ok', f'Fechou o mês em {ult_s}'
+                else:
+                    st, msg = 'warn', f'Não chegou ao fim do mês (última data {ult_s})'
+            det.append(dict(arquivo=a['arquivo'], ref=f'{ref[1]:02d}/{ref[0]}', ultima=ult_s, status=st, motivo=msg))
+
+    ordem = {'err': 0, 'warn': 1, 'ok': 2}
+    det.sort(key=lambda x: (ordem[x['status']], x['arquivo']))
+    r['logs_detalhe'] = det[:80]
+    errs = [d for d in det if d['status'] == 'err']
+    warns = [d for d in det if d['status'] == 'warn']
+    if errs:
+        r['status'] = 'err'
+        r['erros'] += [f"{d['arquivo']}: {d['motivo']}" for d in errs[:8]]
+        if len(errs) > 8:
+            r['erros'].append(f'... e mais {len(errs) - 8} log(s) desatualizado(s)')
+    elif warns:
+        r['status'] = 'warn'
+    if warns:
+        r['avisos'].append(f'{len(warns)} log(s) com alerta (ver lista abaixo)')
+    r['infos'].append(f'{len(det)} logs analisados na Pasta 52')
+    _CACHE_LOGS.update(t=time.time(), item=json.loads(json.dumps(r)))
+    return r
+
+
+# ==============================================================================
 # 5. LEITURA DE LOGS (.XLSX) E AVALIAÇÃO DOS MONITORES
 # ==============================================================================
 def ler_log(arq):
@@ -454,6 +737,8 @@ def avaliar(m, cfg):
                         r['infos'].append('Aguardando 1º horário da APRR (06:00)')
                     elif regra == 'tele' and agora.hour * 60 + agora.minute < JANELAS_TELE_MIN[0]:
                         r['infos'].append('Aguardando 1ª janela do Tele Saúde (05:30)')
+                    elif m.get('hora_inicio') and agora.strftime('%H:%M') < m['hora_inicio']:
+                        r['infos'].append(f"Aguardando execução prevista para {m['hora_inicio']}")
                     else:
                         r['status'] = 'warn'
                         r['avisos'].append('Nenhuma execução registrada hoje no log')
@@ -469,7 +754,7 @@ def avaliar(m, cfg):
                     reex = [x for x in td if x['st'] == 'ERR' and ultimo[x['script']] is not x]
                     if reex:
                         r['avisos'].append(f'{len(reex)} erro(s) hoje já reexecutado(s) com sucesso')
-                    if r['status'] == 'ok' and len(td) < m.get('min_linhas', 0) and regra not in ('aprr', 'tele'):
+                    if r['status'] == 'ok' and len(td) < m.get('min_linhas', 0) and regra not in ('aprr', 'tele') and agora.strftime('%H:%M') >= m.get('hora_fim', '00:00'):
                         r['status'] = 'warn'
                         r['avisos'].append(f"Log com {len(td)} linhas hoje; esperado {m['min_linhas']}+")
             except Exception as e:
@@ -489,6 +774,10 @@ def avaliar(m, cfg):
     for f in m.get('pastas', []):
         eh_aprr = (regra == 'aprr' or f.get('regra') == 'aprr')
         esperado_dia = aprr_info['esperado'] if eh_aprr else f['esperado']
+        if f.get('dias_mes'):
+            esperado_dia = 1 if hoje.day in f['dias_mes'] else 0
+        if f.get('hora_limite') and agora.strftime('%H:%M') < f['hora_limite']:
+            esperado_dia = 0
         conf_mensal = f.get('conf_mensal', False)
         esperado_mes = (f['esperado'] * qtd_dias_uteis) if conf_mensal else None
 
@@ -543,6 +832,8 @@ def avaliar(m, cfg):
                         n_hoje += 1
                         mtimes_hoje.append(mtime_dt)
 
+                if f.get('so_mes'):
+                    n_hoje = n_mes
                 o['n'] = n_hoje
                 o['n_mes'] = n_mes
                 total_arquivos_hoje += n_hoje
@@ -571,6 +862,13 @@ def avaliar(m, cfg):
                         o['tempo_medio_arq'] = round(r['media_min'] or 1.0, 2)
                     tempos_por_arq.append(o['tempo_medio_arq'])
 
+                if f.get('dias_mes') and f.get('prefixos') and (hoje.day > min(f['dias_mes']) or agora.hour >= 12):
+                    tok_mes = tok('{MM}{YYYY}', hoje)
+                    nomes_mes = [e.name.lower() for e in pasta.iterdir() if e.is_file() and tok_mes in e.name]
+                    faltam = [p for p in f['prefixos'] if not any(p.lower() in nm for nm in nomes_mes)]
+                    if faltam:
+                        r['status'] = 'err'
+                        r['erros'].append(f"NÃO BAIXOU: {f['rotulo']} sem arquivo de {', '.join(faltam)} (baixa nos dias {f['dias_mes']})")
                 if n_hoje < esperado_dia:
                     r['status'] = 'err'
                     r['erros'].append(f"NÃO BAIXOU: {f['rotulo']} tem {n_hoje} de {esperado_dia} arquivos hoje")
@@ -637,7 +935,7 @@ def gerar_relatorio_xlsx(cfg, res, snaps_hoje, hist_diario, salvar_em_pasta_espe
         )
         ws1.append([
             r['quando'],
-            "Painel BI" if r['categoria'] == 'bi' else "Base de Dados",
+            {'bi': 'Painel BI', 'pbix': 'BI (.pbix)', 'logs': 'Auditoria de Logs'}.get(r['categoria'], 'Base de Dados'),
             r['nome'],
             r['prio'],
             r['status'].upper(),
@@ -844,7 +1142,6 @@ HTML = r'''<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="refresh" content="60">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Monitoramento OptimusBI</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
@@ -915,6 +1212,14 @@ HTML = r'''<!DOCTYPE html>
     .dh { padding: 14px 18px; background: var(--blue-inst); color: #fff; display: flex; justify-content: space-between; align-items: center; }
     .db { padding: 16px 18px; background: #fff; }
     .hidden { display: none !important; }
+    .alert-badge { position: fixed; right: 18px; bottom: 18px; z-index: 50; background: var(--red); color: #fff; border: 0; border-radius: 99px; padding: 10px 18px; font: 700 13px 'IBM Plex Sans', sans-serif; cursor: pointer; box-shadow: 0 4px 14px rgba(242,29,47,.45); animation: pulso 1.6s infinite; }
+    @keyframes pulso { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+    #dAlert { border-top: 6px solid var(--red); width: min(720px, 95vw); }
+    #dAlert .al { border-left: 4px solid var(--c); background: var(--slate-100); border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; font-size: 13px; }
+    #dAlert .al b { color: var(--blue-dark); } #dAlert .al small { display: block; color: var(--slate-600); margin-top: 2px; }
+    .lt { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 11.5px; }
+    .lt td, .lt th { border-bottom: 1px solid var(--slate-200); padding: 3px 4px; text-align: left; }
+    .lt .s-err { color: var(--red); font-weight: 700; } .lt .s-warn { color: var(--amber-800); font-weight: 600; } .lt .s-ok { color: var(--blue-inst); }
     @media(max-width:600px){ .grid, .charts { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -946,6 +1251,7 @@ HTML = r'''<!DOCTYPE html>
   <nav class="nav-tabs" id="tabs">
     <button class="nav-tab active" data-tab="all">Visão Geral (Todos)</button>
     <button class="nav-tab" data-tab="bi">Painéis BI</button>
+    <button class="nav-tab" data-tab="pbix">📊 Monitoramento de BIs</button>
     <button class="nav-tab" data-tab="base">Bases de Dados (Diário + Mensal)</button>
     <button class="nav-tab" data-tab="charts">Gráficos & Evolução (Hora / Dia)</button>
   </nav>
@@ -972,8 +1278,22 @@ HTML = r'''<!DOCTYPE html>
     <div class="box"><h3>Tempo Médio por Arquivo Baixado (min / arquivo)</h3><canvas id="cArq" height="170"></canvas></div>
   </div>
 
+  <div class="charts hidden" id="pbixBox">
+    <div class="box"><h3>Horas desde a última atualização de cada BI (cor = situação)</h3><canvas id="cPbIdade" height="190"></canvas></div>
+    <div class="box"><h3>Atualizações dos BIs por hora do dia (colunas)</h3><canvas id="cPbHora" height="190"></canvas></div>
+    <div class="box"><h3>Evolução diária: BIs atualizados vs. com falha (linhas)</h3><canvas id="cPbDia" height="190"></canvas></div>
+    <div class="box"><h3>Situação dos BIs por prioridade</h3><canvas id="cPbPrio" height="190"></canvas></div>
+  </div>
+
   <div class="grid" id="grid"></div>
 </main>
+
+<button id="alertBadge" class="alert-badge hidden"></button>
+<dialog id="dAlert">
+  <div class="dh"><b>🚨 Alertas críticos do monitoramento</b><button id="bAlertOk">Entendi (silenciar 30 min)</button></div>
+  <div class="db"><div id="alertList"></div>
+    <div class="bar" style="margin-top:10px"><button class="p" id="bAlertBis">Abrir Monitoramento de BIs</button></div></div>
+</dialog>
 
 <dialog id="dWa">
   <div class="dh"><b>Resumo para WhatsApp (A cada 6 horas)</b><button id="bWc">Fechar</button></div>
@@ -1065,6 +1385,7 @@ function render() {
 
   const filtered = list.filter(r => {
     if (activeTab === 'bi') return r.categoria === 'bi';
+    if (activeTab === 'pbix') return r.categoria === 'pbix' || r.categoria === 'logs';
     if (activeTab === 'base') return r.categoria === 'base';
     return true;
   });
@@ -1079,7 +1400,8 @@ function render() {
     ['Crítico / Erro', c.err, 'var(--red)']
   ].map(([a, b, col]) => `<div class="k" style="--c:${col}"><b>${b}</b><span>${a}</span></div>`).join('');
 
-  $('#chartsBox').classList.toggle('hidden', activeTab === 'bi' || activeTab === 'base');
+  $('#chartsBox').classList.toggle('hidden', activeTab === 'bi' || activeTab === 'base' || activeTab === 'pbix');
+  $('#pbixBox').classList.toggle('hidden', activeTab !== 'pbix');
   $('#grid').classList.toggle('hidden', activeTab === 'charts');
 
   $('#grid').innerHTML = [...filtered].sort((a, b) => a.prio.localeCompare(b.prio)).map(r => {
@@ -1108,22 +1430,29 @@ function render() {
         ]);
       }
     });
+    if (r.pbix) {
+      w.push(['Arquivo .pbix', r.pbix.arquivo || '<b>não localizado</b>'], ['Última atualização', `<b>${r.pbix.ultima || '-'}</b>`], ['Regra esperada', r.pbix.esperado || '-']);
+      if (r.pbix.arquivo) w.push(['Tempo desde a atualização', r.pbix.idade_h + ' h'], ['Atraso sobre o esperado', r.pbix.atraso_min ? `<b style="color:var(--red)">${r.pbix.atraso_min} min</b>` : '0 min']);
+    }
     w.push(['Verificado em (Hora:Min:Seg)', `<b>${r.quando}</b>`]);
 
     return `<div class="m ${r.status}">
       <h2><span>${r.nome}</span><span class="chip">${L[r.status]}</span></h2>
       <div class="meta">
         <span class="p-tag p-${r.prio}">Prioridade ${r.prio}</span>
-        <span class="c-tag">${r.categoria === 'bi' ? 'Painel BI' : 'Base de Dados'}</span>
+        <span class="c-tag">${CAT[r.categoria] || 'Base de Dados'}</span>
       </div>
       ${w.map(x => `<div class="row"><span>${x[0]}</span><span>${x[1]}</span></div>`).join('')}
       ${(r.erros || []).map(x => `<div class="msg">${x}</div>`).join('')}
       ${(r.avisos || []).map(x => `<div class="msg w">${x}</div>`).join('')}
       ${(r.infos || []).map(x => `<div class="msg i">${x}</div>`).join('')}
+      ${r.logs_detalhe ? logsTable(r.logs_detalhe) : ''}
     </div>`;
   }).join('');
 
   renderCharts(list);
+  renderPbixCharts(list);
+  checkAlerts(hVal);
 }
 
 function renderCharts(list) {
@@ -1180,12 +1509,97 @@ function renderCharts(list) {
   });
 }
 
+const CAT = { bi: 'Painel BI (processo)', base: 'Base de Dados', pbix: 'BI (.pbix oficial)', logs: 'Auditoria de Logs' };
+
+function logsTable(ls) {
+  const sh = ls.filter(l => l.status !== 'ok').slice(0, 25);
+  if (!sh.length) return '<div class="msg i">Todos os logs analisados estão em dia.</div>';
+  return `<details open><summary>Logs com alerta/erro (${sh.length})</summary><table class="lt"><tr><th>Log</th><th>Ref.</th><th>Última data</th><th>Situação</th></tr>` +
+    sh.map(l => `<tr><td>${l.arquivo}</td><td>${l.ref}</td><td>${l.ultima}</td><td class="s-${l.status}">${l.motivo}</td></tr>`).join('') + '</table></details>';
+}
+
+function renderPbixCharts(list) {
+  const mk = (id, cfg) => { charts[id]?.destroy(); charts[id] = new Chart($('#' + id), cfg); };
+  const COR = { ok: '#0339A6', warn: '#F2B705', err: '#F21D2F', run: '#122A44', nd: '#94A3B8' };
+  const px = list.filter(r => r.categoria === 'pbix' && r.pbix && r.pbix.arquivo);
+  mk('cPbIdade', {
+    type: 'bar',
+    data: { labels: px.map(r => r.nome.replace('PBIX · ', '')), datasets: [{ data: px.map(r => r.pbix.idade_h), backgroundColor: px.map(r => COR[r.status]) }] },
+    options: { indexAxis: 'y', plugins: { legend: { display: false } }, animation: false }
+  });
+  const hh = Array(24).fill(0);
+  px.forEach(r => { const d = new Date(r.pbix.ultima_iso); if (d.toDateString() === new Date().toDateString()) hh[d.getHours()]++; });
+  mk('cPbHora', {
+    type: 'bar',
+    data: { labels: hh.map((_, i) => p2(i) + 'h'), datasets: [{ label: 'BIs com última atualização nessa hora (hoje)', data: hh, backgroundColor: '#0339A6' }] },
+    options: { animation: false }
+  });
+  const dm = {};
+  (D.hist || []).forEach(x => { if (x.bi_ok != null) dm[x.dia] = x; });
+  const dk = Object.keys(dm).sort().slice(-15);
+  mk('cPbDia', {
+    type: 'line',
+    data: { labels: dk, datasets: [
+      { label: 'BIs atualizados (OK)', data: dk.map(k => dm[k].bi_ok), borderColor: '#0339A6', backgroundColor: '#0339A6', tension: .25 },
+      { label: 'BIs com falha', data: dk.map(k => dm[k].bi_err), borderColor: '#F21D2F', backgroundColor: '#F21D2F', tension: .25 }
+    ] },
+    options: { animation: false }
+  });
+  const pr = ['P0', 'P1', 'P2'], allp = list.filter(r => r.categoria === 'pbix');
+  const cnt = (p, s) => allp.filter(r => r.prio === p && r.status === s).length;
+  mk('cPbPrio', {
+    type: 'bar',
+    data: { labels: pr, datasets: [
+      { label: 'OK', data: pr.map(p => cnt(p, 'ok')), backgroundColor: '#0339A6' },
+      { label: 'Alerta', data: pr.map(p => cnt(p, 'warn')), backgroundColor: '#F2B705' },
+      { label: 'Falha', data: pr.map(p => cnt(p, 'err')), backgroundColor: '#F21D2F' }
+    ] },
+    options: { scales: { x: { stacked: true }, y: { stacked: true } }, animation: false }
+  });
+}
+
+function beep() {
+  try {
+    const a = new (window.AudioContext || window.webkitAudioContext)(), o = a.createOscillator(), g = a.createGain();
+    o.connect(g); g.connect(a.destination); o.type = 'square'; o.frequency.value = 880; g.gain.value = 0.06;
+    o.start(); setTimeout(() => { o.stop(); a.close(); }, 450);
+  } catch (e) {}
+}
+
+function ackAlert() {
+  const al = D.r.filter(r => r.status === 'err');
+  localStorage.setItem('optimusAck', JSON.stringify({ sig: al.map(r => r.nome + '|' + (r.erros[0] || '')).sort().join('#'), ts: Date.now() }));
+}
+
+function checkAlerts(hVal) {
+  const al = D.r.filter(r => r.status === 'err').sort((a, b) => a.prio.localeCompare(b.prio));
+  const badge = $('#alertBadge');
+  badge.classList.toggle('hidden', !al.length);
+  badge.textContent = `🚨 ${al.length} alerta(s) crítico(s)`;
+  if (!al.length) { localStorage.removeItem('optimusAck'); return; }
+  const warns = D.r.filter(r => r.status === 'warn').length;
+  $('#alertList').innerHTML = al.slice(0, 14).map(r =>
+    `<div class="al" style="--c:${r.prio === 'P0' ? 'var(--red)' : r.prio === 'P1' ? 'var(--orange)' : 'var(--gold)'}"><b>[${r.prio}] ${r.nome}</b>` +
+    (r.erros || []).slice(0, 3).map(e => `<small>${e}</small>`).join('') + '</div>').join('') +
+    (al.length > 14 ? `<p>... e mais ${al.length - 14} alerta(s).</p>` : '') +
+    (warns ? `<p style="font-size:12px;color:var(--slate-600)">Além disso, ${warns} item(ns) em alerta (amarelo).</p>` : '') +
+    `<p style="font-size:11px;color:var(--slate-600)">Verificado em ${D.gerado}</p>`;
+  const sig = al.map(r => r.nome + '|' + (r.erros[0] || '')).sort().join('#');
+  const ack = JSON.parse(localStorage.getItem('optimusAck') || 'null');
+  const reabrir = !ack || ack.sig !== sig || (Date.now() - ack.ts) > 30 * 60000;
+  if (reabrir && hVal === 'now' && !$('#dAlert').open) { $('#dAlert').showModal(); beep(); }
+}
+$('#alertBadge').onclick = () => $('#dAlert').showModal();
+$('#bAlertOk').onclick = () => { ackAlert(); $('#dAlert').close(); };
+$('#dAlert').addEventListener('cancel', ackAlert);
+$('#bAlertBis').onclick = () => { ackAlert(); $('#dAlert').close(); document.querySelector('#tabs [data-tab="pbix"]').click(); };
+
 $('#last').textContent = 'Último monitoramento registrado: ' + D.gerado;
 setInterval(() => {
   $('#liveClock').textContent = fmtHMS(new Date());
   secLeft = Math.max(0, secLeft - 1);
   $('#cd').textContent = secLeft + 's';
-  if (secLeft === 0) location.reload();
+  if (secLeft === 0 && !$('#dAlert').open && !$('#dWa').open) location.reload();
 }, 1000);
 
 $('#bWa').onclick = () => {
@@ -1224,7 +1638,9 @@ def gerar_dashboard(cfg, res):
     ativos = [x for x in res if x['status'] != 'nd']
     c = lambda s: sum(x['status'] == s for x in ativos)
     agora_str = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-    hist.append(dict(dia=date.today().isoformat(), h=datetime.now().strftime('%H:%M:%S'), ok=c('ok'), warn=c('warn'), err=c('err')))
+    hist.append(dict(dia=date.today().isoformat(), h=datetime.now().strftime('%H:%M:%S'), ok=c('ok'), warn=c('warn'), err=c('err'),
+                     bi_ok=sum(1 for x in ativos if x.get('categoria') == 'pbix' and x['status'] == 'ok'),
+                     bi_err=sum(1 for x in ativos if x.get('categoria') == 'pbix' and x['status'] == 'err')))
     hist = hist[-500:]
     HIST.write_text(json.dumps(hist, ensure_ascii=False), encoding='utf-8')
 
@@ -1268,6 +1684,8 @@ def resumo(res, titulo='Monitoramento OptimusBI'):
         + (f" | 🔄 Rodando: {c('run')}" if c('run') else '') + '\n'
     )
     for x in sorted(ativos, key=lambda x: x['prio']):
+        if x.get('categoria') == 'pbix' and x['status'] == 'ok':
+            continue
         t += f"\n{ICON[x['status']]} [{x['prio']}] {x['nome']}"
         for e in x['erros']:
             t += f"\n   - {e}"
@@ -1393,6 +1811,170 @@ def rotina_whatsapp(cfg, res, enviar):
 
 # ==============================================================================
 # 9. SERVIDOR WEB EMBUTIDO E CICLO PRINCIPAL
+# ==============================================================================
+ULTIMO_ESTADO_GLOBAL = {'cfg': None, 'res': [], 'snaps': {}, 'hist': []}
+
+
+class PainelHandler(BaseHTTPRequestHandler):
+    def log_message(self, format, *args):
+        return
+
+    def do_GET(self):
+        if self.path.startswith('/api/atualizar'):
+            ciclo(enviar=False)
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(json.dumps({'ok': True, 'hora': datetime.now().strftime('%H:%M:%S')}).encode('utf-8'))
+            return
+
+        if self.path.startswith('/api/relatorio'):
+            cfg = ULTIMO_ESTADO_GLOBAL['cfg'] or sincronizar_config_automatico()
+            arq = gerar_relatorio_xlsx(
+                cfg, ULTIMO_ESTADO_GLOBAL['res'], ULTIMO_ESTADO_GLOBAL['snaps'],
+                ULTIMO_ESTADO_GLOBAL['hist'], salvar_em_pasta_especifica=cfg.get('pasta_relatorio_diario')
+            )
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(json.dumps({'ok': True, 'arquivo': str(arq)}).encode('utf-8'))
+            return
+
+        if self.path.startswith('/api/vercel'):
+            cfg = ULTIMO_ESTADO_GLOBAL['cfg'] or sincronizar_config_automatico()
+            arq = gerar_relatorio_xlsx(cfg, ULTIMO_ESTADO_GLOBAL['res'], ULTIMO_ESTADO_GLOBAL['snaps'], ULTIMO_ESTADO_GLOBAL['hist'])
+            enviar_xlsx_para_painel_vercel(cfg, arq)
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(json.dumps({'ok': True, 'arquivo': str(arq)}).encode('utf-8'))
+            return
+
+        if self.path.startswith('/logo.png') and (AQUI / 'logo.png').exists():
+            self.send_response(200)
+            self.send_header('Content-type', 'image/png')
+            self.end_headers()
+            self.wfile.write((AQUI / 'logo.png').read_bytes())
+            return
+
+        arq_html = AQUI / (ULTIMO_ESTADO_GLOBAL['cfg'] or DEFAULT).get('dashboard_html', 'dashboard.html')
+        if not arq_html.exists():
+            ciclo(enviar=False)
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(arq_html.read_bytes())
+
+
+def iniciar_servidor_web(porta=8080):
+    try:
+        srv = HTTPServer(('127.0.0.1', porta), PainelHandler)
+        t = threading.Thread(target=srv.serve_forever, daemon=True)
+        t.start()
+        return True
+    except Exception:
+        return False
+
+
+def verificar_relatorio_final_do_dia(cfg, res, snaps_hoje, hist, forcar=False):
+    agora = datetime.now()
+    est = json.loads(ESTADO.read_text(encoding='utf-8')) if ESTADO.exists() else {}
+    hoje_iso = date.today().isoformat()
+    hora_alvo = int(cfg.get('hora_relatorio_diario', 18))
+
+    ja_gerou_hoje = (est.get('ultimo_relatorio_xlsx') == hoje_iso)
+    if forcar or (agora.hour >= hora_alvo and not ja_gerou_hoje):
+        arq_salvo = gerar_relatorio_xlsx(
+            cfg, res, snaps_hoje, hist,
+            salvar_em_pasta_especifica=cfg.get('pasta_relatorio_diario', DEFAULT['pasta_relatorio_diario'])
+        )
+        est['ultimo_relatorio_xlsx'] = hoje_iso
+        ESTADO.write_text(json.dumps(est, ensure_ascii=False), encoding='utf-8')
+        print(f"[OptimusBI] Relatório diário .xlsx salvo em: {arq_salvo}")
+
+
+def ciclo(enviar, forcar_relatorio=False, forcar_vercel=False):
+    cfg = sincronizar_config_automatico()
+    res = []
+    for m in cfg['monitores']:
+        try:
+            res.append(avaliar(m, cfg))
+        except Exception:
+            log.error('Erro avaliando %s\n%s', m['nome'], traceback.format_exc())
+            res.append(dict(
+                nome=m['nome'], categoria=m.get('categoria', 'bi'), prio=m['prio'], status='err',
+                erros=['Falha interna na verificação'], avisos=[], infos=[], pastas=[],
+                quando=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+                linhas_hoje=None, ok_hoje=None, err_hoje=None, media_min=None, media_arq_min=None, ultimo_fim=None
+            ))
+
+    try:
+        res.extend(avaliar_pbix(cfg))
+        res.append(auditar_logs_52(cfg))
+    except Exception:
+        log.error('Erro no monitoramento de BIs/logs\n%s', traceback.format_exc())
+
+    dest, snaps_hoje, hist = gerar_dashboard(cfg, res)
+    ULTIMO_ESTADO_GLOBAL.update(cfg=cfg, res=res, snaps=snaps_hoje, hist=hist)
+
+    ativos = [x for x in res if x['status'] != 'nd']
+    log.info(
+        'Ciclo concluído: %s | dashboard: %s',
+        {s: sum(x['status'] == s for x in ativos) for s in ('ok', 'warn', 'err', 'run')},
+        dest
+    )
+
+    try:
+        rotina_vercel_30_minutos(cfg, res, snaps_hoje, hist, forcar=forcar_vercel)
+    except Exception:
+        log.error('Falha na rotina Vercel 30m\n%s', traceback.format_exc())
+
+    try:
+        verificar_relatorio_final_do_dia(cfg, res, snaps_hoje, hist, forcar=forcar_relatorio)
+    except Exception:
+        log.error('Falha ao gerar relatório diário .xlsx\n%s', traceback.format_exc())
+
+    try:
+        rotina_whatsapp(cfg, res, enviar)
+    except Exception:
+        log.error('Falha na rotina WhatsApp\n%s', traceback.format_exc())
+
+    return cfg
+
+
+if __name__ == '__main__':
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--uma-vez', action='store_true')
+    ap.add_argument('--sem-whatsapp', action='store_true')
+    ap.add_argument('--testar-whatsapp', action='store_true')
+    ap.add_argument('--gerar-relatorio', action='store_true')
+    ap.add_argument('--enviar-vercel', action='store_true', help='Força geração do .xlsx e upload imediato na Vercel')
+    a = ap.parse_args()
+
+    if a.testar_whatsapp:
+        sucesso = enviar_whatsapp(sincronizar_config_automatico(), 'Teste Monitoramento OptimusBI ✅ (1 mensagem por contato)')
+        print('Enviado!' if sucesso else 'Falhou - veja monitor.log')
+        sys.exit()
+
+    cfg_ini = sincronizar_config_automatico()
+    if not a.uma_vez and not a.gerar_relatorio and not a.enviar_vercel:
+        porta_web = int(cfg_ini.get('porta_servidor_web', 8080))
+        if iniciar_servidor_web(porta_web) and cfg_ini.get('abrir_navegador_ao_iniciar', True):
+            webbrowser.open(f'http://localhost:{porta_web}')
+
+    while True:
+        ini = time.time()
+        try:
+            cfg = ciclo(not a.sem_whatsapp, forcar_relatorio=a.gerar_relatorio, forcar_vercel=a.enviar_vercel)
+        except Exception:
+            log.error('Erro no ciclo\n%s', traceback.format_exc())
+            cfg = DEFAULT
+        if a.uma_vez or a.gerar_relatorio or a.enviar_vercel:
+            break
+        tempo_espera = max(10, int(cfg.get('intervalo_seg', 60)) - (time.time() - ini))
+        time.sleep(tempo_espera)
+
+# ==============================================================================
 # ==============================================================================
 ULTIMO_ESTADO_GLOBAL = {'cfg': None, 'res': [], 'snaps': {}, 'hist': []}
 
