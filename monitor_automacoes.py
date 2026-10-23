@@ -675,10 +675,10 @@ def auditar_logs_52(cfg, forcar=False):
             if ref == (hoje.year, hoje.month):
                 if ult == hoje or (hoje.weekday() >= 5 and ult and ult >= util_ant):
                     st, msg = 'ok', 'Atualizado hoje (diário OK)'
-                elif ult and (ref_meses - ult_meses) >= 3:
-                    st, msg = 'err', f'DESATUALIZADO CRÍTICO: última data {ult_s} está 3+ meses atrás da referência'
+                elif ult and (ref_meses - ult_meses) >= 6:
+                    st, msg = 'err', f'DESATUALIZADO CRÍTICO: última data {ult_s} está 6+ meses atrás da referência'
                 elif ult and ult >= util_ant:
-                    st, msg = 'warn', f'Última data {ult_s} (D-1); aguarda execução de hoje'
+                    st, msg = 'warn', f'Última data {ult_s} (D-2); aguarda execução de hoje'
                 else:
                     st, msg = 'err', f'DESATUALIZADO: última data {ult_s}, esperado atualização diária'
             else:
