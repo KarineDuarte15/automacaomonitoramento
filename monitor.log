@@ -5970,3 +5970,283 @@ Stac
 2026-10-23 12:45:56,767 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
 2026-10-23 12:46:56,107 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
 2026-10-23 12:47:56,106 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 12:48:57,006 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 12:49:56,752 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 12:50:57,507 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 12:51:56,824 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 12:52:57,248 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 12:53:57,752 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 12:54:58,539 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 12:55:56,634 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 12:56:58,101 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 12:56:58,364 INFO Folha de cálculo guardada em C:\Users\agenor.sales\Desktop\dashboard acompanhamento\Relatorio_OptimusBI_2026-10-23_12h56m58s.xlsx
+2026-10-23 12:56:58,364 INFO A iniciar upload do ficheiro Relatorio_OptimusBI_2026-10-23_12h56m58s.xlsx para o painel Vercel (https://acompanhameto-fluxo-diario-de-taref.vercel.app/)...
+2026-10-23 12:57:31,199 INFO Ficheiro Relatorio_OptimusBI_2026-10-23_12h56m58s.xlsx incluído com sucesso na aba Monitoramento da Vercel!
+2026-10-23 12:57:58,447 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 12:58:56,572 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 12:59:56,994 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:00:57,635 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:01:56,814 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:02:56,647 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:03:57,882 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:04:56,310 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:05:56,677 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:06:56,411 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:07:57,656 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:08:56,244 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:09:57,068 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:10:56,316 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:11:56,189 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:12:56,135 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:13:56,500 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:14:55,563 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:15:56,978 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:16:57,363 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:17:57,285 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:18:58,834 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:19:56,050 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:20:55,576 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:21:56,987 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:22:56,527 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:23:55,628 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:24:56,132 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:25:55,902 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:26:56,127 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:27:56,621 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:27:56,877 INFO Folha de cálculo guardada em C:\Users\agenor.sales\Desktop\dashboard acompanhamento\Relatorio_OptimusBI_2026-10-23_13h27m56s.xlsx
+2026-10-23 13:27:56,877 INFO A iniciar upload do ficheiro Relatorio_OptimusBI_2026-10-23_13h27m56s.xlsx para o painel Vercel (https://acompanhameto-fluxo-diario-de-taref.vercel.app/)...
+2026-10-23 13:28:24,287 INFO Ficheiro Relatorio_OptimusBI_2026-10-23_13h27m56s.xlsx incluído com sucesso na aba Monitoramento da Vercel!
+2026-10-23 13:28:58,191 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:29:56,874 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:30:58,711 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:31:57,511 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:32:57,541 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:33:55,099 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:34:56,129 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:35:55,827 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:36:55,141 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:37:56,468 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:38:56,087 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:39:56,631 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:40:57,500 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:41:57,028 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:42:57,330 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:43:56,775 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:44:57,399 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:45:57,001 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:46:56,864 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:47:56,277 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:48:55,854 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:49:57,395 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:50:58,112 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:51:55,759 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:52:56,906 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:53:55,493 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:54:56,070 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:55:56,198 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:56:59,126 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:57:57,183 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:57:57,497 INFO Folha de cálculo guardada em C:\Users\agenor.sales\Desktop\dashboard acompanhamento\Relatorio_OptimusBI_2026-10-23_13h57m57s.xlsx
+2026-10-23 13:57:57,497 INFO A iniciar upload do ficheiro Relatorio_OptimusBI_2026-10-23_13h57m57s.xlsx para o painel Vercel (https://acompanhameto-fluxo-diario-de-taref.vercel.app/)...
+2026-10-23 13:58:26,988 INFO Ficheiro Relatorio_OptimusBI_2026-10-23_13h57m57s.xlsx incluído com sucesso na aba Monitoramento da Vercel!
+2026-10-23 13:58:59,831 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 13:59:57,972 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:01:00,308 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:01:57,749 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:02:58,387 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:03:57,903 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:04:57,974 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:05:57,326 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:06:56,621 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:07:55,762 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:08:57,125 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:09:56,817 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:10:56,884 INFO Ciclo concluído: {'ok': 27, 'warn': 10, 'err': 11, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:11:58,978 INFO Ciclo concluído: {'ok': 27, 'warn': 10, 'err': 11, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:12:57,507 INFO Ciclo concluído: {'ok': 27, 'warn': 10, 'err': 11, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:13:57,183 INFO Ciclo concluído: {'ok': 27, 'warn': 10, 'err': 11, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:14:57,235 INFO Ciclo concluído: {'ok': 27, 'warn': 10, 'err': 11, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:15:58,488 INFO Ciclo concluído: {'ok': 27, 'warn': 10, 'err': 11, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:16:56,787 INFO Ciclo concluído: {'ok': 27, 'warn': 10, 'err': 11, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:17:57,605 INFO Ciclo concluído: {'ok': 27, 'warn': 10, 'err': 11, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:18:57,837 INFO Ciclo concluído: {'ok': 27, 'warn': 10, 'err': 11, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:19:58,401 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:20:57,081 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:21:56,918 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:22:59,193 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:23:57,428 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:24:57,116 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:25:57,283 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:26:56,919 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:27:56,996 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:28:57,029 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:28:57,319 INFO Folha de cálculo guardada em C:\Users\agenor.sales\Desktop\dashboard acompanhamento\Relatorio_OptimusBI_2026-10-23_14h28m57s.xlsx
+2026-10-23 14:28:57,320 INFO A iniciar upload do ficheiro Relatorio_OptimusBI_2026-10-23_14h28m57s.xlsx para o painel Vercel (https://acompanhameto-fluxo-diario-de-taref.vercel.app/)...
+2026-10-23 14:29:25,171 INFO Ficheiro Relatorio_OptimusBI_2026-10-23_14h28m57s.xlsx incluído com sucesso na aba Monitoramento da Vercel!
+2026-10-23 14:29:59,191 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:30:57,042 INFO Ciclo concluído: {'ok': 27, 'warn': 10, 'err': 11, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:31:57,477 INFO Ciclo concluído: {'ok': 27, 'warn': 10, 'err': 11, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:32:56,481 INFO Ciclo concluído: {'ok': 27, 'warn': 10, 'err': 11, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:33:58,507 INFO Ciclo concluído: {'ok': 27, 'warn': 10, 'err': 11, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:34:57,123 INFO Ciclo concluído: {'ok': 27, 'warn': 10, 'err': 11, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:35:57,136 INFO Ciclo concluído: {'ok': 27, 'warn': 10, 'err': 11, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:36:57,798 INFO Ciclo concluído: {'ok': 27, 'warn': 10, 'err': 11, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:37:57,080 INFO Ciclo concluído: {'ok': 27, 'warn': 10, 'err': 11, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:38:57,231 INFO Ciclo concluído: {'ok': 27, 'warn': 10, 'err': 11, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:39:56,727 INFO Ciclo concluído: {'ok': 27, 'warn': 10, 'err': 11, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:40:56,994 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:41:57,003 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:42:57,954 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:43:57,359 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:44:57,985 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:45:57,685 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:46:56,811 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:47:57,112 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:48:57,944 INFO Ciclo concluído: {'ok': 28, 'warn': 10, 'err': 10, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:49:57,317 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:50:57,243 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:51:56,701 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:52:57,015 INFO Ciclo concluído: {'ok': 29, 'warn': 10, 'err': 9, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:53:57,151 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:54:55,516 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:55:57,289 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:56:55,662 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:57:56,987 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:58:55,799 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:59:57,238 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 14:59:57,528 INFO Folha de cálculo guardada em C:\Users\agenor.sales\Desktop\dashboard acompanhamento\Relatorio_OptimusBI_2026-10-23_14h59m57s.xlsx
+2026-10-23 14:59:57,528 INFO A iniciar upload do ficheiro Relatorio_OptimusBI_2026-10-23_14h59m57s.xlsx para o painel Vercel (https://acompanhameto-fluxo-diario-de-taref.vercel.app/)...
+2026-10-23 15:00:37,846 ERROR Falha ao incluir ficheiro na Vercel: Message: 
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(No symbol) [0x7ff6eacde745]
+	(No symbol) [0x7ff6ea893d00]
+	(No symbol) [0x7ff6ea6c3f3d]
+	(No symbol) [0x7ff6ea71f6ed]
+	(No symbol) [0x7ff6ea71f9bc]
+	(No symbol) [0x7ff6ea777
+2026-10-23 15:01:06,222 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:02:01,229 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:03:03,024 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:04:02,334 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:05:03,837 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:06:03,867 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:07:03,976 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:08:02,462 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:09:04,982 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:10:01,121 INFO Ciclo concluído: {'ok': 32, 'warn': 10, 'err': 6, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:11:01,649 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:12:01,697 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:13:02,009 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:14:01,502 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:15:01,993 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:16:04,856 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:17:01,806 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:18:02,035 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:19:01,995 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:20:01,952 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:21:01,873 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:22:02,622 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:23:01,053 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:24:02,260 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:24:02,264 INFO [1/2] A iniciar janela do navegador para Agenor...
+2026-10-23 15:25:44,860 ERROR Falha WhatsApp Agenor: Message: 
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(No symbol) [0x7ff64091e745]
+	(No symbol) [0x7ff6404d3d00]
+	(No symbol) [0x7ff640303f3d]
+	(No symbol) [0x7ff64035f6ed]
+	(No 
+2026-10-23 15:25:48,915 INFO [2/2] A iniciar janela do navegador para Miller...
+2026-10-23 15:27:29,685 ERROR Falha WhatsApp Miller: Message: 
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	(No symbol) [0x7ff64091e745]
+	(No symbol) [0x7ff6404d3d00]
+	(No symbol) [0x7ff640303f3d]
+	(No symbol) [0x7ff64035f6ed]
+	(No 
+2026-10-23 15:27:57,800 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:28:53,080 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:29:52,564 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:30:52,882 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:30:53,165 INFO Folha de cálculo guardada em C:\Users\agenor.sales\Desktop\dashboard acompanhamento\Relatorio_OptimusBI_2026-10-23_15h30m52s.xlsx
+2026-10-23 15:30:53,165 INFO A iniciar upload do ficheiro Relatorio_OptimusBI_2026-10-23_15h30m52s.xlsx para o painel Vercel (https://acompanhameto-fluxo-diario-de-taref.vercel.app/)...
+2026-10-23 15:31:19,208 INFO Ficheiro Relatorio_OptimusBI_2026-10-23_15h30m52s.xlsx incluído com sucesso na aba Monitoramento da Vercel!
+2026-10-23 15:31:55,676 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:32:52,003 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:33:53,148 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:34:52,937 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:35:53,004 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:36:53,022 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:37:53,142 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:38:54,387 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:39:52,769 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:40:52,615 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:41:52,779 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:42:53,545 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:43:52,782 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:44:52,175 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:45:53,034 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:46:52,486 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:47:53,559 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:48:53,302 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:49:54,987 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:50:53,467 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:51:52,580 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:52:52,926 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:53:52,789 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:54:52,855 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:55:53,594 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:56:52,550 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:57:53,516 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:58:52,782 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 15:59:52,987 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:00:54,803 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:00:55,088 INFO Folha de cálculo guardada em C:\Users\agenor.sales\Desktop\dashboard acompanhamento\Relatorio_OptimusBI_2026-10-23_16h00m54s.xlsx
+2026-10-23 16:00:55,088 INFO A iniciar upload do ficheiro Relatorio_OptimusBI_2026-10-23_16h00m54s.xlsx para o painel Vercel (https://acompanhameto-fluxo-diario-de-taref.vercel.app/)...
+2026-10-23 16:01:22,600 INFO Ficheiro Relatorio_OptimusBI_2026-10-23_16h00m54s.xlsx incluído com sucesso na aba Monitoramento da Vercel!
+2026-10-23 16:01:55,607 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:02:53,712 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:03:53,354 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:04:52,810 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:05:53,287 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:06:52,389 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:07:53,673 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:08:53,258 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:09:52,453 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:10:53,573 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:11:54,661 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:12:55,118 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:13:53,378 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:14:53,703 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:15:53,582 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:16:55,174 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:17:55,559 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:18:54,066 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:19:54,562 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:20:55,463 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:21:55,704 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:22:54,562 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:23:52,970 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:24:54,307 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:25:53,343 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:26:53,785 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:27:54,001 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:28:55,747 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:29:52,717 INFO Ciclo concluído: {'ok': 31, 'warn': 10, 'err': 7, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:30:53,270 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:31:53,036 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:31:53,319 INFO Folha de cálculo guardada em C:\Users\agenor.sales\Desktop\dashboard acompanhamento\Relatorio_OptimusBI_2026-10-23_16h31m53s.xlsx
+2026-10-23 16:31:53,319 INFO A iniciar upload do ficheiro Relatorio_OptimusBI_2026-10-23_16h31m53s.xlsx para o painel Vercel (https://acompanhameto-fluxo-diario-de-taref.vercel.app/)...
+2026-10-23 16:32:20,895 INFO Ficheiro Relatorio_OptimusBI_2026-10-23_16h31m53s.xlsx incluído com sucesso na aba Monitoramento da Vercel!
+2026-10-23 16:32:56,158 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:33:53,044 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:34:53,201 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:35:52,842 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:36:53,012 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:37:52,868 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:38:52,793 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:39:53,282 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
+2026-10-23 16:40:52,758 INFO Ciclo concluído: {'ok': 30, 'warn': 10, 'err': 8, 'run': 0} | dashboard: C:\Users\agenor.sales\Desktop\automacaomonitoramento\dashboard.html
