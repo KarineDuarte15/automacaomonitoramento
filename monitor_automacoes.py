@@ -133,17 +133,17 @@ DEFAULT = {
         _bi('Acompanhamento de Pagamentos Prestadores', ['pagamentos', 'prestadores'], 'P1', 'ultima', limite_dias=2),
 
         # P2 - Média Prioridade e Janelas Específicas
-        _bi('ESCALA ESPECIAL', ['escala', 'especial'], 'P2', 'diaria', hora_limite='11:00'),
+        _bi('ESCALA ESPECIAL', ['escala', 'especial'], 'P2', 'd_menos_5'),
         _bi('Relatório Atraso dos Médicos', ['atraso', 'medicos'], 'P2', 'diaria', hora_limite='11:00'),
         _bi('RELATORIO DE CONSULTAS EM TRANSFERENCIA', ['transferencia'], 'P2', 'diaria', hora_limite='11:00'),
         _bi('Relatório de Cancelamento v2', ['cancelamento'], 'P2', 'diaria', hora_limite='11:00'),
         _bi('Relatório de Acompanhamento de Mensageria', ['mensageria'], 'P2', 'diaria', hora_limite='11:00'),
         _bi('Monitoramento de Marcação', ['monitoramento', 'marcacao'], 'P2', 'ate_hora', hora_limite='06:00', tolerancia_min=60),
         _bi('Relatório de Cirurgias', ['cirurgias'], 'P2', 'diaria', hora_limite='11:00'),
-        _bi('Relatorio de Tagueamento', ['tagueamento'], 'P2', 'horarios', horarios=['08:00', '11:30', '17:00'], tolerancia_min=60),
-        _bi('Relatorio_SAC (3x ao dia / Mensal)', ['sac'], 'P2', 'horarios', horarios=['06:30', '11:30', '17:30'], tolerancia_min=60, excluir=['nip']),
-        _bi('Relatório de SAC e NIP (desenvolvimento)', ['sac', 'nip'], 'P2', 'horarios', horarios=['07:30', '09:00', '13:00', '22:30'], tolerancia_min=60),
-        _bi('Acompanhamento de Valores Pagos por Especialidade', ['valores', 'pagos', 'especialidade'], 'P2', 'ate_hora', hora_limite='05:00', tolerancia_min=60),
+        _bi('Relatorio de Tagueamento', ['tagueamento'], 'P2', 'd_menos_5'),
+        _bi('Relatorio_SAC (3x ao dia / Mensal)', ['sac'], 'P2', 'd_menos_5', excluir=['nip']),
+        _bi('Relatório de SAC e NIP (desenvolvimento)', ['sac', 'nip'], 'P2', 'd_menos_5'),
+        _bi('Acompanhamento de Valores Pagos por Especialidade', ['valores', 'pagos', 'especialidade'], 'P2', 'd_menos_5'),
         _bi('Relatório Check-up da mulher', ['check', 'mulher'], 'P2', 'ultima', limite_dias=3),
         _bi('Relatório_Forecast_Monitoramento_Limites_e_Mediana', ['forecast'], 'P2', 'ultima', limite_dias=3),
         _bi('Relatório Pacotes (3x: 08:30, 11:00, 17:30)', ['pacotes'], 'P2', 'ignorar', horarios=['08:30', '11:00', '17:30'])
@@ -516,6 +516,16 @@ def _regra_pbix(b, mt, agora):
             f'Última atualização: {mt:%d/%m/%Y %H:%M} ({dias}d atrás)',
             f'Sempre verificar última atualização (alerta > {lim}d)',
             max(0, (dias - lim) * 1440)
+        )
+
+    if regra == 'd_menos_5':
+        dias = (agora - mt).days
+        limite = 5
+        return (
+            'ok' if dias <= limite else 'warn',
+            f'Última atualização: {mt:%d/%m/%Y %H:%M} ({dias}d atrás)',
+            'Atualização D-5 (alerta > 5d)',
+            max(0, (dias - limite) * 1440)
         )
 
     if hoje.weekday() >= 5 and not b.get('checar_fim_de_semana', False):
