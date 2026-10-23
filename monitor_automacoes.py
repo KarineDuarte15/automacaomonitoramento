@@ -1858,22 +1858,56 @@ ICON = {'ok': '✅', 'err': '❌', 'warn': '⚠️', 'run': '🔄', 'nd': '➖'}
 
 
 def resumo(res, titulo='Monitoramento OptimusBI'):
+    """
+    Gera uma mensagem formatada e limpa para envio via WhatsApp,
+    destacando itens críticos (P0/P1) e agrupando falhas no topo.
+    """
     ativos = [x for x in res if x['status'] != 'nd']
-    c = lambda s: sum(x['status'] == s for x in ativos)
-    t = (
-        f"*{titulo}* - {datetime.now():%d/%m/%Y %H:%M:%S}\n"
-        f"✅ OK: {c('ok')} | ⚠️ Alerta: {c('warn')} | ❌ Erro: {c('err')}"
-        + (f" | 🔄 Rodando: {c('run')}" if c('run') else '') + '\n'
-    )
-    for x in sorted(ativos, key=lambda x: x['prio']):
-        if x.get('categoria') == 'pbix' and x['status'] == 'ok':
-            continue
-        t += f"\n{ICON[x['status']]} [{x['prio']}] {x['nome']}"
-        for e in x['erros']:
-            t += f"\n   - {e}"
-        if x['status'] == 'warn':
-            for a in x['avisos'][:1]:
-                t += f"\n   - {a}"
+    
+    # Contadores
+    total_ok = sum(1 for x in ativos if x['status'] == 'ok')
+    total_warn = sum(1 for x in ativos if x['status'] == 'warn')
+    total_err = sum(1 for x in ativos if x['status'] == 'err')
+    total_run = sum(1 for x in ativos if x['status'] == 'run')
+
+    # Cabeçalho da mensagem
+    agora_str = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+    t = f"📊 *{titulo}*\n"
+    t += f"🕒 _{agora_str}_\n\n"
+    t += f"📈 *Resumo Geral:*\n"
+    t += f"✅ OK: *{total_ok}* | ⚠️ Alertas: *{total_warn}* | ❌ Erros: *{total_err}*"
+    if total_run > 0:
+        t += f" | 🔄 Rodando: *{total_run}*"
+    t += "\n\n───────────────────\n"
+
+    # Separa itens com problema (err e warn) dos demais (ok)
+    criticos = [x for x in ativos if x['status'] in ('err', 'warn')]
+    sucessos = [x for x in ativos if x['status'] == 'ok']
+
+    # Ordena críticos por prioridade (P0 primeiro, depois P1, P2)
+    ordem_prio = {'P0': 0, 'P1': 1, 'P2': 2, 'P3': 3}
+    criticos.sort(key=lambda x: (ordem_prio.get(x.get('prio', 'P2'), 2), x['nome']))
+
+    if criticos:
+        t += "🚨 *Itens que requerem atenção:*\n"
+        for x in criticos:
+            icone = ICON.get(x['status'], '⚠️')
+            prio = x.get('prio', 'P2')
+            t += f"\n{icone} *[{prio}] {x['nome']}*"
+            
+            # Adiciona os erros principais
+            for e in x.get('erros', []):
+                t += f"\n   └ ❌ {e}"
+            
+            # Adiciona avisos caso não haja erros
+            if not x.get('erros') and x.get('avisos'):
+                for a in x.get('avisos', [])[:1]:
+                    t += f"\n   └ ⚠️ {a}"
+        t += "\n───────────────────\n"
+
+    # Se houver itens OK e quiseres um resumo breve no fim (opcional)
+    t += f"💡 _Todos os outros {len(sucessos)} fluxos encontram-se operacionais._"
+    
     return t
 
 
