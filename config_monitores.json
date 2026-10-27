@@ -177,8 +177,7 @@
         "especial"
       ],
       "prio": "P2",
-      "regra": "diaria",
-      "hora_limite": "11:00"
+      "regra": "d_menos_5"
     },
     {
       "nome": "Relatório Atraso dos Médicos",
@@ -243,13 +242,7 @@
         "tagueamento"
       ],
       "prio": "P2",
-      "regra": "horarios",
-      "horarios": [
-        "08:00",
-        "11:30",
-        "17:00"
-      ],
-      "tolerancia_min": 60
+      "regra": "d_menos_5"
     },
     {
       "nome": "Relatorio_SAC (3x ao dia / Mensal)",
@@ -257,13 +250,7 @@
         "sac"
       ],
       "prio": "P2",
-      "regra": "horarios",
-      "horarios": [
-        "06:30",
-        "11:30",
-        "17:30"
-      ],
-      "tolerancia_min": 60,
+      "regra": "d_menos_5",
       "excluir": [
         "nip"
       ]
@@ -275,14 +262,7 @@
         "nip"
       ],
       "prio": "P2",
-      "regra": "horarios",
-      "horarios": [
-        "07:30",
-        "09:00",
-        "13:00",
-        "22:30"
-      ],
-      "tolerancia_min": 60
+      "regra": "d_menos_5"
     },
     {
       "nome": "Acompanhamento de Valores Pagos por Especialidade",
@@ -292,9 +272,7 @@
         "especialidade"
       ],
       "prio": "P2",
-      "regra": "ate_hora",
-      "hora_limite": "05:00",
-      "tolerancia_min": 60
+      "regra": "d_menos_5"
     },
     {
       "nome": "Relatório Check-up da mulher",
