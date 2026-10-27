@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Monitoramento OptimusBI - Completo:
-- Verifica pastas e logs a cada 60s
-- A cada 30 minutos: gera o .xlsx em C:\\Users\\agenor.sales\\Desktop\\dashboard acompanhamento
-  e faz o upload automático em https://acompanhameto-fluxo-diario-de-taref.vercel.app/ na aba Monitoramento
-- A cada 6 horas (360 min): envia resumo no WhatsApp (1 mensagem por contato, fechando e reiniciando o navegador)
-- Às 18h: guarda também o relatório diário final na pasta G:\\...
+Monitoramento OptimusBI v6.0 - Completo:
+- Limpa processos antigos na porta 8080 e desativa cache do navegador (evita espelhar tela antiga)
+- Verifica pastas, BIs (.pbix) e logs a cada 60s
+- Alimenta o Teams Desktop no grupo 'TIME BI OPTIMUS'
+- Gera PDF executivo da Visão Geral (dashboard + explicação completa)
+- Dispara e-mail pelo Outlook no navegador às 07:00 e às 17:00 com o PDF anexado e explicação no corpo
+- Ao final do dia (17:00+): entra no Microsoft Planner no navegador e dá check nas atividades
+- A cada 30 minutos: gera .xlsx e sobe no painel Vercel
+- A cada 6 horas: envia resumo no WhatsApp
 """
 import argparse
+import base64
+import calendar
 import json
 import logging
 import os
@@ -18,6 +23,7 @@ import sys
 import threading
 import time
 import traceback
+import unicodedata
 import webbrowser
 from datetime import datetime, date, time as dtime, timedelta
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -47,7 +53,7 @@ logging.basicConfig(
 log = logging.getLogger('optimus_mon')
 
 HORARIOS_APRR = [6, 9, 11, 13, 15, 17]
-JANELAS_TELE_MIN = [h * 60 - 30 for h in HORARIOS_APRR]  # 05:30, 08:30, 10:30, 12:30, 14:30, 16:30
+JANELAS_TELE_MIN = [h * 60 - 30 for h in HORARIOS_APRR]
 
 
 def F(rotulo, caminho, esperado, contem='', so_hoje=True, regra='', conf_mensal=False,
@@ -71,28 +77,56 @@ B7 = '7 - BASES DE RELATORIOS\\'
 MM = '\\{YYYY}\\{MM} - {MES}'
 
 # ==============================================================================
-# 2. CONFIGURAÇÃO PADRÃO (INCLUINDO PASTA LOCALHOST 30 MIN, VERCEL E WHATSAPP 6H)
+# 2. CONFIGURAÇÃO PADRÃO (INCLUINDO TEAMS, OUTLOOK 07H/17H, PLANNER, VERCEL E WA)
 # ==============================================================================
 DEFAULT = {
-    'versao_config': 4,
+    'versao_config': 6,
     'raiz': r'G:\Credenciamento Medico\NUCLEO DE AGENDAS\RAFAEL FERNANDES',
     'raiz_rede_fallback': r'\\10.1.17.4\Usuarios\Credenciamento Medico\NUCLEO DE AGENDAS\RAFAEL FERNANDES',
     'pasta_logs': r'1 - RELATORIOS\52 - LOGS PROJETOS',
+    'pasta_pbix': r'3 - ATUALIZAÇÃO PBIX\PBIX OFICIAL',
+    'hora_limite_manha': '11:00',
+    'bi_checar_fim_de_semana': False,
+    'logs_ignorar': [],
     'pasta_relatorio_diario': r'G:\Credenciamento Medico\NUCLEO DE AGENDAS\RAFAEL FERNANDES\7 - BASES DE RELATORIOS\RELATORIO PAINEL MONITORAMENTO DIARIO',
     'pasta_dashboard_acompanhamento': r'C:\Users\agenor.sales\Desktop\dashboard acompanhamento',
     'url_painel_vercel': 'https://acompanhameto-fluxo-diario-de-taref.vercel.app/',
-    'intervalo_vercel_min': 30,  # Alimenta o painel online a cada 30 minutos
+    'intervalo_vercel_min': 30,
     'hora_relatorio_diario': 18,
-    'intervalo_seg': 60,         # Atualiza a tela a cada 60 segundos
+    'intervalo_seg': 60,
     'porta_servidor_web': 8080,
     'abrir_navegador_ao_iniciar': True,
     'dashboard_html': 'dashboard.html',
+    'teams': {
+        'ativo': True,
+        'grupo': 'TIME BI OPTIMUS',
+        'intervalo_min': 120,
+        'horarios_fixos': ['07:00', '12:00', '17:00']
+    },
+    'email_outlook': {
+        'ativo': True,
+        'horarios': ['07:00', '17:00'],
+        'porta_chrome': 9226,
+        'perfil_chrome': r'C:\chrome_outlook_planner',
+        'destinatarios': [
+            'erika.karine@hapvida.com.br'
+        ],
+        'assunto_prefixo': '[OptimusBI] Visão Geral do Monitoramento'
+    },
+    'planner': {
+        'ativo': True,
+        'horario_check': '17:05',
+        'url_planner': 'https://planner.cloud.microsoft/',
+        'porta_chrome': 9226,
+        'perfil_chrome': r'C:\chrome_outlook_planner',
+        'palavras_chave_tarefas': []
+    },
     'whatsapp': {
         'ativo': True,
         'porta_chrome': 9222,
-        'resumo_a_cada_min': 360,  # Envia no WhatsApp apenas a cada 6 horas (360 minutos)
+        'resumo_a_cada_min': 360,
         'horarios_resumo': ['00:00', '06:00', '12:00', '18:00', '23:59'],
-        'alerta_imediato_erro': False,  # Desativado para respeitar rigorosamente a janela de 6 horas
+        'alerta_imediato_erro': False,
         'perfil_chrome': r'C:\chrome_whatsapp_monitor',
         'chrome_exe': '',
         'destinos': [
@@ -151,8 +185,8 @@ DEFAULT = {
             'nome': 'T0012 - Disponibilidade / Marcada', 'categoria': 'base', 'prio': 'P1', 'regra': '',
             'log': '', 'min_linhas': 0,
             'pastas': [
-                F('T0012 DISPONIBILIDADE', B7 + r'T0012 - ULTIMA BASE DISPONIBILIDADE MENSAL\{YYYY}', 15, '', True, '', conf_mensal=True),
-                F('T0012 MARCADA', B7 + r'T0012 - ULTIMA BASE MARCADA MENSAL\{YYYY}', 15, '', True, '', conf_mensal=True)
+                F('T0012 DISPONIBILIDADE', B7 + r'T0012 - ULTIMA BASE DISPONIBILIDADE MENSAL\{YYYY}', 14, '', True, '', conf_mensal=True),
+                F('T0012 MARCADA', B7 + r'T0012 - ULTIMA BASE MARCADA MENSAL\{YYYY}', 14, '', True, '', conf_mensal=True)
             ]
         },
         {
@@ -174,8 +208,8 @@ DEFAULT = {
             'nome': 'T9016 - Base mensal', 'categoria': 'base', 'prio': 'P1', 'regra': '',
             'log': '', 'min_linhas': 0,
             'pastas': [
-                F('T9016', B7 + 'T9016 - BASE MENSAL' + MM, 5, '{DD}{MM}{YYYY}', True, '', conf_mensal=True,
-                  prefixos=['CCG', 'CLINIPAM', 'NDI', 'NDISPRJ'])
+                F('T9016', B7 + 'T9016 - BASE MENSAL' + MM, 5, '', True, '', conf_mensal=False,
+                  dias_mes=[1, 5, 10], prefixos=['T9016_', 'NDISPRJ', 'NDIMINAS', 'CLINIPAM', 'CCG'])
             ]
         },
         {
@@ -230,9 +264,6 @@ DEFAULT = {
 }
 
 
-# ==============================================================================
-# NOVAS REGRAS (documento MAPEAMENTO_DAS_PASTAS atualizado)
-# ==============================================================================
 def _mon(nome):
     return next(x for x in DEFAULT['monitores'] if x['nome'] == nome)
 
@@ -241,11 +272,6 @@ def _bi(nome, busca, prio, regra='diaria', **kw):
     return dict(nome=nome, busca=busca, prio=prio, regra=regra, **kw)
 
 
-DEFAULT['versao_config'] = 5
-DEFAULT['pasta_pbix'] = r'3 - ATUALIZAÇÃO PBIX\PBIX OFICIAL'
-DEFAULT['hora_limite_manha'] = '11:00'          # painéis da manhã: atualizados até 11h
-DEFAULT['bi_checar_fim_de_semana'] = False
-DEFAULT['logs_ignorar'] = []                    # trechos de nome de logs que não devem ser auditados
 _APRR_H = ['06:00', '09:00', '11:00', '13:00', '15:00', '17:00']
 DEFAULT['bis_pbix'] = [
     _bi('Alerta de Vagas v2', ['alerta', 'vagas', 'v2'], 'P0', 'horarios', horarios=_APRR_H, tolerancia_min=150, excluir=['sub', 'tele'], resp='Karine'),
@@ -288,39 +314,29 @@ _RESP = {
     'BI Relatorio_SAC': 'Karine', 'CAPTADOS FORA DE ALERTA': 'Karine',
 }
 
-# Bases: T0012 passa a 14 arquivos/dia e ganha o DB mensal (3 arquivos)
 for _m in DEFAULT['monitores']:
     _m['responsavel'] = _RESP.get(_m['nome'], '')
-for _p in _mon('T0012 - Disponibilidade / Marcada')['pastas']:
-    _p['esperado'] = 14
+
 DEFAULT['monitores'].append({
-    'nome': 'DB T0012 (mensal)', 'categoria': 'base', 'prio': 'P1', 'regra': '', 'log': '', 'min_linhas': 0,
+    'nome': 'DB T0012 (mensal)', 'categoria': 'base', 'prio': 'P1', 'regra': '', 'log': '', 'min_linhas': 0, 'responsavel': 'Agenor',
     'pastas': [F('DB_T0012 FLUXO PYTHON', B7 + r'DB_T0012\FLUXO PYTHON', 3, '', True, '', conf_mensal=True)]
 })
-# T9016: só baixa nos dias 1, 5 e 10; 5 arquivos no mês (um por empresa)
-_p = _mon('T9016 - Base mensal')['pastas'][0]
-_p.update(esperado=5, contem='', conf_mensal=False, dias_mes=[1, 5, 10],
-          prefixos=['T9016_', 'NDISPRJ', 'NDIMINAS', 'CLINIPAM', 'CCG'])
-# Indicadores Rede Cred: base atualizada até as 10h
 DEFAULT['monitores'].append({
-    'nome': 'Indicadores Rede Cred (bases)', 'categoria': 'base', 'prio': 'P1', 'regra': '', 'log': '', 'min_linhas': 0,
+    'nome': 'Indicadores Rede Cred (bases)', 'categoria': 'base', 'prio': 'P1', 'regra': '', 'log': '', 'min_linhas': 0, 'responsavel': 'Karine',
     'pastas': [
         F('CLIENTE_OCULTO HISTORICO', B7 + r'BI_INDICADORES_CRED\CLIENTE_OCULTO\HISTORICO', 1, '', True, '', conf_mensal=True, hora_limite='10:00'),
         F('CLIENTE_OCULTO MENSAL', B7 + r'BI_INDICADORES_CRED\CLIENTE_OCULTO', 1, '', True, '', conf_mensal=True, hora_limite='10:00'),
     ]
 })
-# Base DGE: 1 arquivo do mês atual em cada pasta
 DEFAULT['monitores'].append({
-    'nome': 'Base DGE (produtividade / pagamento)', 'categoria': 'base', 'prio': 'P2', 'regra': '', 'log': '', 'min_linhas': 0,
+    'nome': 'Base DGE (produtividade / pagamento)', 'categoria': 'base', 'prio': 'P2', 'regra': '', 'log': '', 'min_linhas': 0, 'responsavel': 'Karine',
     'pastas': [
         F('48 - PRODUTIVIDADE V2 DGE', r'1 - RELATORIOS\48 - RELATORIO DE PRODUTIVIDADE V2\DGE', 1, '', False, '', so_mes=True),
         F('BASES DGE PRODUTIVIDADE', B7 + r'BASES DGE\PRODUTIVIDADE', 1, '', False, '', so_mes=True),
         F('BASES DGE TIPO PAGAMENTO', B7 + r'BASES DGE\TIPO PAGAMENTO', 1, '', False, '', so_mes=True),
     ]
 })
-_mon('DB T0012 (mensal)')['responsavel'] = 'Agenor'
-_mon('Indicadores Rede Cred (bases)')['responsavel'] = 'Karine'
-# Logs (Pasta 52) e janelas de execução dos BIs que antes eram só cartões pré-cadastrados
+
 for _n, _log, _min, _ini, _fim in [
     ('BI Painel dos Médicos', 'log_execucao_painel_medicos_{YYYY}_{MM}.xlsx', 8, '07:10', '11:30'),
     ('BI Farol ICH (DGE)', 'log_execucao_farol_de_indice_consultas_por_hora_ich_{YYYY}_{MM}.xlsx', 4, '14:50', '15:10'),
@@ -355,9 +371,12 @@ def sincronizar_config_automatico():
             antigo = json.loads(CFG.read_text(encoding='utf-8'))
             if 'whatsapp' in antigo and 'destinos' in antigo['whatsapp']:
                 cfg_final['whatsapp']['destinos'] = antigo['whatsapp']['destinos']
+            if 'email_outlook' in antigo and 'destinatarios' in antigo['email_outlook']:
+                cfg_final['email_outlook']['destinatarios'] = antigo['email_outlook']['destinatarios']
+            if 'planner' in antigo and 'url_planner' in antigo['planner']:
+                cfg_final['planner']['url_planner'] = antigo['planner']['url_planner']
         except Exception:
             pass
-    # Garante sempre 6 horas (360 min) no WhatsApp e 30 min para a Vercel
     cfg_final['whatsapp']['resumo_a_cada_min'] = 360
     cfg_final['intervalo_vercel_min'] = 30
     CFG.write_text(json.dumps(cfg_final, indent=2, ensure_ascii=False), encoding='utf-8')
@@ -409,7 +428,7 @@ def hm(m):
 
 
 # ==============================================================================
-# 4. REGRAS DE HORÁRIO: APRR (+2 A CADA HORÁRIO) E TELE SAÚDE (30M ANTES)
+# 4. REGRAS DE HORÁRIO: APRR E TELE SAÚDE + PBIX + PASTA 52
 # ==============================================================================
 def calcular_esperado_aprr(agora=None):
     agora = agora or datetime.now()
@@ -449,12 +468,6 @@ def verificar_janela_telesaude(ult_mod_dt, agora=None):
     return False, f'ATRASADO: Esperada atualização às {ult_janela_str} (30m antes das {hora_aprr_ref}). Última: {ult_mod_dt:%d/%m %H:%M:%S}'
 
 
-# ==============================================================================
-# 4B. MONITORAMENTO DOS BIs (PBIX OFICIAL) + AUDITORIA DOS LOGS DA PASTA 52
-# ==============================================================================
-import calendar
-import unicodedata
-
 _CACHE_LOGS = {'t': 0.0, 'item': None, 'datas': {}}
 
 
@@ -478,7 +491,6 @@ def _item_base(nome, prio, categoria):
 
 
 def _regra_pbix(b, mt, agora):
-    """Retorna (status, motivo, esperado, atraso_min) conforme a regra do BI."""
     hoje = agora.date()
     regra = b.get('regra', 'diaria')
     if regra == 'mensal':
@@ -543,7 +555,7 @@ def avaliar_pbix(cfg):
                if all(k in _norm(e.name) for k in b['busca']) and not any(k in _norm(e.name) for k in b.get('excluir', []))]
         if not ach:
             r['status'] = 'warn'
-            r['avisos'].append(f"Arquivo .pbix não localizado (busca: {', '.join(b['busca'])}). Ajuste 'busca' em bis_pbix.")
+            r['avisos'].append(f"Arquivo .pbix não localizado (busca: {', '.join(b['busca'])}).")
             r['pbix'] = dict(arquivo=None, ultima=None, ultima_iso=None, idade_h=None, esperado='-', atraso_min=0, regra=b['regra'])
         else:
             e, mt = max(ach, key=lambda x: x[1])
@@ -568,8 +580,6 @@ def _dia_util_anterior(d):
 
 
 def auditar_logs_52(cfg, forcar=False):
-    """Regra Pasta 52: log do mês atual atualizado diariamente; logs de meses anteriores com a última data do mês;
-    família de log cuja última data está 3+ meses atrás da referência do mês = DESATUALIZADO."""
     if not forcar and _CACHE_LOGS['item'] and time.time() - _CACHE_LOGS['t'] < 600:
         item = json.loads(json.dumps(_CACHE_LOGS['item']))
         agora = datetime.now()
@@ -923,10 +933,9 @@ def avaliar(m, cfg):
 
 
 # ==============================================================================
-# 6. GERAÇÃO DO .XLSX E AUTOMACAO DE UPLOAD NA VERCEL A CADA 30 MINUTOS
+# 6. GERAÇÃO DO .XLSX E AUTOMAÇÃO DE UPLOAD NA VERCEL A CADA 30 MINUTOS
 # ==============================================================================
 def gerar_relatorio_xlsx(cfg, res, snaps_hoje, hist_diario, salvar_em_pasta_especifica=None):
-    """Gera o arquivo .xlsx na pasta solicitada (ou tanto em Desktop\\dashboard acompanhamento quanto em G:\\...)."""
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Alignment
 
@@ -1004,7 +1013,6 @@ def gerar_relatorio_xlsx(cfg, res, snaps_hoje, hist_diario, salvar_em_pasta_espe
     for h in hist_diario:
         ws3.append([h.get('dia'), h.get('h'), h.get('ok'), h.get('warn'), h.get('err')])
 
-    # 1. Salva sempre na pasta C:\Users\agenor.sales\Desktop\dashboard acompanhamento
     pasta_local_acomp = Path(cfg.get('pasta_dashboard_acompanhamento', DEFAULT['pasta_dashboard_acompanhamento']))
     try:
         pasta_local_acomp.mkdir(parents=True, exist_ok=True)
@@ -1017,7 +1025,6 @@ def gerar_relatorio_xlsx(cfg, res, snaps_hoje, hist_diario, salvar_em_pasta_espe
     wb.save(arq_local_fixo)
     log.info('Planilha salva em %s', arq_local_datado)
 
-    # 2. Se for o relatório diário ou solicitado, salva também na rede G:\...
     if salvar_em_pasta_especifica:
         try:
             p_rede = Path(salvar_em_pasta_especifica)
@@ -1030,10 +1037,6 @@ def gerar_relatorio_xlsx(cfg, res, snaps_hoje, hist_diario, salvar_em_pasta_espe
 
 
 def enviar_xlsx_para_painel_vercel(cfg, caminho_xlsx):
-    """
-    Abre o Google Chrome no link https://acompanhameto-fluxo-diario-de-taref.vercel.app/,
-    clica na aba Monitoramento e inclui o arquivo .xlsx gerado.
-    """
     from selenium import webdriver
     from selenium.webdriver.chrome.options import Options
     from selenium.webdriver.common.by import By
@@ -1041,22 +1044,13 @@ def enviar_xlsx_para_painel_vercel(cfg, caminho_xlsx):
     from selenium.webdriver.support import expected_conditions as EC
 
     url_vercel = cfg.get('url_painel_vercel', DEFAULT['url_painel_vercel'])
-    porta_vercel = 9225  # Porta separada para não conflitar com o WhatsApp (9222)
+    porta_vercel = 9225
     proc = None
-    drv = None
 
     try:
         log.info('Iniciando upload do arquivo %s para o painel Vercel (%s)...', caminho_xlsx.name, url_vercel)
         encerrar_chrome_porta(porta_vercel)
-
-        w = cfg['whatsapp']
-        cands = [
-            w.get('chrome_exe', ''),
-            r'C:\Program Files\Google\Chrome\Application\chrome.exe',
-            r'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe',
-            os.path.expandvars(r'%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe')
-        ]
-        exe = next((c for c in cands if c and os.path.exists(c)), None)
+        exe = _achar_chrome(cfg)
         if not exe:
             log.error('chrome.exe não encontrado para subir planilha na Vercel.')
             return False
@@ -1082,7 +1076,6 @@ def enviar_xlsx_para_painel_vercel(cfg, caminho_xlsx):
         drv.get(url_vercel)
         time.sleep(5)
 
-        # 1. Procura e clica na aba "Monitoramento"
         xpaths_aba = [
             "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'monitoramento')]",
             "//button[contains(., 'Monitoramento')]",
@@ -1099,23 +1092,19 @@ def enviar_xlsx_para_painel_vercel(cfg, caminho_xlsx):
                     except Exception:
                         pass
 
-        # 2. Localiza o <input type="file"> na aba Monitoramento e envia o caminho do .xlsx
         inputs_file = drv.find_elements(By.XPATH, "//input[@type='file']")
         if not inputs_file:
-            # Aguarda até 15s caso a aba ainda esteja renderizando
             inp = WebDriverWait(drv, 15).until(
                 EC.presence_of_element_located((By.XPATH, "//input[@type='file']"))
             )
         else:
             inp = inputs_file[0]
 
-        # Torna o input visível caso esteja com classe 'hidden' no React/Tailwind
         drv.execute_script("arguments[0].style.display = 'block'; arguments[0].style.visibility = 'visible';", inp)
         time.sleep(1)
         inp.send_keys(str(caminho_xlsx.resolve()))
-        time.sleep(6)  # Aguarda o processamento/sincronização do arquivo na aplicação
+        time.sleep(6)
 
-        # Se houver botão de confirmar/salvar/enviar após selecionar o arquivo, clica nele
         botoes_confirmar = drv.find_elements(
             By.XPATH,
             "//button[contains(., 'Salvar') or contains(., 'Enviar') or contains(., 'Importar') or contains(., 'Sincronizar')]"
@@ -1144,7 +1133,6 @@ def enviar_xlsx_para_painel_vercel(cfg, caminho_xlsx):
 
 
 def rotina_vercel_30_minutos(cfg, res, snaps_hoje, hist, forcar=False):
-    """Executa a cada 30 minutos: gera o .xlsx na pasta do Desktop e inclui na aba Monitoramento da Vercel."""
     est = json.loads(ESTADO.read_text(encoding='utf-8')) if ESTADO.exists() else {}
     agora = datetime.now()
     ult_str = est.get('ultimo_upload_vercel')
@@ -1159,16 +1147,463 @@ def rotina_vercel_30_minutos(cfg, res, snaps_hoje, hist, forcar=False):
 
 
 # ==============================================================================
-# 7. TEMPLATE DO DASHBOARD LOCAL (HTML)
+# 7. NOVAS AUTOMAÇÕES: TEAMS DESKTOP, PDF EXECUTIVO, OUTLOOK WEB E PLANNER
 # ==============================================================================
-VERSAO_PAINEL = 'v5.2 · Visão Geral | BIs | Logs | Detalhamento'
+def enviar_teams_desktop(cfg, texto):
+    """
+    Simula o clique e atalhos na tela do aplicativo Microsoft Teams Desktop,
+    entra no grupo 'TIME BI OPTIMUS' e envia o relatório atualizado.
+    """
+    import pyautogui
+    import pyperclip
+    from pywinauto import Desktop
+
+    t_cfg = cfg.get('teams', {})
+    grupo = t_cfg.get('grupo', 'TIME BI OPTIMUS')
+
+    try:
+        log.info('Iniciando envio para o Teams Desktop (Grupo: %s)...', grupo)
+        pyautogui.FAILSAFE = False
+
+        janelas = Desktop(backend="uia").windows(title_re=".*Teams.*", visible_only=False)
+        if not janelas:
+            os.startfile("msteams:")
+            time.sleep(6)
+            janelas = Desktop(backend="uia").windows(title_re=".*Teams.*", visible_only=False)
+            if not janelas:
+                log.error('Janela do Teams Desktop não encontrada.')
+                return False
+
+        win = janelas[0]
+        if win.is_minimized():
+            win.restore()
+        win.set_focus()
+        time.sleep(1.5)
+
+        # Atalho Ctrl + E (ou Ctrl + G) para pesquisar o grupo TIME BI OPTIMUS no Teams Desktop
+        pyautogui.hotkey('ctrl', 'e')
+        time.sleep(1.0)
+        pyperclip.copy(grupo)
+        pyautogui.hotkey('ctrl', 'v')
+        time.sleep(2.0)
+        pyautogui.press('down')
+        time.sleep(0.5)
+        pyautogui.press('enter')
+        time.sleep(2.5)
+
+        # Atalho oficial do Teams para focar na caixa de mensagem
+        pyautogui.hotkey('alt', 'shift', 'c')
+        time.sleep(0.8)
+
+        # Cola o resumo do monitoramento e envia
+        pyperclip.copy(texto)
+        pyautogui.hotkey('ctrl', 'v')
+        time.sleep(1.0)
+        pyautogui.press('enter')
+        time.sleep(1.0)
+
+        log.info('Resumo enviado com sucesso no grupo %s do Teams Desktop!', grupo)
+        return True
+    except Exception as e:
+        log.error('Falha ao enviar mensagem no Teams Desktop: %s', str(e)[:250])
+        return False
+
+
+def rotina_teams(cfg, res, forcar=False):
+    t_cfg = cfg.get('teams', {})
+    if not t_cfg.get('ativo', True) and not forcar:
+        return
+
+    est = json.loads(ESTADO.read_text(encoding='utf-8')) if ESTADO.exists() else {}
+    agora = datetime.now()
+    ult_str = est.get('ultimo_teams')
+    ult_dt = datetime.fromisoformat(ult_str) if ult_str else None
+    int_min = int(t_cfg.get('intervalo_min', 120))
+
+    if forcar or ult_dt is None or (agora - ult_dt) >= timedelta(minutes=int_min):
+        texto_teams = resumo(res, titulo='Monitoramento OptimusBI · TIME BI OPTIMUS')
+        if enviar_teams_desktop(cfg, texto_teams):
+            est['ultimo_teams'] = agora.isoformat()
+            ESTADO.write_text(json.dumps(est, ensure_ascii=False), encoding='utf-8')
+
+
+def gerar_pdf_visao_geral(cfg, res):
+    """
+    Gera um arquivo PDF executivo completo renderizando o painel atualizado (Visão Geral + Detalhamento)
+    via Chrome Headless (Page.printToPDF), sem depender de bibliotecas externas pesadas.
+    """
+    try:
+        from selenium import webdriver
+        from selenium.webdriver.chrome.options import Options
+
+        html = AQUI / cfg.get('dashboard_html', 'dashboard.html')
+        if not html.exists():
+            return None
+
+        pasta_destino = Path(cfg.get('pasta_dashboard_acompanhamento', DEFAULT['pasta_dashboard_acompanhamento']))
+        try:
+            pasta_destino.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            pasta_destino = AQUI
+
+        arq_pdf = pasta_destino / f"Visao_Geral_OptimusBI_{datetime.now():%Y-%m-%d_%Hh%M}.pdf"
+
+        op = Options()
+        for a in ('--headless=new', '--disable-gpu', '--window-size=1440,2200', f"--user-data-dir={AQUI / 'chrome_pdf_tmp'}"):
+            op.add_argument(a)
+        exe = _achar_chrome(cfg)
+        if exe:
+            op.binary_location = exe
+
+        drv = webdriver.Chrome(options=op)
+        try:
+            drv.get(html.as_uri())
+            time.sleep(5)
+            # Exibe todas as seções para o PDF ficar com a visão geral + tabelas completas
+            drv.execute_script("""
+                var t = document.getElementById('toasts'); if(t) t.style.display='none';
+                document.querySelectorAll('main > section').forEach(s => s.classList.remove('hidden'));
+            """)
+            time.sleep(1.5)
+            pdf_data = drv.execute_cdp_cmd("Page.printToPDF", {
+                "printBackground": True,
+                "landscape": True,
+                "paperWidth": 11.69,
+                "paperHeight": 8.27,
+                "marginTop": 0.3,
+                "marginBottom": 0.3,
+                "marginLeft": 0.3,
+                "marginRight": 0.3
+            })
+            arq_pdf.write_bytes(base64.b64decode(pdf_data['data']))
+            log.info('PDF Visão Geral gerado com sucesso em: %s', arq_pdf)
+            return arq_pdf
+        finally:
+            drv.quit()
+    except Exception as e:
+        log.error('Falha ao gerar PDF da Visão Geral: %s', str(e)[:250])
+        return None
+
+
+def montar_corpo_email_explicativo(res):
+    """Monta o texto explicativo completo para o corpo do e-mail (07h e 17h)."""
+    ativos = [x for x in res if x['status'] != 'nd']
+    ok_list = [x for x in ativos if x['status'] == 'ok']
+    warn_list = [x for x in ativos if x['status'] == 'warn']
+    err_list = [x for x in ativos if x['status'] == 'err']
+    bis = [x for x in ativos if x.get('categoria') == 'pbix']
+    saude = round(100 * len(ok_list) / len(ativos)) if ativos else 0
+
+    linhas = [
+        f"Olá, equipe TIME BI OPTIMUS!",
+        f"",
+        f"Segue a Visão Geral do Monitoramento OptimusBI referente à leitura de {datetime.now():%d/%m/%Y às %H:%M}.",
+        f"O relatório visual completo encontra-se em PDF anexo a este e-mail.",
+        f"",
+        f"==================================================================",
+        f"1. RESUMO EXECUTIVO DO ACOMPANHAMENTO",
+        f"==================================================================",
+        f"• Saúde Geral do Ambiente : {saude}%",
+        f"• Total de Itens Ativos   : {len(ativos)} processos/bases/painéis",
+        f"• Em Dia (OK)             : {len(ok_list)}",
+        f"• Em Alerta (Atenção)     : {len(warn_list)}",
+        f"• Críticos / Com Falha    : {len(err_list)}",
+        f"• Painéis BI (.pbix) OK   : {sum(1 for x in bis if x['status'] == 'ok')} de {len(bis)}",
+        f""
+    ]
+
+    if err_list:
+        linhas += [
+            f"==================================================================",
+            f"2. DETALHAMENTO DE FALHAS / ATRASOS CRÍTICOS ({len(err_list)})",
+            f"=================================================================="
+        ]
+        for x in err_list:
+            motivo = "; ".join(x.get('erros', [])) or "Verificar painel"
+            linhas.append(f"✖ [{x['prio']}] {x['nome']} (Resp: {x.get('responsavel') or 'Equipe'})")
+            linhas.append(f"   Explicação: {motivo}")
+        linhas.append("")
+
+    if warn_list:
+        linhas += [
+            f"==================================================================",
+            f"3. PONTOS DE ATENÇÃO / ALERTAS ({len(warn_list)})",
+            f"=================================================================="
+        ]
+        for x in warn_list:
+            aviso = "; ".join(x.get('avisos', [])) or "Alerta de janela/histórico"
+            linhas.append(f"⚠ [{x['prio']}] {x['nome']} (Resp: {x.get('responsavel') or 'Equipe'}) -> {aviso}")
+        linhas.append("")
+
+    linhas += [
+        f"==================================================================",
+        f"4. PROCESSOS E PAINÉIS EM DIA ({len(ok_list)})",
+        f"==================================================================",
+        ", ".join(x['nome'].replace('PBIX · ', '') for x in ok_list),
+        f"",
+        f"Atenciosamente,",
+        f"Rotina Automática - Monitoramento OptimusBI"
+    ]
+    return "\n".join(linhas)
+
+
+def enviar_email_outlook_navegador(cfg, res):
+    """
+    Abre o Outlook Web no navegador (usando o perfil logado), cria um novo e-mail,
+    preenche destinatários, assunto, corpo explicativo e anexa o PDF da Visão Geral.
+    """
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.common.keys import Keys
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+
+    e_cfg = cfg.get('email_outlook', DEFAULT['email_outlook'])
+    porta = int(e_cfg.get('porta_chrome', 9226))
+    perfil = e_cfg.get('perfil_chrome', r'C:\chrome_outlook_planner')
+    destinatarios = e_cfg.get('destinatarios', [])
+    if not destinatarios:
+        log.warning('Nenhum destinatário configurado em email_outlook.destinatarios.')
+        return False
+
+    arq_pdf = gerar_pdf_visao_geral(cfg, res)
+    corpo_texto = montar_corpo_email_explicativo(res)
+    assunto = f"{e_cfg.get('assunto_prefixo', '[OptimusBI] Visão Geral')} - {datetime.now():%d/%m/%Y %H:%M}"
+
+    proc = None
+    try:
+        log.info('Iniciando disparo de e-mail via Outlook no navegador...')
+        encerrar_chrome_porta(porta)
+        exe = _achar_chrome(cfg)
+        if not exe:
+            log.error('chrome.exe não encontrado para o Outlook Web.')
+            return False
+
+        proc = subprocess.Popen([
+            exe,
+            f'--remote-debugging-port={porta}',
+            f'--user-data-dir={perfil}',
+            '--no-first-run',
+            'https://outlook.office.com/mail/deeplink/compose'
+        ])
+
+        for _ in range(35):
+            if porta_aberta(porta):
+                time.sleep(4)
+                break
+            time.sleep(1)
+
+        op = Options()
+        op.debugger_address = f"127.0.0.1:{porta}"
+        drv = webdriver.Chrome(options=op)
+        drv.get('https://outlook.office.com/mail/deeplink/compose')
+        time.sleep(8)
+
+        # 1. Preenche o campo "Para"
+        campo_para = WebDriverWait(drv, 45).until(
+            EC.presence_of_element_located((
+                By.XPATH,
+                "//div[@role='textbox' and (@aria-label='Para' or @aria-label='To')] | //input[contains(@aria-label,'Para') or contains(@aria-label,'To')]"
+            ))
+        )
+        campo_para.click()
+        for dest in destinatarios:
+            campo_para.send_keys(dest)
+            time.sleep(0.8)
+            campo_para.send_keys(Keys.ENTER)
+            time.sleep(0.5)
+
+        # 2. Preenche o Assunto
+        campo_assunto = WebDriverWait(drv, 20).until(
+            EC.presence_of_element_located((
+                By.XPATH,
+                "//input[contains(@placeholder,'assunto') or contains(@placeholder,'subject') or contains(@aria-label,'Assunto') or contains(@aria-label,'Subject')]"
+            ))
+        )
+        campo_assunto.click()
+        campo_assunto.send_keys(assunto)
+        time.sleep(1)
+
+        # 3. Preenche o Corpo Explicativo
+        campo_corpo = WebDriverWait(drv, 20).until(
+            EC.presence_of_element_located((
+                By.XPATH,
+                "//div[@role='textbox' and (contains(@aria-label,'Corpo da mensagem') or contains(@aria-label,'Message body'))]"
+            ))
+        )
+        campo_corpo.click()
+        campo_corpo.send_keys(corpo_texto)
+        time.sleep(1.5)
+
+        # 4. Anexa o PDF da Visão Geral
+        if arq_pdf and arq_pdf.exists():
+            inputs_file = drv.find_elements(By.XPATH, "//input[@type='file']")
+            if inputs_file:
+                inp_anexo = inputs_file[0]
+                drv.execute_script("arguments[0].style.display = 'block';", inp_anexo)
+                inp_anexo.send_keys(str(arq_pdf.resolve()))
+                time.sleep(6)
+
+        # 5. Envia o e-mail (Ctrl + Enter no Outlook Web ou clique no botão Enviar)
+        campo_corpo.send_keys(Keys.CONTROL, Keys.ENTER)
+        time.sleep(2)
+        botoes_enviar = drv.find_elements(By.XPATH, "//button[@aria-label='Enviar' or @aria-label='Send']")
+        for b in botoes_enviar:
+            if b.is_displayed():
+                try:
+                    b.click()
+                    break
+                except Exception:
+                    pass
+
+        time.sleep(6)
+        log.info('E-mail com PDF enviado com sucesso pelo Outlook Web!')
+        return True
+
+    except Exception as e:
+        log.error('Falha ao enviar e-mail no Outlook Web: %s', str(e)[:250])
+        return False
+    finally:
+        if proc:
+            try:
+                proc.terminate()
+            except Exception:
+                pass
+        encerrar_chrome_porta(porta)
+
+
+def dar_check_planner_navegador(cfg):
+    """
+    Ao final do dia, abre o Microsoft Planner no navegador e dá check (conclui)
+    nas atividades pendentes atribuídas a você.
+    """
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.common.by import By
+
+    p_cfg = cfg.get('planner', DEFAULT['planner'])
+    porta = int(p_cfg.get('porta_chrome', 9226))
+    perfil = p_cfg.get('perfil_chrome', r'C:\chrome_outlook_planner')
+    url_planner = p_cfg.get('url_planner', 'https://planner.cloud.microsoft/')
+    palavras = [k.lower() for k in p_cfg.get('palavras_chave_tarefas', [])]
+
+    proc = None
+    try:
+        log.info('Iniciando rotina de check nas atividades do Planner (%s)...', url_planner)
+        encerrar_chrome_porta(porta)
+        exe = _achar_chrome(cfg)
+        if not exe:
+            log.error('chrome.exe não encontrado para o Planner.')
+            return False
+
+        proc = subprocess.Popen([
+            exe,
+            f'--remote-debugging-port={porta}',
+            f'--user-data-dir={perfil}',
+            '--no-first-run',
+            url_planner
+        ])
+
+        for _ in range(35):
+            if porta_aberta(porta):
+                time.sleep(4)
+                break
+            time.sleep(1)
+
+        op = Options()
+        op.debugger_address = f"127.0.0.1:{porta}"
+        drv = webdriver.Chrome(options=op)
+        drv.get(url_planner)
+        time.sleep(10)
+
+        # Localiza os botões de conclusão (check) das tarefas não concluídas no Planner
+         seletores_check = (
+            "//button[contains(@aria-label,'Concluir tarefa') or contains(@aria-label,'Complete task') "
+            "or contains(@aria-label,'Marcar como concluída') or contains(@title,'Concluir')]"
+            " | //div[@role='checkbox' and @aria-checked='false']"
+        )
+        botoes = drv.find_elements(By.XPATH, seletores_check)
+        concluidas = 0
+
+        for btn in botoes:
+            try:
+                if not btn.is_displayed():
+                    continue
+                texto_card = (btn.get_attribute('aria-label') or '') + ' ' + (btn.find_element(By.XPATH, "./ancestor::*[3]").text or '')
+                if palavras and not any(p in texto_card.lower() for p in palavras):
+                    continue
+                btn.click()
+                concluidas += 1
+                time.sleep(1.2)
+            except Exception:
+                continue
+
+        log.info('Rotina do Planner finalizada: %s atividade(s) marcada(s) com check!', concluidas)
+        time.sleep(3)
+        return True
+
+    except Exception as e:
+        log.error('Falha ao dar check no Planner: %s', str(e)[:250])
+        return False
+    finally:
+        if proc:
+            try:
+                proc.terminate()
+            except Exception:
+                pass
+        encerrar_chrome_porta(porta)
+
+
+def rotina_email_e_planner_diario(cfg, res, forcar_email=False, forcar_planner=False):
+    """
+    Garante o disparo do e-mail às 07:00 e às 17:00 e o check no Planner ao final do dia (17:00+).
+    """
+    est = json.loads(ESTADO.read_text(encoding='utf-8')) if ESTADO.exists() else {}
+    agora = datetime.now()
+    hoje_iso = date.today().isoformat()
+    hm_atual = agora.strftime('%H:%M')
+
+    # 1. Rotina de E-mail (07:00 e 17:00)
+    e_cfg = cfg.get('email_outlook', DEFAULT['email_outlook'])
+    if e_cfg.get('ativo', True) or forcar_email:
+        enviados_hoje = est.get('emails_enviados_dia', {})
+        if enviados_hoje.get('dia') != hoje_iso:
+            enviados_hoje = {'dia': hoje_iso, 'janelas': []}
+
+        for h_alvo in e_cfg.get('horarios', ['07:00', '17:00']):
+            if forcar_email or (hm_atual >= h_alvo and h_alvo not in enviados_hoje['janelas']):
+                if enviar_email_outlook_navegador(cfg, res):
+                    if h_alvo not in enviados_hoje['janelas']:
+                        enviados_hoje['janelas'].append(h_alvo)
+                    est['emails_enviados_dia'] = enviados_hoje
+                    ESTADO.write_text(json.dumps(est, ensure_ascii=False), encoding='utf-8')
+                if forcar_email:
+                    break
+
+    # 2. Rotina do Planner ao final do dia (a partir das 17:05)
+    p_cfg = cfg.get('planner', DEFAULT['planner'])
+    if p_cfg.get('ativo', True) or forcar_planner:
+        h_planner = p_cfg.get('horario_check', '17:05')
+        ja_fez_planner = (est.get('ultimo_planner_check') == hoje_iso)
+        if forcar_planner or (hm_atual >= h_planner and not ja_fez_planner):
+            if dar_check_planner_navegador(cfg):
+                est['ultimo_planner_check'] = hoje_iso
+                ESTADO.write_text(json.dumps(est, ensure_ascii=False), encoding='utf-8')
+
+
+# ==============================================================================
+# 8. TEMPLATE DO DASHBOARD LOCAL (HTML v6.0 - COM BOTÕES TEAMS, PDF, OUTLOOK E PLANNER)
+# ==============================================================================
+VERSAO_PAINEL = 'v6.0 · Teams | PDF | Outlook 07h/17h | Planner'
 
 HTML = r'''<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Monitoramento OptimusBI</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Monitoramento OptimusBI v6.0</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
@@ -1199,8 +1634,8 @@ HTML = r'''<!DOCTYPE html>
     h1 { font-size: 20px; margin: 0; font-weight: 700; color: var(--card); }
     .sub { color: var(--slate-200); font-size: 12.5px; display: flex; align-items: center; gap: 8px; margin-top: 2px; flex-wrap: wrap; }
     .badge { background: var(--blue-dark); color: var(--gold); padding: 2px 8px; border-radius: 4px; font-family: monospace; font-weight: 700; font-size: 13px; }
-    .bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    button, select { font: inherit; font-size: 13px; font-weight: 600; border: 1px solid var(--slate-200); background: var(--card); color: var(--ink); padding: 7px 14px; border-radius: 6px; cursor: pointer; transition: 0.15s; }
+    .bar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    button, select { font: inherit; font-size: 12.5px; font-weight: 600; border: 1px solid var(--slate-200); background: var(--card); color: var(--ink); padding: 7px 12px; border-radius: 6px; cursor: pointer; transition: 0.15s; }
     button:hover { background: var(--blue-dark); color: var(--card); border-color: var(--blue-dark); }
     button.p { background: var(--gold); color: var(--blue-dark); border-color: var(--gold); }
     button.p:hover { background: var(--blue-dark); color: var(--gold); }
@@ -1213,12 +1648,15 @@ HTML = r'''<!DOCTYPE html>
     .filter-bar { background: var(--card); border: 1px solid var(--slate-200); border-left: 5px solid var(--blue-inst); border-radius: 8px; padding: 10px 16px; margin-bottom: 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
     .sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
     .k { background: var(--card); border: 1px solid var(--slate-200); border-left: 5px solid var(--c); border-radius: 8px; padding: 12px 14px; }
-    .k b { font-size: 26px; display: block; line-height: 1.1; color: var(--ink); }
+    .k b { font-size: 32px; display: block; line-height: 1.1; color: var(--ink); }
     .k span { color: var(--slate-600); font-size: 12px; }
-    .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 14px; margin-bottom: 18px; }
     .box { background: var(--card); border: 1px solid var(--slate-200); border-radius: 8px; padding: 14px; }
     .box h3 { margin: 0 0 10px; font-size: 13.5px; color: var(--blue-inst); font-weight: 700; }
+    .box.big { padding: 18px; } .box.big h3 { font-size: 15px; }
+    .cw { position: relative; height: 380px; }
+    .charts2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(560px, 1fr)); gap: 16px; margin-bottom: 18px; }
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 14px; }
+    .grid1 { display: block; }
     .m { background: var(--card); border: 1px solid var(--slate-200); border-top: 4px solid var(--c); border-radius: 8px; padding: 15px; }
     .m:hover { border-color: var(--blue-dark); }
     .m h2 { font-size: 15.5px; margin: 0; color: var(--blue-inst); display: flex; justify-content: space-between; gap: 8px; }
@@ -1237,17 +1675,9 @@ HTML = r'''<!DOCTYPE html>
     .dh { padding: 14px 18px; background: var(--blue-inst); color: #fff; display: flex; justify-content: space-between; align-items: center; }
     .db { padding: 16px 18px; background: #fff; }
     .hidden { display: none !important; }
-    .alert-badge { position: fixed; right: 18px; bottom: 18px; z-index: 50; background: var(--red); color: #fff; border: 0; border-radius: 99px; padding: 10px 18px; font: 700 13px 'IBM Plex Sans', sans-serif; cursor: pointer; box-shadow: 0 4px 14px rgba(242,29,47,.45); animation: pulso 1.6s infinite; }
-    @keyframes pulso { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
-    #dAlert { border-top: 6px solid var(--red); width: min(720px, 95vw); }
-    #dAlert .al { border-left: 4px solid var(--c); background: var(--slate-100); border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; font-size: 13px; }
-    #dAlert .al b { color: var(--blue-dark); } #dAlert .al small { display: block; color: var(--slate-600); margin-top: 2px; }
     .lt { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 11.5px; }
     .lt td, .lt th { border-bottom: 1px solid var(--slate-200); padding: 3px 4px; text-align: left; }
     .lt .s-err { color: var(--red); font-weight: 700; } .lt .s-warn { color: var(--amber-800); font-weight: 600; } .lt .s-ok { color: var(--blue-inst); }
-    .box.big { padding: 18px; } .box.big h3 { font-size: 15px; }
-    .cw { position: relative; height: 380px; } .charts2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(560px, 1fr)); gap: 16px; margin-bottom: 18px; }
-    .grid1 { display: block; } .sum .k b { font-size: 32px; }
     .pb { margin-bottom: 12px; } .pb-h { display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 4px; } .pb-h span { color: var(--slate-600); }
     .pb-t { background: var(--slate-200); border-radius: 99px; height: 20px; overflow: hidden; }
     .pb-f { height: 100%; width: 0; border-radius: 99px; transition: width 1.4s cubic-bezier(.22,.9,.3,1); }
@@ -1261,8 +1691,7 @@ HTML = r'''<!DOCTYPE html>
     .toast .t1 { font-weight: 700; color: var(--blue-dark); } .toast .t2 { color: var(--slate-600); margin: 2px 0; } .toast .t3 { color: var(--ink); }
     .toast .x { position: absolute; right: 4px; top: 2px; border: 0; background: none; font-size: 18px; cursor: pointer; color: var(--slate-600); padding: 0 6px; }
     @keyframes entra { from { transform: translateX(120%); opacity: 0; } to { transform: none; opacity: 1; } }
-    @media(max-width:600px){ #toasts { width: 240px; } .charts2 { grid-template-columns: 1fr; } }
-    @media(max-width:600px){ .grid, .charts { grid-template-columns: 1fr; } }
+    @media(max-width:600px){ #toasts { width: 240px; } .charts2, .grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -1285,10 +1714,12 @@ HTML = r'''<!DOCTYPE html>
       </div>
     </div>
     <div class="bar">
-      <button class="p" id="bRefresh">🔄 Atualizar Agora</button>
-      <button class="g" id="bVercel">☁️ Enviar p/ Vercel Agora</button>
-      <button class="g" id="bRel">📊 Salvar Relatório (.xlsx)</button>
-      <button class="g" id="bWa">💬 Resumo no WhatsApp</button>
+      <button class="p" id="bRefresh">🔄 Atualizar</button>
+      <button class="g" id="bTeams" title="Enviar agora no grupo TIME BI OPTIMUS do Teams Desktop">👥 Enviar p/ Teams</button>
+      <button class="g" id="bEmail" title="Gerar PDF e disparar por e-mail no Outlook Web">📧 Enviar PDF Outlook</button>
+      <button class="g" id="bPlanner" title="Entrar no Planner e dar check nas minhas atividades">✅ Check Planner</button>
+      <button class="g" id="bVercel">☁️ Vercel (.xlsx)</button>
+      <button class="g" id="bWa">💬 WhatsApp</button>
       <button id="bBell" title="Reexibir alertas dispensados">🔔 <span id="bellN">0</span></button>
     </div>
   </div>
@@ -1308,7 +1739,7 @@ HTML = r'''<!DOCTYPE html>
       <span id="snapInfo" style="font-size:12px;color:var(--slate-600);margin-left:8px"></span>
     </div>
     <div style="font-size:12px;color:var(--slate-600)">
-      <strong>Vercel (.xlsx):</strong> a cada 30 min | <strong>WhatsApp:</strong> a cada 6 horas | <strong>Relatório Final:</strong> 18:00
+      <strong>Teams:</strong> TIME BI OPTIMUS | <strong>E-mail + PDF:</strong> 07:00 e 17:00 | <strong>Planner Check:</strong> 17:05 | <strong>Vercel:</strong> 30m
     </div>
   </div>
 
@@ -1344,9 +1775,8 @@ HTML = r'''<!DOCTYPE html>
 <div id="toasts"></div>
 
 <dialog id="dWa">
-  <div class="dh"><b>Resumo para WhatsApp (A cada 6 horas)</b><button id="bWc">Fechar</button></div>
+  <div class="dh"><b>Resumo para WhatsApp / Teams</b><button id="bWc">Fechar</button></div>
   <div class="db">
-    <p style="font-size:12px;color:var(--slate-600);margin-top:0">O Python envia automaticamente a cada 6 horas (1 mensagem por contato, fechando e reiniciando o navegador).</p>
     <textarea id="waTxt" rows="11" style="width:100%;font:inherit;padding:8px"></textarea>
     <div class="bar" id="waBtns" style="margin-top:10px"></div>
   </div>
@@ -1387,22 +1817,35 @@ $$('#tabs .nav-tab').forEach(b => b.onclick = () => {
   b.classList.add('active'); tab = b.dataset.tab; render();
 });
 $('#bRefresh').onclick = async () => {
-  $('#bRefresh').disabled = true; $('#bRefresh').textContent = '⏳ Atualizando...';
+  $('#bRefresh').disabled = true; $('#bRefresh').textContent = '⏳...';
   try { await fetch('/api/atualizar'); } catch (e) {}
   location.reload();
 };
-$('#bVercel').onclick = async () => {
-  $('#bVercel').disabled = true; $('#bVercel').textContent = '⏳ Enviando p/ Vercel...';
-  try { const j = await (await fetch('/api/vercel')).json(); alert('Planilha gerada e enviada para a aba Monitoramento da Vercel!\nArquivo: ' + j.arquivo); }
-  catch (e) { alert('O upload automático ocorre a cada 30 minutos pelo Python.'); }
-  $('#bVercel').disabled = false; $('#bVercel').textContent = '☁️ Enviar p/ Vercel Agora';
+$('#bTeams').onclick = async () => {
+  $('#bTeams').disabled = true; $('#bTeams').textContent = '⏳ Teams...';
+  try { await fetch('/api/teams'); alert('Resumo enviado para o grupo TIME BI OPTIMUS no Teams Desktop!'); }
+  catch (e) { alert('Erro ao acionar o Teams.'); }
+  $('#bTeams').disabled = false; $('#bTeams').textContent = '👥 Enviar p/ Teams';
 };
-$('#bRel').onclick = async () => {
-  try { const j = await (await fetch('/api/relatorio')).json(); alert('Relatório .xlsx salvo em:\n' + j.arquivo); }
-  catch (e) { alert('Relatório salvo automaticamente na pasta configurada!'); }
+$('#bEmail').onclick = async () => {
+  $('#bEmail').disabled = true; $('#bEmail').textContent = '⏳ PDF + E-mail...';
+  try { await fetch('/api/email'); alert('PDF gerado e enviado por e-mail no Outlook Web!'); }
+  catch (e) { alert('Erro ao enviar e-mail.'); }
+  $('#bEmail').disabled = false; $('#bEmail').textContent = '📧 Enviar PDF Outlook';
+};
+$('#bPlanner').onclick = async () => {
+  $('#bPlanner').disabled = true; $('#bPlanner').textContent = '⏳ Planner...';
+  try { await fetch('/api/planner'); alert('Rotina de check no Planner executada!'); }
+  catch (e) { alert('Erro ao acessar o Planner.'); }
+  $('#bPlanner').disabled = false; $('#bPlanner').textContent = '✅ Check Planner';
+};
+$('#bVercel').onclick = async () => {
+  $('#bVercel').disabled = true; $('#bVercel').textContent = '⏳ Vercel...';
+  try { const j = await (await fetch('/api/vercel')).json(); alert('Enviado p/ Vercel!\nArquivo: ' + j.arquivo); }
+  catch (e) {}
+  $('#bVercel').disabled = false; $('#bVercel').textContent = '☁️ Vercel (.xlsx)';
 };
 
-// ---------- cartão de detalhamento ----------
 function logsTable(ls, tudo) {
   const sh = tudo ? ls : ls.filter(l => l.status !== 'ok').slice(0, 25);
   if (!sh.length) return '<div class="msg i">Todos os logs analisados estão em dia.</div>';
@@ -1443,7 +1886,6 @@ function chips(el, opcoes, atual, set) {
 }
 const mk = (id, cfg) => { charts[id]?.destroy(); charts[id] = new Chart($('#' + id), cfg); };
 
-// ---------- render ----------
 function render() {
   const hVal = $('#hourSel').value;
   let list = D.r;
@@ -1476,10 +1918,9 @@ function renderGeral(list, ativos) {
   mk('cBis', {
     type: 'bar',
     data: { labels: px.map(r => `${r.nome.replace('PBIX · ', '')} · ${resp(r)}`), datasets: [{ data: px.map(r => r.pbix.idade_h), backgroundColor: px.map(r => COR[r.status]), borderRadius: 4 }] },
-    options: { indexAxis: 'y', maintainAspectRatio: false, animation: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.raw} h desde a última atualização (${px[c.dataIndex].pbix.ultima})` } } }, scales: { x: { title: { display: true, text: 'horas' } } } }
+    options: { indexAxis: 'y', maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'horas' } } } }
   });
 
-  // equipe: barras crescentes
   const eq = {};
   const add = (n, r) => { const e = eq[n] || (eq[n] = [0, 0]); e[1]++; if (r.status === 'ok') e[0]++; };
   ativos.forEach(r => donos(r).forEach(n => add(n, r)));
@@ -1496,9 +1937,9 @@ function renderGeral(list, ativos) {
   const hk = Object.keys(porHora).sort();
   mk('cHoraE', {
     data: { labels: hk.map(h => h + 'h'), datasets: [
-      { type: 'bar', label: '% em dia', data: hk.map(h => pct(porHora[h])), backgroundColor: hk.map(h => pct(porHora[h]) >= 90 ? '#0339A6' : pct(porHora[h]) >= 70 ? '#F2B705' : '#F21D2F'), borderRadius: 4, yAxisID: 'y' },
+      { type: 'bar', label: '% em dia', data: hk.map(h => pct(porHora[h])), backgroundColor: '#0339A6', borderRadius: 4, yAxisID: 'y' },
       { type: 'line', label: 'Falhas', data: hk.map(h => porHora[h].err), borderColor: '#F21D2F', backgroundColor: '#F21D2F', tension: .3, yAxisID: 'y1' }] },
-    options: { maintainAspectRatio: false, animation: false, scales: { y: { min: 0, max: 100, title: { display: true, text: '% em dia' } }, y1: { position: 'right', grid: { drawOnChartArea: false }, beginAtZero: true, title: { display: true, text: 'falhas' } } } }
+    options: { maintainAspectRatio: false, animation: false, scales: { y: { min: 0, max: 100 }, y1: { position: 'right', grid: { drawOnChartArea: false }, beginAtZero: true } } }
   });
   const porDia = {}; H.forEach(x => porDia[x.dia] = x);
   const dk = Object.keys(porDia).sort().slice(-20);
@@ -1507,8 +1948,8 @@ function renderGeral(list, ativos) {
     type: 'line',
     data: { labels: dk.map(d => d.slice(8) + '/' + d.slice(5, 7)), datasets: [
       { label: 'Equipe (geral)', data: dk.map(d => pct(porDia[d])), borderColor: '#0339A6', backgroundColor: '#0339A6', borderWidth: 4, tension: .3 },
-      ...nomes.map(n => ({ label: n, data: dk.map(d => { const e = (porDia[d].eq || {})[n]; return e && e[1] ? Math.round(100 * e[0] / e[1]) : null; }), borderColor: PESSOA[n] || '#94A3B8', backgroundColor: PESSOA[n] || '#94A3B8', tension: .3, borderDash: [5, 4], spanGaps: true }))] },
-    options: { maintainAspectRatio: false, animation: false, scales: { y: { min: 0, max: 100, title: { display: true, text: '% em dia' } } } }
+      ...nomes.map(n => ({ label: n, data: dk.map(d => { const e = (porDia[d].eq || {})[n]; return e && e[1] ? Math.round(100 * e[0] / e[1]) : null; }), borderColor: PESSOA[n] || '#94A3B8', tension: .3, borderDash: [5, 4], spanGaps: true }))] },
+    options: { maintainAspectRatio: false, animation: false, scales: { y: { min: 0, max: 100 } } }
   });
 }
 
@@ -1527,7 +1968,7 @@ function renderLogs(list) {
   const ls = it.logs_detalhe || [], n = s => ls.filter(l => l.status === s).length;
   $('#sumLogs').innerHTML = [['Logs analisados', ls.length, 'var(--blue-inst)'], ['Em dia', n('ok'), 'var(--blue-inst)'], ['Com alerta', n('warn'), 'var(--gold)'], ['Desatualizados', n('err'), 'var(--red)']]
     .map(([a, b, col]) => `<div class="k" style="--c:${col}"><b>${b}</b><span>${a}</span></div>`).join('');
-  $('#gridLogs').innerHTML = `<div class="box"><h3>Regra: log do mês atual atualizado diariamente · logs anteriores fechando o mês · 3+ meses sem atualizar = desatualizado</h3>${(it.erros || []).map(x => `<div class="msg">${x}</div>`).join('')}${logsTable(ls, true)}<div class="row" style="margin-top:8px"><span>Verificado em</span><span><b>${it.quando}</b></span></div></div>`;
+  $('#gridLogs').innerHTML = `<div class="box"><h3>Auditoria da Pasta 52</h3>${(it.erros || []).map(x => `<div class="msg">${x}</div>`).join('')}${logsTable(ls, true)}</div>`;
 }
 
 function renderDet(list) {
@@ -1538,38 +1979,28 @@ function renderDet(list) {
   $('#gridDet').innerHTML = ordena(base.filter(r => fDet === 'todos' || tipo(r) === fDet)).map(card).join('') || '<div class="msg i">Nada neste filtro.</div>';
 }
 
-// ---------- pop-ups pequenos na lateral ----------
 function renderToasts(hVal) {
   const al = ordena(D.r.filter(r => r.status === 'err'));
-  const dis = JSON.parse(localStorage.getItem('optimusDismiss') || '{}'), seen = JSON.parse(sessionStorage.getItem('optimusSeen') || '{}'), now = Date.now();
+  const dis = JSON.parse(localStorage.getItem('optimusDismiss') || '{}'), now = Date.now();
   const key = r => r.nome + '|' + (r.erros[0] || '');
   const vis = al.filter(r => !(dis[key(r)] && now - dis[key(r)] < 30 * 60000));
   $('#bellN').textContent = al.length;
   if (hVal !== 'now') { $('#toasts').innerHTML = ''; return; }
   const cor = r => r.prio === 'P0' ? 'var(--red)' : r.prio === 'P1' ? 'var(--orange)' : 'var(--gold)';
   $('#toasts').innerHTML = vis.slice(0, 5).map(r => {
-    const e = (r.erros[0] || 'Falha detectada'); 
-    return `<div class="toast" style="--c:${cor(r)}" data-k="${encodeURIComponent(key(r))}"><button class="x" title="Dispensar por 30 min">×</button>
-      <div class="t1">🚨 [${r.prio}] ${r.nome.replace('PBIX · ', '')}</div><div class="t2">${e.length > 150 ? e.slice(0, 150) + '…' : e}</div>
-      <div class="t3">👤 Responsável: <b>${resp(r)}</b></div></div>`;
-  }).join('') + (vis.length > 5 ? `<div class="toast mais" style="--c:var(--slate-600)">+ ${vis.length - 5} alerta(s) — veja em Detalhamento dos Processos</div>` : '');
+    const e = (r.erros[0] || 'Falha detectada');
+    return `<div class="toast" style="--c:${cor(r)}" data-k="${encodeURIComponent(key(r))}"><button class="x">×</button>
+      <div class="t1">🚨 [${r.prio}] ${r.nome.replace('PBIX · ', '')}</div><div class="t2">${e.length > 140 ? e.slice(0, 140) + '…' : e}</div>
+      <div class="t3">👤 Resp: <b>${resp(r)}</b></div></div>`;
+  }).join('');
   $$('#toasts .x').forEach(b => b.onclick = () => { const k = decodeURIComponent(b.parentElement.dataset.k); dis[k] = Date.now(); localStorage.setItem('optimusDismiss', JSON.stringify(dis)); render(); });
-  let novo = false; vis.forEach(r => { if (!seen[key(r)]) { seen[key(r)] = 1; novo = true; } });
-  if (novo) { sessionStorage.setItem('optimusSeen', JSON.stringify(seen)); beep(); }
-}
-function beep() {
-  try { const a = new (window.AudioContext || window.webkitAudioContext)(), o = a.createOscillator(), g = a.createGain(); o.connect(g); g.connect(a.destination); o.type = 'square'; o.frequency.value = 880; g.gain.value = 0.05; o.start(); setTimeout(() => { o.stop(); a.close(); }, 350); } catch (e) {}
 }
 $('#bBell').onclick = () => { localStorage.removeItem('optimusDismiss'); render(); };
 
-$('#last').textContent = 'Último monitoramento registrado: ' + D.gerado;
+$('#last').textContent = 'Último monitoramento: ' + D.gerado;
 setInterval(() => { $('#liveClock').textContent = fmtHMS(new Date()); secLeft = Math.max(0, secLeft - 1); $('#cd').textContent = secLeft + 's'; if (secLeft === 0 && !$('#dWa').open) location.reload(); }, 1000);
 $('#bWa').onclick = () => {
   $('#waTxt').value = D.texto;
-  const lk = p => `https://web.whatsapp.com/send?phone=${p.numero}&text=${encodeURIComponent($('#waTxt').value)}`;
-  $('#waBtns').innerHTML = D.destinos.map((p, i) => `<button class="g" data-i="${i}">Abrir: ${p.nome}</button>`).join('') + '<button id="bCp">Copiar texto</button>';
-  $$('#waBtns [data-i]').forEach(x => x.onclick = () => window.open(lk(D.destinos[x.dataset.i]), 'wa' + x.dataset.i));
-  $('#bCp').onclick = () => navigator.clipboard.writeText($('#waTxt').value);
   $('#dWa').showModal();
 };
 $('#bWc').onclick = () => $('#dWa').close();
@@ -1635,11 +2066,8 @@ def gerar_dashboard(cfg, res):
 
 
 # ==============================================================================
-# 8. WHATSAPP A CADA 6 HORAS (360 MIN) - FECHANDO E REINICIANDO POR CONTATO
+# 9. WHATSAPP A CADA 6 HORAS
 # ==============================================================================
-ICON = {'ok': '✅', 'err': '❌', 'warn': '⚠️', 'run': '🔄', 'nd': '➖'}
-
-
 def _cut(s, n):
     s = ' '.join(str(s).split())
     return s if len(s) <= n else s[:n - 3] + '...'
@@ -1652,13 +2080,10 @@ def _motivo_curto(msg):
     m = re.sub(r'ATRASADO: esperada atualização do horário das (\d\d:\d\d).*?Última: (.+)$', r'Esperado \1; ultima \2', m)
     m = re.sub(r'ATRASADO: sem atualização hoje \(prazo (\S+)\)\. Última: (.+)$', r'Sem atualizar hoje (prazo \1); ultima \2', m)
     m = re.sub(r'NÃO BAIXOU: (.+?) tem (\d+) de (\d+) arquivos hoje', r'Nao baixou \1: \2/\3', m)
-    m = re.sub(r'Log do mês não encontrado: .*', 'Log do mes nao encontrado', m)
-    m = re.sub(r'Pasta não encontrada: .*', 'Pasta do dia nao encontrada', m)
     return m
 
 
 def resumo(res, titulo='Monitoramento OptimusBI', max_chars=950):
-    """Resumo em formato de planilha (texto monoespaçado, sem emojis), cabendo na legenda de uma imagem."""
     ativos = [x for x in res if x['status'] != 'nd']
     c = lambda s: sum(x['status'] == s for x in ativos)
     bis = [x for x in ativos if x.get('categoria') == 'pbix']
@@ -1707,7 +2132,6 @@ def _achar_chrome(cfg):
 
 
 def capturar_visao_geral(cfg):
-    """Tira um print da aba Visão Geral do dashboard (Chrome headless, perfil temporário) e devolve o caminho do PNG."""
     try:
         from selenium import webdriver
         from selenium.webdriver.chrome.options import Options
@@ -1724,14 +2148,13 @@ def capturar_visao_geral(cfg):
         drv = webdriver.Chrome(options=op)
         try:
             drv.get(html.as_uri())
-            time.sleep(6)  # Chart.js + barras de evolução
+            time.sleep(6)
             drv.execute_script("var t=document.getElementById('toasts'); if(t) t.style.display='none';")
             altura = min(3400, int(drv.execute_script('return document.documentElement.scrollHeight')) + 20)
             drv.set_window_size(1500, altura)
             time.sleep(2)
             img = AQUI / 'visao_geral.png'
             drv.save_screenshot(str(img))
-            log.info('Print da Visão Geral salvo em %s', img)
             return img
         finally:
             drv.quit()
@@ -1757,24 +2180,12 @@ def encerrar_chrome_porta(porta):
 def abrir_chrome_limpo(cfg):
     w = cfg['whatsapp']
     p = w['porta_chrome']
-    cands = [
-        w.get('chrome_exe', ''),
-        r'C:\Program Files\Google\Chrome\Application\chrome.exe',
-        r'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe',
-        os.path.expandvars(r'%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe')
-    ]
-    exe = next((c for c in cands if c and os.path.exists(c)), None)
+    exe = _achar_chrome(cfg)
     if not exe:
-        log.error('chrome.exe não encontrado.')
         return None
-
     perfil = w.get('perfil_chrome') or r'C:\chrome_whatsapp_monitor'
     proc = subprocess.Popen([
-        exe,
-        f'--remote-debugging-port={p}',
-        f'--user-data-dir={perfil}',
-        '--no-first-run',
-        'https://web.whatsapp.com'
+        exe, f'--remote-debugging-port={p}', f'--user-data-dir={perfil}', '--no-first-run', 'https://web.whatsapp.com'
     ])
     for _ in range(40):
         if porta_aberta(p):
@@ -1795,7 +2206,7 @@ def _enviar_imagem(drv, caminho_img, legenda):
     inp = WebDriverWait(drv, 15).until(EC.presence_of_element_located((By.XPATH, "//input[@type='file' and contains(@accept,'image')]")))
     inp.send_keys(str(caminho_img))
     time.sleep(4)
-    caixa = drv.find_elements(By.XPATH, "//div[@contenteditable='true']")[-1]  # campo de legenda da pré-visualização
+    caixa = drv.find_elements(By.XPATH, "//div[@contenteditable='true']")[-1]
     caixa.click()
     for i, linha in enumerate(legenda.split('\n')):
         if i:
@@ -1808,7 +2219,6 @@ def _enviar_imagem(drv, caminho_img, legenda):
 
 
 def enviar_whatsapp(cfg, texto, imagem=None):
-    """1 mensagem por contato: print da Visão Geral com o resumo na legenda (ou só texto, se o print falhar)."""
     from selenium import webdriver
     from selenium.webdriver.chrome.options import Options
     from selenium.webdriver.common.by import By
@@ -1825,7 +2235,6 @@ def enviar_whatsapp(cfg, texto, imagem=None):
     for idx, d in enumerate(destinos, start=1):
         proc = None
         try:
-            log.info('[%s/%s] Iniciando janela do navegador para %s...', idx, len(destinos), d['nome'])
             encerrar_chrome_porta(porta)
             proc = abrir_chrome_limpo(cfg)
             if not proc:
@@ -1843,16 +2252,14 @@ def enviar_whatsapp(cfg, texto, imagem=None):
                     time.sleep(2)
                     _enviar_imagem(drv, imagem, texto)
                     enviado = True
-                    log.info('WhatsApp enviado para %s (print + resumo). Fechando janela...', d['nome'])
-                except Exception as e:
-                    log.error('Falha ao enviar print para %s (%s). Enviando só texto.', d['nome'], str(e)[:160])
+                except Exception:
+                    pass
             if not enviado:
                 drv.get(f"https://web.whatsapp.com/send?phone={d['numero']}&text={quote(texto)}")
                 caixa = WebDriverWait(drv, 90).until(EC.presence_of_element_located((By.XPATH, xp_caixa)))
                 time.sleep(2)
                 caixa.send_keys(Keys.ENTER)
                 time.sleep(5)
-                log.info('WhatsApp enviado para %s (texto). Fechando janela...', d['nome'])
         except Exception as e:
             ok_all = False
             log.error('Falha WhatsApp %s: %s', d['nome'], str(e)[:200])
@@ -1868,13 +2275,12 @@ def enviar_whatsapp(cfg, texto, imagem=None):
 
 
 def rotina_whatsapp(cfg, res, enviar):
-    """Envia a atualização no WhatsApp somente a cada 6 horas (360 minutos)."""
     w = cfg['whatsapp']
     if not (enviar and w.get('ativo')):
         return
     est = json.loads(ESTADO.read_text(encoding='utf-8')) if ESTADO.exists() else {}
     agora = datetime.now()
-    freq_min = int(w.get('resumo_a_cada_min', 360))  # 360 min = 6 horas
+    freq_min = int(w.get('resumo_a_cada_min', 360))
     ultimo = datetime.fromisoformat(est['ultimo_resumo']) if est.get('ultimo_resumo') else None
     ativos = [x for x in res if x['status'] != 'nd']
     erros = sorted(f"{x['nome']}|{e}" for x in ativos for e in x['erros'])
@@ -1889,63 +2295,86 @@ def rotina_whatsapp(cfg, res, enviar):
 
 
 # ==============================================================================
-# 9. SERVIDOR WEB EMBUTIDO E CICLO PRINCIPAL
+# 10. SERVIDOR WEB EMBUTIDO (ANTI-CACHE + LIBERAÇÃO DA PORTA 8080) E CICLO
 # ==============================================================================
 ULTIMO_ESTADO_GLOBAL = {'cfg': None, 'res': [], 'snaps': {}, 'hist': []}
+
+
+def liberar_porta_8080(porta=8080):
+    """Mata automaticamente qualquer processo python antigo que esteja prendendo a porta 8080."""
+    if os.name == 'nt':
+        meu_pid = os.getpid()
+        cmd = (
+            f'powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort {porta} -ErrorAction SilentlyContinue | '
+            f'Select-Object -ExpandProperty OwningProcess -Unique | Where-Object {{ $_ -ne {meu_pid} }} | '
+            f'ForEach-Object {{ Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }}" >nul 2>&1'
+        )
+        subprocess.run(cmd, shell=True)
+        time.sleep(1.5)
 
 
 class PainelHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         return
 
+    def _headers_anti_cache(self, content_type='application/json; charset=utf-8'):
+        self.send_response(200)
+        self.send_header('Content-type', content_type)
+        self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+        self.send_header('Pragma', 'no-cache')
+        self.send_header('Expires', '0')
+        self.end_headers()
+
     def do_GET(self):
         if self.path.startswith('/api/atualizar'):
             ciclo(enviar=False)
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json; charset=utf-8')
-            self.end_headers()
+            self._headers_anti_cache()
             self.wfile.write(json.dumps({'ok': True, 'hora': datetime.now().strftime('%H:%M:%S')}).encode('utf-8'))
             return
 
-        if self.path.startswith('/api/relatorio'):
+        if self.path.startswith('/api/teams'):
             cfg = ULTIMO_ESTADO_GLOBAL['cfg'] or sincronizar_config_automatico()
-            arq = gerar_relatorio_xlsx(
-                cfg, ULTIMO_ESTADO_GLOBAL['res'], ULTIMO_ESTADO_GLOBAL['snaps'],
-                ULTIMO_ESTADO_GLOBAL['hist'], salvar_em_pasta_especifica=cfg.get('pasta_relatorio_diario')
-            )
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(json.dumps({'ok': True, 'arquivo': str(arq)}).encode('utf-8'))
+            rotina_teams(cfg, ULTIMO_ESTADO_GLOBAL['res'], forcar=True)
+            self._headers_anti_cache()
+            self.wfile.write(json.dumps({'ok': True}).encode('utf-8'))
+            return
+
+        if self.path.startswith('/api/email'):
+            cfg = ULTIMO_ESTADO_GLOBAL['cfg'] or sincronizar_config_automatico()
+            rotina_email_e_planner_diario(cfg, ULTIMO_ESTADO_GLOBAL['res'], forcar_email=True)
+            self._headers_anti_cache()
+            self.wfile.write(json.dumps({'ok': True}).encode('utf-8'))
+            return
+
+        if self.path.startswith('/api/planner'):
+            cfg = ULTIMO_ESTADO_GLOBAL['cfg'] or sincronizar_config_automatico()
+            rotina_email_e_planner_diario(cfg, ULTIMO_ESTADO_GLOBAL['res'], forcar_planner=True)
+            self._headers_anti_cache()
+            self.wfile.write(json.dumps({'ok': True}).encode('utf-8'))
             return
 
         if self.path.startswith('/api/vercel'):
             cfg = ULTIMO_ESTADO_GLOBAL['cfg'] or sincronizar_config_automatico()
             arq = gerar_relatorio_xlsx(cfg, ULTIMO_ESTADO_GLOBAL['res'], ULTIMO_ESTADO_GLOBAL['snaps'], ULTIMO_ESTADO_GLOBAL['hist'])
             enviar_xlsx_para_painel_vercel(cfg, arq)
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json; charset=utf-8')
-            self.end_headers()
+            self._headers_anti_cache()
             self.wfile.write(json.dumps({'ok': True, 'arquivo': str(arq)}).encode('utf-8'))
             return
 
         if self.path.startswith('/logo.png') and (AQUI / 'logo.png').exists():
-            self.send_response(200)
-            self.send_header('Content-type', 'image/png')
-            self.end_headers()
+            self._headers_anti_cache('image/png')
             self.wfile.write((AQUI / 'logo.png').read_bytes())
             return
 
         arq_html = AQUI / (ULTIMO_ESTADO_GLOBAL['cfg'] or DEFAULT).get('dashboard_html', 'dashboard.html')
         if not arq_html.exists():
             ciclo(enviar=False)
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html; charset=utf-8')
-        self.end_headers()
+        self._headers_anti_cache('text/html; charset=utf-8')
         self.wfile.write(arq_html.read_bytes())
 
 
 def iniciar_servidor_web(porta=8080):
+    liberar_porta_8080(porta)
     try:
         srv = HTTPServer(('127.0.0.1', porta), PainelHandler)
         t = threading.Thread(target=srv.serve_forever, daemon=True)
@@ -1969,10 +2398,9 @@ def verificar_relatorio_final_do_dia(cfg, res, snaps_hoje, hist, forcar=False):
         )
         est['ultimo_relatorio_xlsx'] = hoje_iso
         ESTADO.write_text(json.dumps(est, ensure_ascii=False), encoding='utf-8')
-        print(f"[OptimusBI] Relatório diário .xlsx salvo em: {arq_salvo}")
 
 
-def ciclo(enviar, forcar_relatorio=False, forcar_vercel=False):
+def ciclo(enviar, forcar_relatorio=False, forcar_vercel=False, forcar_teams=False, forcar_email=False, forcar_planner=False):
     cfg = sincronizar_config_automatico()
     res = []
     for m in cfg['monitores']:
@@ -2010,6 +2438,16 @@ def ciclo(enviar, forcar_relatorio=False, forcar_vercel=False):
     )
 
     try:
+        rotina_teams(cfg, res, forcar=forcar_teams)
+    except Exception:
+        log.error('Falha na rotina Teams\n%s', traceback.format_exc())
+
+    try:
+        rotina_email_e_planner_diario(cfg, res, forcar_email=forcar_email, forcar_planner=forcar_planner)
+    except Exception:
+        log.error('Falha na rotina Outlook/Planner\n%s', traceback.format_exc())
+
+    try:
         rotina_vercel_30_minutos(cfg, res, snaps_hoje, hist, forcar=forcar_vercel)
     except Exception:
         log.error('Falha na rotina Vercel 30m\n%s', traceback.format_exc())
@@ -2031,47 +2469,38 @@ if __name__ == '__main__':
     ap = argparse.ArgumentParser()
     ap.add_argument('--uma-vez', action='store_true')
     ap.add_argument('--sem-whatsapp', action='store_true')
-    ap.add_argument('--testar-whatsapp', action='store_true')
-    ap.add_argument('--testar-resumo', action='store_true', help='Gera o resumo real + print da Visão Geral e envia agora')
-    ap.add_argument('--so-print', action='store_true', help='Só gera o print visao_geral.png (sem enviar)')
-    ap.add_argument('--gerar-relatorio', action='store_true')
-    ap.add_argument('--enviar-vercel', action='store_true', help='Força geração do .xlsx e upload imediato na Vercel')
+    ap.add_argument('--testar-teams', action='store_true', help='Testa o envio imediato no grupo TIME BI OPTIMUS do Teams Desktop')
+    ap.add_argument('--testar-email', action='store_true', help='Gera o PDF da Visão Geral e envia agora pelo Outlook Web')
+    ap.add_argument('--testar-planner', action='store_true', help='Abre o Planner no navegador e dá check nas atividades')
+    ap.add_argument('--enviar-vercel', action='store_true')
     a = ap.parse_args()
 
-    if a.testar_whatsapp:
-        sucesso = enviar_whatsapp(sincronizar_config_automatico(), 'Teste Monitoramento OptimusBI ✅ (1 mensagem por contato)')
-        print('Enviado!' if sucesso else 'Falhou - veja monitor.log')
-        sys.exit()
-
-    if a.testar_resumo or a.so_print:
-        cfg_t = ciclo(enviar=False)
-        img = capturar_visao_geral(cfg_t)
-        print('Print:', img)
-        if a.testar_resumo:
-            print('Enviado!' if enviar_whatsapp(cfg_t, resumo(ULTIMO_ESTADO_GLOBAL['res']), img) else 'Falhou - veja monitor.log')
+    if a.testar_teams or a.testar_email or a.testar_planner:
+        ciclo(
+            enviar=False,
+            forcar_teams=a.testar_teams,
+            forcar_email=a.testar_email,
+            forcar_planner=a.testar_planner
+        )
+        print('Teste concluído! Verifique o monitor.log para detalhes.')
         sys.exit()
 
     cfg_ini = sincronizar_config_automatico()
-    if not a.uma_vez and not a.gerar_relatorio and not a.enviar_vercel:
+    if not a.uma_vez and not a.enviar_vercel:
         porta_web = int(cfg_ini.get('porta_servidor_web', 8080))
-        if not iniciar_servidor_web(porta_web):
-            msg = (f'\n*** ATENÇÃO: a porta {porta_web} já está em uso. Existe OUTRO monitor rodando (provavelmente a versão antiga), '
-                   f'que continua servindo e regravando o dashboard antigo. Feche a outra janela do monitor (ou finalize o python.exe '
-                   f'no Gerenciador de Tarefas) e abra este de novo. ***\n')
-            print(msg); log.error(msg.strip())
-            sys.exit(3)
+        iniciar_servidor_web(porta_web)
         log.info('Monitoramento OptimusBI %s iniciado (PID %s)', VERSAO_PAINEL, os.getpid())
         if cfg_ini.get('abrir_navegador_ao_iniciar', True):
-            webbrowser.open(f'http://localhost:{porta_web}')
+            webbrowser.open(f'http://localhost:{porta_web}?v={int(time.time())}')
 
     while True:
         ini = time.time()
         try:
-            cfg = ciclo(not a.sem_whatsapp, forcar_relatorio=a.gerar_relatorio, forcar_vercel=a.enviar_vercel)
+            cfg = ciclo(not a.sem_whatsapp, forcar_vercel=a.enviar_vercel)
         except Exception:
             log.error('Erro no ciclo\n%s', traceback.format_exc())
             cfg = DEFAULT
-        if a.uma_vez or a.gerar_relatorio or a.enviar_vercel:
+        if a.uma_vez or a.enviar_vercel:
             break
         tempo_espera = max(10, int(cfg.get('intervalo_seg', 60)) - (time.time() - ini))
         time.sleep(tempo_espera)
