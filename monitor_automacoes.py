@@ -1759,12 +1759,25 @@ def rotina_whatsapp(cfg, res, enviar):
     agora = datetime.now()
     freq_min = int(w.get('resumo_a_cada_min', 360))  # 360 min = 6 horas
     ultimo = datetime.fromisoformat(est['ultimo_resumo']) if est.get('ultimo_resumo') else None
+    ultima_tentativa = (
+        datetime.fromisoformat(est['ultima_tentativa_resumo'])
+        if est.get('ultima_tentativa_resumo') else None
+    )
     ativos = [x for x in res if x['status'] != 'nd']
     erros = sorted(f"{x['nome']}|{e}" for x in ativos for e in x['erros'])
     sig = '\n'.join(erros)
 
-    if ultimo is None or (agora - ultimo) >= timedelta(minutes=freq_min):
+    pode_enviar = ultimo is None or (agora - ultimo) >= timedelta(minutes=freq_min)
+    pode_tentar = (
+        ultima_tentativa is None
+        or (agora - ultima_tentativa) >= timedelta(minutes=freq_min)
+    )
+    if pode_enviar and pode_tentar:
         titulo = '🚨 Monitoramento OptimusBI (6h)' if erros else 'Monitoramento OptimusBI (6h)'
+        # Registra a tentativa antes de abrir o navegador, evitando novas
+        # aberturas a cada ciclo de 60 segundos quando o envio falha.
+        est['ultima_tentativa_resumo'] = agora.isoformat()
+        ESTADO.write_text(json.dumps(est, ensure_ascii=False), encoding='utf-8')
         if enviar_whatsapp(cfg, resumo(res, titulo)):
             est['ultimo_resumo'] = agora.isoformat()
             est['ultima_assinatura'] = sig
