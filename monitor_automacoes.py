@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Monitoramento OptimusBI - Completo e Atualizado:
-- Verifica pastas, bases, BIs (.pbix) e logs (Pasta 52) a cada 60s
-- Inclui aba exclusiva de Monitoramento de BIs com 4 gráficos e Modal Pop-up com som opcional
+Monitoramento OptimusBI - Completo:
+- Verifica pastas e logs a cada 60s
 - A cada 30 minutos: gera o .xlsx em C:\\Users\\agenor.sales\\Desktop\\dashboard acompanhamento
   e faz o upload automático em https://acompanhameto-fluxo-diario-de-taref.vercel.app/ na aba Monitoramento
-- A cada 6 horas (360 min): envia resumo no WhatsApp (1 mensagem por contacto, fechando e reiniciando o navegador)
+- A cada 6 horas (360 min): envia resumo no WhatsApp (1 mensagem por contato, fechando e reiniciando o navegador)
 - Às 18h: guarda também o relatório diário final na pasta G:\\...
 """
 import argparse
-import calendar
 import json
 import logging
 import os
@@ -20,7 +18,6 @@ import sys
 import threading
 import time
 import traceback
-import unicodedata
 import webbrowser
 from datetime import datetime, date, time as dtime, timedelta
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -28,7 +25,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 # ==============================================================================
-# 1. CAMINHOS BASE, FICHEIROS DE ESTADO E LOGGING
+# 1. CAMINHOS BASE, ARQUIVOS DE ESTADO E LOGGING
 # ==============================================================================
 AQUI = Path(__file__).resolve().parent
 CFG = AQUI / 'config_monitores.json'
@@ -55,7 +52,6 @@ JANELAS_TELE_MIN = [h * 60 - 30 for h in HORARIOS_APRR]  # 05:30, 08:30, 10:30, 
 
 def F(rotulo, caminho, esperado, contem='', so_hoje=True, regra='', conf_mensal=False,
       arquivos_obrigatorios=None, prefixos=None, caminho_fallback='', **extra):
-    """Função auxiliar para estruturar a configuração de cada pasta monitorada."""
     return dict(
         **extra,
         rotulo=rotulo,
@@ -71,33 +67,23 @@ def F(rotulo, caminho, esperado, contem='', so_hoje=True, regra='', conf_mensal=
     )
 
 
-def _bi(nome, busca, prio, regra='diaria', **kw):
-    """Função auxiliar para estruturar cada painel PBIX monitorado na Pasta 3."""
-    return dict(nome=nome, busca=busca, prio=prio, regra=regra, **kw)
-
-
 B7 = '7 - BASES DE RELATORIOS\\'
 MM = '\\{YYYY}\\{MM} - {MES}'
-_APRR_H = ['06:00', '09:00', '11:00', '13:00', '15:00', '17:00']
 
 # ==============================================================================
-# 2. CONFIGURAÇÃO PADRÃO E REGRAS DO MAPEAMENTO DE PASTAS
+# 2. CONFIGURAÇÃO PADRÃO (INCLUINDO PASTA LOCALHOST 30 MIN, VERCEL E WHATSAPP 6H)
 # ==============================================================================
 DEFAULT = {
-    'versao_config': 6,
+    'versao_config': 4,
     'raiz': r'G:\Credenciamento Medico\NUCLEO DE AGENDAS\RAFAEL FERNANDES',
     'raiz_rede_fallback': r'\\10.1.17.4\Usuarios\Credenciamento Medico\NUCLEO DE AGENDAS\RAFAEL FERNANDES',
     'pasta_logs': r'1 - RELATORIOS\52 - LOGS PROJETOS',
-    'pasta_pbix': r'3 - ATUALIZAÇÃO PBIX\PBIX OFICIAL',
-    'hora_limite_manha': '11:00',  # Painéis da manhã atualizados até às 11h
-    'bi_checar_fim_de_semana': False,
-    'logs_ignorar': [],
     'pasta_relatorio_diario': r'G:\Credenciamento Medico\NUCLEO DE AGENDAS\RAFAEL FERNANDES\7 - BASES DE RELATORIOS\RELATORIO PAINEL MONITORAMENTO DIARIO',
     'pasta_dashboard_acompanhamento': r'C:\Users\agenor.sales\Desktop\dashboard acompanhamento',
     'url_painel_vercel': 'https://acompanhameto-fluxo-diario-de-taref.vercel.app/',
     'intervalo_vercel_min': 30,  # Alimenta o painel online a cada 30 minutos
     'hora_relatorio_diario': 18,
-    'intervalo_seg': 60,         # Atualiza o ecrã a cada 60 segundos
+    'intervalo_seg': 60,         # Atualiza a tela a cada 60 segundos
     'porta_servidor_web': 8080,
     'abrir_navegador_ao_iniciar': True,
     'dashboard_html': 'dashboard.html',
@@ -106,7 +92,7 @@ DEFAULT = {
         'porta_chrome': 9222,
         'resumo_a_cada_min': 360,  # Envia no WhatsApp apenas a cada 6 horas (360 minutos)
         'horarios_resumo': ['00:00', '06:00', '12:00', '18:00', '23:59'],
-        'alerta_imediato_erro': False,
+        'alerta_imediato_erro': False,  # Desativado para respeitar rigorosamente a janela de 6 horas
         'perfil_chrome': r'C:\chrome_whatsapp_monitor',
         'chrome_exe': '',
         'destinos': [
@@ -114,59 +100,13 @@ DEFAULT = {
             {'nome': 'Miller', 'numero': '553199300997'}
         ]
     },
-    # PASTA 3 - TODOS OS BIs (PBIX OFICIAL)
-    'bis_pbix': [
-        # P0 - Críticos (a cada 2 horas / diários manhã)
-        _bi('Relatório Alerta de Vagas v2', ['alerta', 'vagas', 'v2'], 'P0', 'intervalo_horas', intervalo_h=2, excluir=['sub', 'tele']),
-        _bi('Alerta Diário de Vagas_Sub', ['alerta', 'vagas', 'sub'], 'P0', 'intervalo_horas', intervalo_h=2),
-        _bi('BI_Alerta_Vagas_TeleSaude', ['vagas', 'tele'], 'P0', 'intervalo_horas', intervalo_h=2),
-        _bi('BI_NECESSIDADE_COMPRA', ['necessidade', 'compra'], 'P0', 'diaria', hora_limite='11:00'),
-
-        # P1 - Alta Prioridade
-        _bi('Painel Médicos Hapclinicas V2', ['painel', 'medicos'], 'P1', 'diaria', hora_limite='11:00'),
-        _bi('Relatório Indicadores Rede Cred', ['indicadores', 'rede'], 'P1', 'diaria', hora_limite='11:00'),
-        _bi('Relatório de Consultas Disponibilizadas v2', ['consultas', 'disponibilizadas'], 'P1', 'diaria', hora_limite='11:00'),
-        _bi('Captacao_de_Agendas', ['captacao', 'agendas'], 'P1', 'ate_hora', hora_limite='17:00', tolerancia_min=30),
-        _bi('Controle_Agendas', ['controle', 'agendas'], 'P1', 'ate_hora', hora_limite='17:00', tolerancia_min=30),
-        _bi('Farol de Indice Consultas por Hora - ICH', ['farol'], 'P1', 'ate_hora', hora_limite='14:00', tolerancia_min=30),
-        _bi('Relatório de Estoque e Abastecimento v2', ['estoque', 'abastecimento'], 'P1', 'diaria', hora_limite='11:00'),
-        _bi('Acompanhamento de Pagamentos Prestadores', ['pagamentos', 'prestadores'], 'P1', 'ultima', limite_dias=2),
-
-        # P2 - Média Prioridade e Janelas Específicas
-        _bi('ESCALA ESPECIAL', ['escala', 'especial'], 'P2', 'diaria', hora_limite='11:00'),
-        _bi('Relatório Atraso dos Médicos', ['atraso', 'medicos'], 'P2', 'diaria', hora_limite='11:00'),
-        _bi('RELATORIO DE CONSULTAS EM TRANSFERENCIA', ['transferencia'], 'P2', 'diaria', hora_limite='11:00'),
-        _bi('Relatório de Cancelamento v2', ['cancelamento'], 'P2', 'diaria', hora_limite='11:00'),
-        _bi('Relatório de Acompanhamento de Mensageria', ['mensageria'], 'P2', 'diaria', hora_limite='11:00'),
-        _bi('Monitoramento de Marcação', ['monitoramento', 'marcacao'], 'P2', 'ate_hora', hora_limite='06:00', tolerancia_min=60),
-        _bi('Relatório de Cirurgias', ['cirurgias'], 'P2', 'diaria', hora_limite='11:00'),
-        _bi('Relatorio de Tagueamento', ['tagueamento'], 'P2', 'horarios', horarios=['08:00', '11:30', '17:00'], tolerancia_min=60),
-        _bi('Relatorio_SAC (3x ao dia / Mensal)', ['sac'], 'P2', 'horarios', horarios=['06:30', '11:30', '17:30'], tolerancia_min=60, excluir=['nip']),
-        _bi('Relatório de SAC e NIP (desenvolvimento)', ['sac', 'nip'], 'P2', 'horarios', horarios=['07:30', '09:00', '13:00', '22:30'], tolerancia_min=60),
-        _bi('Acompanhamento de Valores Pagos por Especialidade', ['valores', 'pagos', 'especialidade'], 'P2', 'ate_hora', hora_limite='05:00', tolerancia_min=60),
-        _bi('Relatório Check-up da mulher', ['check', 'mulher'], 'P2', 'ultima', limite_dias=3),
-        _bi('Relatório_Forecast_Monitoramento_Limites_e_Mediana', ['forecast'], 'P2', 'ultima', limite_dias=3),
-        _bi('Relatório Pacotes (3x: 08:30, 11:00, 17:30)', ['pacotes'], 'P2', 'ignorar', horarios=['08:30', '11:00', '17:30'])
-    ],
-    # MONITORES DE FLUXOS (PASTA 52) E BASES (PASTA 7 / PASTA 1)
     'monitores': [
-        # 🔴 P0 — Crítica
         {
             'nome': 'BI Alerta Vagas v2', 'categoria': 'bi', 'prio': 'P0', 'regra': 'aprr',
             'log': 'log_execucao_alerta_de_vagas_{YYYY}_{MM}.xlsx', 'min_linhas': 40,
             'pastas': [
                 F(n, B7 + n + ' - DIARIA' + MM + '\\{DD}', 2, '', True, 'aprr', False)
                 for n in ('T22APRR', 'T22APRR_PROC', 'T22APRR_VS', 'T22APRR_TRANSF')
-            ] + [
-                F(
-                    rotulo='PARQUET DA HORA (F_vagas_atual)',
-                    caminho=r'1 - RELATORIOS\47 - BI_TELESSAUDE\FATO',
-                    caminho_fallback=r'\\10.1.17.4\Usuarios\Credenciamento Medico\NUCLEO DE AGENDAS\RAFAEL FERNANDES\1 - RELATORIOS\47 - BI_TELESSAUDE\FATO',
-                    esperado=1,
-                    contem='F_vagas_atual.parquet',
-                    so_hoje=True,
-                    arquivos_obrigatorios=['F_vagas_atual.parquet']
-                )
             ]
         },
         {
@@ -207,21 +147,12 @@ DEFAULT = {
                 )
             ]
         },
-
-        # 🟠 P1 — Alta (Bases e Fluxos)
         {
             'nome': 'T0012 - Disponibilidade / Marcada', 'categoria': 'base', 'prio': 'P1', 'regra': '',
             'log': '', 'min_linhas': 0,
             'pastas': [
-                F('T0012 DISPONIBILIDADE', B7 + r'T0012 - ULTIMA BASE DISPONIBILIDADE MENSAL\{YYYY}', 14, '', True, '', conf_mensal=True),
-                F('T0012 MARCADA', B7 + r'T0012 - ULTIMA BASE MARCADA MENSAL\{YYYY}', 14, '', True, '', conf_mensal=True)
-            ]
-        },
-        {
-            'nome': 'Tabela DB mensal T0012', 'categoria': 'base', 'prio': 'P1', 'regra': '',
-            'log': '', 'min_linhas': 0,
-            'pastas': [
-                F('DB_T0012 FLUXO PYTHON', B7 + r'DB_T0012\FLUXO PYTHON', 3, '', True, '', conf_mensal=True)
+                F('T0012 DISPONIBILIDADE', B7 + r'T0012 - ULTIMA BASE DISPONIBILIDADE MENSAL\{YYYY}', 15, '', True, '', conf_mensal=True),
+                F('T0012 MARCADA', B7 + r'T0012 - ULTIMA BASE MARCADA MENSAL\{YYYY}', 15, '', True, '', conf_mensal=True)
             ]
         },
         {
@@ -236,72 +167,35 @@ DEFAULT = {
             'nome': 'T22J3 - Base diária', 'categoria': 'base', 'prio': 'P1', 'regra': '',
             'log': '', 'min_linhas': 0,
             'pastas': [
-                F('T22J3', B7 + 'T22J3 - BASE DIARIA' + MM, 1, 'T22J3_{DD}{MM}{YYYY}', True, '', conf_mensal=True)
+                F('T22J3', B7 + 'T22J3 - BASE DIARIA' + MM, 1, '{DD}{MM}{YYYY}', True, '', conf_mensal=True)
             ]
         },
         {
-            'nome': 'T9016 - Base mensal (Dias 1, 5 e 10)', 'categoria': 'base', 'prio': 'P1', 'regra': '',
+            'nome': 'T9016 - Base mensal', 'categoria': 'base', 'prio': 'P1', 'regra': '',
             'log': '', 'min_linhas': 0,
             'pastas': [
-                F('T9016', B7 + 'T9016 - BASE MENSAL' + MM, 5, '', True, '', conf_mensal=False,
-                  dias_mes=[1, 5, 10], prefixos=['T9016_', 'NDISPRJ', 'NDIMINAS', 'CLINIPAM', 'CCG'])
+                F('T9016', B7 + 'T9016 - BASE MENSAL' + MM, 5, '{DD}{MM}{YYYY}', True, '', conf_mensal=True,
+                  prefixos=['CCG', 'CLINIPAM', 'NDI', 'NDISPRJ'])
             ]
         },
-        {
-            'nome': 'Estoque e Abastecimento', 'categoria': 'bi', 'prio': 'P1', 'regra': '',
-            'log': 'log_execucao_estoque_abastecimento_{YYYY}_{MM}.xlsx', 'min_linhas': 4, 'pastas': []
-        },
-        {
-            'nome': 'BI Painel dos Médicos', 'categoria': 'bi', 'prio': 'P1', 'regra': '',
-            'log': 'log_execucao_painel_medicos_{YYYY}_{MM}.xlsx', 'min_linhas': 8,
-            'hora_inicio': '07:10', 'hora_fim': '11:30', 'pastas': []
-        },
-        {
-            'nome': 'BI Farol ICH (DGE)', 'categoria': 'bi', 'prio': 'P1', 'regra': '',
-            'log': 'log_execucao_farol_de_indice_consultas_por_hora_ich_{YYYY}_{MM}.xlsx', 'min_linhas': 4,
-            'hora_inicio': '14:50', 'hora_fim': '15:10',
-            'pastas': [
-                F('BASE CLIENTE OCULTO (DGE)', B7 + r'BI_INDICADORES_CRED\CLIENTE_OCULTO', 1, 'BASE_CLIENTE_OCULTO', True, '', conf_mensal=True, hora_limite='10:00')
-            ]
-        },
-        {
-            'nome': 'BASES Relatório de Consultas Disponibilizadas', 'categoria': 'bi', 'prio': 'P1', 'regra': '',
-            'log': 'log_execucao_consultas_disponibilizadas_{YYYY}_{MM}.xlsx', 'min_linhas': 5,
-            'hora_inicio': '02:00', 'hora_fim': '03:30', 'pastas': []
-        },
-        {
-            'nome': 'BI Controle Agendas', 'categoria': 'bi', 'prio': 'P1', 'regra': '',
-            'log': 'log_controle_agendas_{YYYY}_{MM}.xlsx', 'min_linhas': 5,
-            'hora_inicio': '16:50', 'hora_fim': '17:30', 'pastas': []
-        },
-        {
-            'nome': 'INDICADORES REDE CRED (Diário e Mensal)', 'categoria': 'base', 'prio': 'P1', 'regra': '',
-            'log': '', 'min_linhas': 0,
-            'pastas': [
-                F('CLIENTE_OCULTO HISTORICO (Até 10h)', B7 + r'BI_INDICADORES_CRED\CLIENTE_OCULTO\HISTORICO', 1, 'BASE_CLIENTE_OCULTO', True, '', conf_mensal=True, hora_limite='10:00'),
-                F('CLIENTE_OCULTO MENSAL (Até 10h)', B7 + r'BI_INDICADORES_CRED\CLIENTE_OCULTO', 1, 'BASE_CLIENTE_OCULTO', True, '', conf_mensal=True, hora_limite='10:00')
-            ]
-        },
-
-        # 🟡 P2 — Média (Padrão D-1 e Bases Médicas)
         {
             'nome': 'T9033 - Atraso Médico', 'categoria': 'base', 'prio': 'P2', 'regra': '',
-            'log': '', 'min_linhas': 0, 'd_menos_1': True,
+            'log': '', 'min_linhas': 0,
             'pastas': [
                 F(
                     rotulo='ATRASO MEDICO',
                     caminho=B7 + 'BASE_PAINEL DOS MEDICOS\\BASE_ATRASO MEDICO' + MM,
                     caminho_fallback=B7 + 'BASE_PAINEL DOS MEDICOS BASE_ATRASO MEDICO' + MM,
                     esperado=1,
-                    contem='T9033_',
+                    contem='',
                     so_hoje=True,
-                    conf_mensal=False
+                    conf_mensal=True
                 )
             ]
         },
         {
             'nome': 'T9033 - Horas Médicos', 'categoria': 'base', 'prio': 'P2', 'regra': '',
-            'log': '', 'min_linhas': 0, 'd_menos_1': True,
+            'log': '', 'min_linhas': 0,
             'pastas': [
                 F(
                     rotulo='HORAS MEDICOS',
@@ -316,48 +210,134 @@ DEFAULT = {
             ]
         },
         {
-            'nome': 'BI Relatório de Consultas em Transferência', 'categoria': 'bi', 'prio': 'P2', 'regra': '',
-            'log': 'log_execucao_consultas_em_transferencia_{YYYY}_{MM}.xlsx', 'min_linhas': 4,
-            'hora_inicio': '22:00', 'hora_fim': '22:30', 'd_menos_1': True, 'pastas': []
+            'nome': 'Estoque e Abastecimento', 'categoria': 'bi', 'prio': 'P1', 'regra': '',
+            'log': 'log_execucao_estoque_abastecimento_{YYYY}_{MM}.xlsx', 'min_linhas': 4, 'pastas': []
         },
-        {
-            'nome': 'BI Relatório Atraso dos Médicos', 'categoria': 'bi', 'prio': 'P2', 'regra': '',
-            'log': 'log_Atraso_dos_Medicos_{YYYY}_{MM}.xlsx', 'min_linhas': 6,
-            'hora_inicio': '07:30', 'hora_fim': '09:00', 'd_menos_1': True, 'pastas': []
-        },
-        {
-            'nome': 'BI Relatório de Acompanhamento de Mensageria', 'categoria': 'bi', 'prio': 'P2', 'regra': '',
-            'log': 'log_relatorio_mensageria_{YYYY}_{MM}.xlsx', 'min_linhas': 4,
-            'hora_inicio': '22:00', 'hora_fim': '22:30', 'd_menos_1': True, 'pastas': []
-        },
-        {
-            'nome': 'CAPTADOS FORA DE ALERTA', 'categoria': 'bi', 'prio': 'P2', 'regra': '',
-            'log': 'log_Script_Tabela_Captados_Fora_Alerta_{YYYY}_{MM}.xlsx', 'min_linhas': 8,
-            'hora_inicio': '01:00', 'hora_fim': '01:30', 'd_menos_1': True, 'pastas': []
-        },
-        {
-            'nome': 'Base DGE (Produtividade / Tipo Pagamento)', 'categoria': 'base', 'prio': 'P2', 'regra': '',
-            'log': '', 'min_linhas': 0, 'd_menos_1': True,
-            'pastas': [
-                F('48 - PRODUTIVIDADE V2 DGE', r'1 - RELATORIOS\48 - RELATORIO DE PRODUTIVIDADE V2\DGE', 1, '', False, '', so_mes=True),
-                F('BASES DGE PRODUTIVIDADE', B7 + r'BASES DGE\PRODUTIVIDADE', 1, '', False, '', so_mes=True),
-                F('BASES DGE TIPO PAGAMENTO', B7 + r'BASES DGE\TIPO PAGAMENTO', 1, '', False, '', so_mes=True)
-            ]
-        },
-        {
-            'nome': 'Base MONITORAMENTO ANS', 'categoria': 'bi', 'prio': 'P2', 'regra': '',
-            'log': 'log_execucao_consultas_em_transferencia_{YYYY}_{MM}.xlsx', 'min_linhas': 4,
-            'hora_inicio': '22:00', 'hora_fim': '22:30', 'd_menos_1': True, 'pastas': []
-        }
+        {'nome': 'BI Painel dos Médicos', 'categoria': 'bi', 'prio': 'P1', 'regra': '', 'log': '', 'min_linhas': 0, 'pastas': []},
+        {'nome': 'BI Farol ICH (DGE)', 'categoria': 'bi', 'prio': 'P1', 'regra': '', 'log': '', 'min_linhas': 0, 'pastas': []},
+        {'nome': 'BI Relatório de Consultas Disponibilizadas', 'categoria': 'bi', 'prio': 'P1', 'regra': '', 'log': '', 'min_linhas': 0, 'pastas': []},
+        {'nome': 'BI Controle Agendas', 'categoria': 'bi', 'prio': 'P1', 'regra': '', 'log': '', 'min_linhas': 0, 'pastas': []},
+        {'nome': 'BI Captação de Agendas', 'categoria': 'bi', 'prio': 'P1', 'regra': '', 'log': '', 'min_linhas': 0, 'pastas': []},
+        {'nome': 'BI INDICADORES REDE CRED', 'categoria': 'bi', 'prio': 'P1', 'regra': '', 'log': '', 'min_linhas': 0, 'pastas': []},
+        {'nome': 'Logs Projetos (Automações)', 'categoria': 'bi', 'prio': 'P2', 'regra': '', 'log': '', 'min_linhas': 0, 'pastas': []},
+        {'nome': 'BI Relatório de Consultas em Transferência', 'categoria': 'bi', 'prio': 'P2', 'regra': '', 'log': '', 'min_linhas': 0, 'pastas': []},
+        {'nome': 'BI Relatório de Cirurgias', 'categoria': 'bi', 'prio': 'P2', 'regra': '', 'log': '', 'min_linhas': 0, 'pastas': []},
+        {'nome': 'BI Relatório Atraso dos Médicos', 'categoria': 'bi', 'prio': 'P2', 'regra': '', 'log': '', 'min_linhas': 0, 'pastas': []},
+        {'nome': 'BI Relatório de Acompanhamento de Mensageria', 'categoria': 'bi', 'prio': 'P2', 'regra': '', 'log': '', 'min_linhas': 0, 'pastas': []},
+        {'nome': 'BI Relatorio_SAC', 'categoria': 'bi', 'prio': 'P2', 'regra': '', 'log': '', 'min_linhas': 0, 'pastas': []},
+        {'nome': 'CAPTADOS FORA DE ALERTA', 'categoria': 'bi', 'prio': 'P2', 'regra': '', 'log': '', 'min_linhas': 0, 'pastas': []}
     ]
 }
+
+
+# ==============================================================================
+# NOVAS REGRAS (documento MAPEAMENTO_DAS_PASTAS atualizado)
+# ==============================================================================
+def _mon(nome):
+    return next(x for x in DEFAULT['monitores'] if x['nome'] == nome)
+
+
+def _bi(nome, busca, prio, regra='diaria', **kw):
+    return dict(nome=nome, busca=busca, prio=prio, regra=regra, **kw)
+
+
+DEFAULT['versao_config'] = 5
+DEFAULT['pasta_pbix'] = r'3 - ATUALIZAÇÃO PBIX\PBIX OFICIAL'
+DEFAULT['hora_limite_manha'] = '11:00'          # painéis da manhã: atualizados até 11h
+DEFAULT['bi_checar_fim_de_semana'] = False
+DEFAULT['logs_ignorar'] = []                    # trechos de nome de logs que não devem ser auditados
+_APRR_H = ['06:00', '09:00', '11:00', '13:00', '15:00', '17:00']
+DEFAULT['bis_pbix'] = [
+    _bi('Alerta de Vagas v2', ['alerta', 'vagas', 'v2'], 'P0', 'horarios', horarios=_APRR_H, tolerancia_min=150, excluir=['sub', 'tele'], resp='Karine'),
+    _bi('Alerta Diário de Vagas_Sub', ['alerta', 'vagas', 'sub'], 'P0', 'horarios', horarios=_APRR_H, tolerancia_min=150, resp='Karine'),
+    _bi('BI Alerta Vagas Tele Saúde', ['vagas', 'tele'], 'P0', 'horarios', horarios=_APRR_H, tolerancia_min=150, resp='Karine'),
+    _bi('BI Necessidade de Compra', ['necessidade', 'compra'], 'P0', resp='Agenor'),
+    _bi('Painel Médicos Hapclinicas V2', ['painel', 'medicos'], 'P1', resp='Karine'),
+    _bi('Relatório Indicadores Rede Cred', ['indicadores', 'rede'], 'P1', resp='Karine'),
+    _bi('Relatório de Consultas Disponibilizadas v2', ['consultas', 'disponibilizadas'], 'P1', resp='Karine'),
+    _bi('Captação de Agendas', ['captacao', 'agendas'], 'P1', 'ate_hora', hora_limite='17:00', tolerancia_min=30, resp='Karine'),
+    _bi('Controle de Agendas', ['controle', 'agendas'], 'P1', 'ate_hora', hora_limite='17:00', tolerancia_min=30, resp='Karine'),
+    _bi('Farol de Índice Consultas por Hora - ICH', ['farol'], 'P1', 'ate_hora', hora_limite='14:00', tolerancia_min=30, resp='Karine'),
+    _bi('Relatório de Estoque e Abastecimento v2', ['estoque', 'abastecimento'], 'P1', resp='Agenor'),
+    _bi('Acompanhamento de Pagamentos Prestadores', ['pagamentos', 'prestadores'], 'P1', 'ultima', resp='Agenor'),
+    _bi('Escala Especial', ['escala', 'especial'], 'P2', resp='Agenor'),
+    _bi('Relatório Atraso dos Médicos', ['atraso', 'medicos'], 'P2', resp='Karine'),
+    _bi('Relatório de Consultas em Transferência', ['transferencia'], 'P2', resp='Karine'),
+    _bi('Relatório de Cancelamento v2', ['cancelamento'], 'P2', resp='Karine'),
+    _bi('Relatório de Acompanhamento de Mensageria', ['mensageria'], 'P2', resp='Karine'),
+    _bi('Monitoramento de Marcação', ['monitoramento', 'marcacao'], 'P2', 'ate_hora', hora_limite='06:00', tolerancia_min=60, resp='Karine'),
+    _bi('Relatório de Cirurgias', ['cirurgias'], 'P2', resp='Karine'),
+    _bi('Relatório SAC (mensal)', ['sac'], 'P2', 'mensal', excluir=['nip'], resp='Karine'),
+    _bi('Médicos Novos (mensal)', ['medicos', 'novos'], 'P2', 'mensal', resp='Karine'),
+    _bi('Relatório de SAC e NIP (desenvolvimento)', ['sac', 'nip'], 'P2', 'horarios', horarios=['07:30', '09:00', '13:00', '22:30'], tolerancia_min=90, resp='Daniel'),
+    _bi('Relatório de Tagueamento', ['tagueamento'], 'P2', 'horarios', horarios=['08:00', '11:30', '17:00'], tolerancia_min=90, resp='Miller'),
+    _bi('Acompanhamento de Valores Pagos por Especialidade', ['valores', 'pagos', 'especialidade'], 'P2', 'ate_hora', hora_limite='05:00', tolerancia_min=60, resp='Agenor'),
+    _bi('Forecast Monitoramento Limites e Mediana', ['forecast'], 'P2', 'ultima', resp='Miller e Agenor'),
+    _bi('Relatório Check-up da Mulher (versão antiga)', ['check', 'mulher'], 'P2', 'ultima'),
+    _bi('Censo_Medicos', [], 'P2', 'pausa'),
+    _bi('Relatório Captação de Médicos', [], 'P2', 'pausa'),
+    _bi('Relatórios Governança de Agendas', [], 'P2', 'pausa'),
+    _bi('Relatório Pacotes', ['pacotes'], 'P2', 'ignorar'),
+]
+_RESP = {
+    'BI Alerta Vagas v2': 'Karine', 'BI Alerta Vagas Tele Saúde': 'Karine', 'BI Necessidade de Compra': 'Agenor', 'Estoque e Abastecimento': 'Agenor',
+    'T0012 - Disponibilidade / Marcada': 'Agenor', 'T22J2 - Consultas Disponibilizadas': 'Karine', 'T9033 - Atraso Médico': 'Karine',
+    'T9033 - Horas Médicos': 'Karine', 'BI Painel dos Médicos': 'Karine', 'BI Farol ICH (DGE)': 'Karine', 'BI Relatório de Consultas Disponibilizadas': 'Karine',
+    'BI Controle Agendas': 'Karine', 'BI Captação de Agendas': 'Karine', 'BI INDICADORES REDE CRED': 'Karine', 'BI Relatório de Consultas em Transferência': 'Karine',
+    'BI Relatório de Cirurgias': 'Karine', 'BI Relatório Atraso dos Médicos': 'Karine', 'BI Relatório de Acompanhamento de Mensageria': 'Karine',
+    'BI Relatorio_SAC': 'Karine', 'CAPTADOS FORA DE ALERTA': 'Karine',
+}
+
+# Bases: T0012 passa a 14 arquivos/dia e ganha o DB mensal (3 arquivos)
+for _m in DEFAULT['monitores']:
+    _m['responsavel'] = _RESP.get(_m['nome'], '')
+for _p in _mon('T0012 - Disponibilidade / Marcada')['pastas']:
+    _p['esperado'] = 14
+DEFAULT['monitores'].append({
+    'nome': 'DB T0012 (mensal)', 'categoria': 'base', 'prio': 'P1', 'regra': '', 'log': '', 'min_linhas': 0,
+    'pastas': [F('DB_T0012 FLUXO PYTHON', B7 + r'DB_T0012\FLUXO PYTHON', 3, '', True, '', conf_mensal=True)]
+})
+# T9016: só baixa nos dias 1, 5 e 10; 5 arquivos no mês (um por empresa)
+_p = _mon('T9016 - Base mensal')['pastas'][0]
+_p.update(esperado=5, contem='', conf_mensal=False, dias_mes=[1, 5, 10],
+          prefixos=['T9016_', 'NDISPRJ', 'NDIMINAS', 'CLINIPAM', 'CCG'])
+# Indicadores Rede Cred: base atualizada até as 10h
+DEFAULT['monitores'].append({
+    'nome': 'Indicadores Rede Cred (bases)', 'categoria': 'base', 'prio': 'P1', 'regra': '', 'log': '', 'min_linhas': 0,
+    'pastas': [
+        F('CLIENTE_OCULTO HISTORICO', B7 + r'BI_INDICADORES_CRED\CLIENTE_OCULTO\HISTORICO', 1, '', True, '', conf_mensal=True, hora_limite='10:00'),
+        F('CLIENTE_OCULTO MENSAL', B7 + r'BI_INDICADORES_CRED\CLIENTE_OCULTO', 1, '', True, '', conf_mensal=True, hora_limite='10:00'),
+    ]
+})
+# Base DGE: 1 arquivo do mês atual em cada pasta
+DEFAULT['monitores'].append({
+    'nome': 'Base DGE (produtividade / pagamento)', 'categoria': 'base', 'prio': 'P2', 'regra': '', 'log': '', 'min_linhas': 0,
+    'pastas': [
+        F('48 - PRODUTIVIDADE V2 DGE', r'1 - RELATORIOS\48 - RELATORIO DE PRODUTIVIDADE V2\DGE', 1, '', False, '', so_mes=True),
+        F('BASES DGE PRODUTIVIDADE', B7 + r'BASES DGE\PRODUTIVIDADE', 1, '', False, '', so_mes=True),
+        F('BASES DGE TIPO PAGAMENTO', B7 + r'BASES DGE\TIPO PAGAMENTO', 1, '', False, '', so_mes=True),
+    ]
+})
+_mon('DB T0012 (mensal)')['responsavel'] = 'Agenor'
+_mon('Indicadores Rede Cred (bases)')['responsavel'] = 'Karine'
+# Logs (Pasta 52) e janelas de execução dos BIs que antes eram só cartões pré-cadastrados
+for _n, _log, _min, _ini, _fim in [
+    ('BI Painel dos Médicos', 'log_execucao_painel_medicos_{YYYY}_{MM}.xlsx', 8, '07:10', '11:30'),
+    ('BI Farol ICH (DGE)', 'log_execucao_farol_de_indice_consultas_por_hora_ich_{YYYY}_{MM}.xlsx', 4, '14:50', '15:10'),
+    ('BI Relatório de Consultas Disponibilizadas', 'log_execucao_consultas_disponibilizadas_{YYYY}_{MM}.xlsx', 5, '02:00', '03:30'),
+    ('BI Controle Agendas', 'log_controle_agendas_{YYYY}_{MM}.xlsx', 5, '16:50', '17:30'),
+    ('BI Relatório de Consultas em Transferência', 'log_execucao_consultas_em_transferencia_{YYYY}_{MM}.xlsx', 4, '22:00', '22:30'),
+    ('BI Relatório Atraso dos Médicos', 'log_Atraso_dos_Medicos_{YYYY}_{MM}.xlsx', 6, '07:30', '09:00'),
+    ('BI Relatório de Acompanhamento de Mensageria', 'log_relatorio_mensageria_{YYYY}_{MM}.xlsx', 4, '22:00', '22:30'),
+    ('CAPTADOS FORA DE ALERTA', 'log_Script_Tabela_Captados_Fora_Alerta_{YYYY}_{MM}.xlsx', 8, '01:00', '01:30'),
+]:
+    _mon(_n).update(log=_log, min_linhas=_min, hora_inicio=_ini, hora_fim=_fim)
 
 
 # ==============================================================================
 # 3. AUTOCONFIGURAÇÃO E RESOLUÇÃO DE CAMINHOS
 # ==============================================================================
 def tok(s, d=None):
-    """Substitui os marcadores {YYYY}, {MM}, {DD} e {MES} pela data informada."""
     d = d or date.today()
     return (
         (s or '')
@@ -369,7 +349,6 @@ def tok(s, d=None):
 
 
 def sincronizar_config_automatico():
-    """Garante que o ficheiro config_monitores.json tem sempre as novas regras, preservando os contactos do WhatsApp."""
     cfg_final = json.loads(json.dumps(DEFAULT))
     if CFG.exists():
         try:
@@ -378,6 +357,7 @@ def sincronizar_config_automatico():
                 cfg_final['whatsapp']['destinos'] = antigo['whatsapp']['destinos']
         except Exception:
             pass
+    # Garante sempre 6 horas (360 min) no WhatsApp e 30 min para a Vercel
     cfg_final['whatsapp']['resumo_a_cada_min'] = 360
     cfg_final['intervalo_vercel_min'] = 30
     CFG.write_text(json.dumps(cfg_final, indent=2, ensure_ascii=False), encoding='utf-8')
@@ -470,8 +450,11 @@ def verificar_janela_telesaude(ult_mod_dt, agora=None):
 
 
 # ==============================================================================
-# 4B. MONITORAMENTO DOS BIs (PBIX OFICIAL - PASTA 3) + AUDITORIA PASTA 52
+# 4B. MONITORAMENTO DOS BIs (PBIX OFICIAL) + AUDITORIA DOS LOGS DA PASTA 52
 # ==============================================================================
+import calendar
+import unicodedata
+
 _CACHE_LOGS = {'t': 0.0, 'item': None, 'datas': {}}
 
 
@@ -495,121 +478,84 @@ def _item_base(nome, prio, categoria):
 
 
 def _regra_pbix(b, mt, agora):
-    """Avalia se o ficheiro .pbix cumpre a regra de atualização definida no documento."""
+    """Retorna (status, motivo, esperado, atraso_min) conforme a regra do BI."""
     hoje = agora.date()
     regra = b.get('regra', 'diaria')
-
     if regra == 'mensal':
         ok = (mt.year, mt.month) == (hoje.year, hoje.month)
-        return (
-            'ok' if ok else 'err',
-            f'Atualizado em {mt:%d/%m/%Y %H:%M}' if ok else f'ATRASADO: sem atualização neste mês (última: {mt:%d/%m/%Y})',
-            'Atualização mensal',
-            0 if ok else int((agora - mt).total_seconds() // 60)
-        )
-
+        return ('ok' if ok else 'err', f'Atualizado em {mt:%d/%m/%Y}' if ok else f'Sem atualização neste mês (última: {mt:%d/%m/%Y})', 'Atualização mensal', 0)
     if regra == 'ultima':
         dias = (agora - mt).days
         lim = int(b.get('limite_dias', 3))
-        return (
-            'ok' if dias <= lim else 'warn',
-            f'Última atualização: {mt:%d/%m/%Y %H:%M} ({dias}d atrás)',
-            f'Sempre verificar última atualização (alerta > {lim}d)',
-            max(0, (dias - lim) * 1440)
-        )
-
+        return ('ok' if dias <= lim else 'warn', f'Última atualização há {dias} dia(s)', f'Conferir última atualização (limite {lim} dias)', max(0, (dias - lim) * 1440))
     if hoje.weekday() >= 5 and not b.get('checar_fim_de_semana', False):
-        return 'ok', f'Fim de semana (última: {mt:%d/%m %H:%M})', 'Dias úteis', 0
-
-    if regra == 'intervalo_horas':
-        interv = float(b.get('intervalo_h', 2))
-        lim_min = int(interv * 60 + 15)  # 2h + 15min de tolerância
-        diff_min = int((agora - mt).total_seconds() // 60)
-        esp = f'Atualizado a cada {int(interv)} horas (verificar sempre a última)'
-        if agora.hour < 7:
-            return 'ok', f'Fora da janela matinal (última: {mt:%d/%m %H:%M})', esp, 0
-        if mt.date() == hoje and diff_min <= lim_min:
-            return 'ok', f'Atualizado há {diff_min} min ({mt:%H:%M:%S})', esp, 0
-        atraso = max(1, diff_min - int(interv * 60))
-        return 'err', f'ATRASADO: última atualização há {diff_min} min ({mt:%d/%m %H:%M:%S}) — limite {int(interv)}h', esp, atraso
-
+        return 'ok', 'Fim de semana: sem exigência diária', 'Dias úteis', 0
     if regra == 'horarios':
-        tol = int(b.get('tolerancia_min', 60))
+        tol = int(b.get('tolerancia_min', 90))
         sl = [_hora_dt(h, hoje) for h in b['horarios']]
         passadas = [s for s in sl if s + timedelta(minutes=tol) <= agora]
         prox = next((s for s in sl if s > agora), None)
-        esp = 'Janelas: ' + ', '.join(b['horarios']) + (f' | próx: {prox:%H:%M}' if prox else ' | encerrado hoje')
+        esp = 'Horários: ' + ', '.join(b['horarios']) + (f' | próximo {prox:%H:%M}' if prox else ' | encerrado hoje')
         if not passadas:
-            return 'ok', f'Aguardando 1º horário do dia ({b["horarios"][0]})', esp, 0
+            return 'ok', 'Aguardando o 1º horário do dia', esp, 0
         ult = passadas[-1]
-        if mt >= ult - timedelta(minutes=10):
-            return 'ok', f'Atualizado na janela das {ult:%H:%M} (às {mt:%H:%M:%S})', esp, 0
+        if mt >= ult - timedelta(minutes=5):
+            return 'ok', f'Atualizado após o horário das {ult:%H:%M} (às {mt:%H:%M:%S})', esp, 0
         atraso = int((agora - ult).total_seconds() // 60)
-        return 'err', f'ATRASADO: não atualizou na janela das {ult:%H:%M}. Última: {mt:%d/%m %H:%M:%S}', esp, atraso
-
-    # Regra 'diaria' ou 'ate_hora'
-    hora_lim = b.get('hora_limite', '11:00')
-    tol = int(b.get('tolerancia_min', 0))
-    prazo = _hora_dt(hora_lim, hoje) + timedelta(minutes=tol)
-    esp = f'Atualizado diariamente até {hora_lim}' + (f' (+{tol}m)' if tol else '')
+        return 'err', f'ATRASADO: esperada atualização do horário das {ult:%H:%M} (+{tol} min). Última: {mt:%d/%m %H:%M:%S}', esp, atraso
+    prazo = _hora_dt(b['hora_limite'], hoje) + timedelta(minutes=int(b.get('tolerancia_min', 0)))
+    esp = f"Atualizar até {b['hora_limite']}" + (f" (+{b['tolerancia_min']} min)" if b.get('tolerancia_min') else '')
     if mt.date() == hoje:
         return 'ok', f'Atualizado hoje às {mt:%H:%M:%S}', esp, 0
     if agora < prazo:
-        return 'ok', f'Aguardando atualização até {prazo:%H:%M} (última: {mt:%d/%m %H:%M})', esp, 0
-    atraso = int((agora - prazo).total_seconds() // 60)
-    return 'err', f'ATRASADO: limite era {prazo:%H:%M}. Última atualização: {mt:%d/%m/%Y %H:%M:%S}', esp, atraso
+        return 'ok', f'Aguardando atualização (prazo {prazo:%H:%M})', esp, 0
+    return 'err', f'ATRASADO: sem atualização hoje (prazo {prazo:%H:%M}). Última: {mt:%d/%m/%Y %H:%M:%S}', esp, int((agora - prazo).total_seconds() // 60)
 
 
 def avaliar_pbix(cfg):
     agora = datetime.now()
     pasta = resolver_pasta_automatica(cfg, cfg.get('pasta_pbix', ''))
     try:
-        arquivos = [
-            (e, datetime.fromtimestamp(e.stat().st_mtime))
-            for e in pasta.iterdir()
-            if e.is_file() and e.suffix.lower() in ('.pbix', '.pbit')
-        ] if pasta.is_dir() else None
+        arquivos = [(e, datetime.fromtimestamp(e.stat().st_mtime)) for e in pasta.iterdir()
+                    if e.is_file() and e.suffix.lower() in ('.pbix', '.pbit')] if pasta.is_dir() else None
     except Exception:
         arquivos = None
-
     if arquivos is None:
-        r = _item_base('PBIX · Pasta 3 (PBIX OFICIAL)', 'P0', 'pbix')
+        r = _item_base('PBIX · Pasta PBIX OFICIAL', 'P0', 'pbix')
+        r['responsavel'] = 'Karine'
         r['status'] = 'err'
-        r['erros'].append(f'Pasta dos BIs não encontrada ou inacessível: {pasta}')
-        r['pbix'] = dict(arquivo=None, ultima=None, ultima_iso=None, idade_h=None, esperado='Pasta acessível', atraso_min=0, regra='diaria')
+        r['erros'].append(f'Pasta dos BIs não encontrada ou ilegível: {pasta}')
         return [r]
 
     itens = []
     for b in cfg.get('bis_pbix', []):
         if b.get('regra') == 'ignorar':
             continue
-        b_cfg = {'hora_limite': cfg.get('hora_limite_manha', '11:00'), 'checar_fim_de_semana': cfg.get('bi_checar_fim_de_semana', False), **b}
-        r = _item_base('PBIX · ' + b_cfg['nome'], b_cfg['prio'], 'pbix')
-        ach = [
-            (e, mt) for e, mt in arquivos
-            if all(k in _norm(e.name) for k in b_cfg['busca'])
-            and not any(k in _norm(e.name) for k in b_cfg.get('excluir', []))
-        ]
+        b = {'hora_limite': cfg.get('hora_limite_manha', '11:00'), 'checar_fim_de_semana': cfg.get('bi_checar_fim_de_semana', False), **b}
+        r = _item_base('PBIX · ' + b['nome'], b['prio'], 'pbix')
+        r['responsavel'] = b.get('resp', ''); r['tipo_proc'] = 'pbix'
+        if b.get('regra') == 'pausa':
+            r['status'] = 'nd'; r['pausa'] = True; r['infos'].append('Relatório em pausa (sem monitoramento)')
+            r['pbix'] = dict(arquivo=None, ultima=None, ultima_iso=None, idade_h=None, esperado='Em pausa', atraso_min=0, regra='pausa')
+            itens.append(r)
+            continue
+        ach = [(e, mt) for e, mt in arquivos
+               if all(k in _norm(e.name) for k in b['busca']) and not any(k in _norm(e.name) for k in b.get('excluir', []))]
         if not ach:
             r['status'] = 'warn'
-            r['avisos'].append(f"Ficheiro .pbix não encontrado na Pasta 3 (termos: {', '.join(b_cfg['busca'])}).")
-            r['pbix'] = dict(arquivo=None, ultima=None, ultima_iso=None, idade_h=None, esperado='-', atraso_min=0, regra=b_cfg['regra'])
+            r['avisos'].append(f"Arquivo .pbix não localizado (busca: {', '.join(b['busca'])}). Ajuste 'busca' em bis_pbix.")
+            r['pbix'] = dict(arquivo=None, ultima=None, ultima_iso=None, idade_h=None, esperado='-', atraso_min=0, regra=b['regra'])
         else:
             e, mt = max(ach, key=lambda x: x[1])
-            st, motivo, esp, atraso = _regra_pbix(b_cfg, mt, agora)
+            st, motivo, esp, atraso = _regra_pbix(b, mt, agora)
+            if st == 'err' and b['prio'] == 'P2':
+                st = 'warn'
             r['status'] = st
             {'err': r['erros'], 'warn': r['avisos']}.get(st, r['infos']).append(motivo)
             if len(ach) > 1:
-                r['infos'].append(f'{len(ach)} ficheiros correspondem; a usar o mais recente ({e.name})')
-            r['pbix'] = dict(
-                arquivo=e.name,
-                ultima=mt.strftime('%d/%m/%Y %H:%M:%S'),
-                ultima_iso=mt.isoformat(timespec='seconds'),
-                idade_h=round((agora - mt).total_seconds() / 3600, 1),
-                esperado=esp,
-                atraso_min=atraso,
-                regra=b_cfg['regra']
-            )
+                r['infos'].append(f'{len(ach)} arquivos casam com a busca; usando o mais recente ({e.name})')
+            r['pbix'] = dict(arquivo=e.name, ultima=mt.strftime('%d/%m/%Y %H:%M:%S'), ultima_iso=mt.isoformat(timespec='seconds'),
+                             idade_h=round((agora - mt).total_seconds() / 3600, 1), esperado=esp, atraso_min=atraso, regra=b['regra'])
         itens.append(r)
     return itens
 
@@ -622,12 +568,8 @@ def _dia_util_anterior(d):
 
 
 def auditar_logs_52(cfg, forcar=False):
-    """
-    Regra Pasta 52:
-    - Logs do mês atual devem estar atualizados diariamente;
-    - Logs de outros meses têm que estar atualizados com a última data do mês correspondente;
-    - Considera log desatualizado se a última data do log for há 3 meses atrás da referência do mês.
-    """
+    """Regra Pasta 52: log do mês atual atualizado diariamente; logs de meses anteriores com a última data do mês;
+    família de log cuja última data está 3+ meses atrás da referência do mês = DESATUALIZADO."""
     if not forcar and _CACHE_LOGS['item'] and time.time() - _CACHE_LOGS['t'] < 600:
         item = json.loads(json.dumps(_CACHE_LOGS['item']))
         agora = datetime.now()
@@ -650,7 +592,7 @@ def auditar_logs_52(cfg, forcar=False):
         if not m or arq.name.startswith('~$'):
             continue
         ref = (int(m[1]), int(m[2]))
-        if mes_hoje - (ref[0] * 12 + ref[1]) > 6 or any(i.strip() in _norm(arq.name) for i in ignorar):
+        if mes_hoje - (ref[0] * 12 + ref[1]) > 4 or any(i.strip() in _norm(arq.name) for i in ignorar):
             continue
         mt = arq.stat().st_mtime
         chave = (arq.name, mt)
@@ -669,35 +611,29 @@ def auditar_logs_52(cfg, forcar=False):
             ult, ref = a['ult'], a['ref']
             ult_s = ult.strftime('%d/%m/%Y') if ult else '-'
             ultimo_da_familia = (i == len(arqs) - 1)
-            ref_meses = ref[0] * 12 + ref[1]
-            ult_meses = (ult.year * 12 + ult.month) if ult else 0
-
             if ref == (hoje.year, hoje.month):
                 if ult == hoje or (hoje.weekday() >= 5 and ult and ult >= util_ant):
-                    st, msg = 'ok', 'Atualizado hoje (diário OK)'
-                elif ult and (ref_meses - ult_meses) >= 3:
-                    st, msg = 'err', f'DESATUALIZADO CRÍTICO: última data {ult_s} está 3+ meses atrás da referência'
+                    st, msg = 'ok', 'Atualizado hoje'
                 elif ult and ult >= util_ant:
-                    st, msg = 'warn', f'Última data {ult_s} (D-1); aguarda execução de hoje'
+                    st, msg = 'warn', f'Última data {ult_s} (dia útil anterior); ainda sem execução hoje'
                 else:
-                    st, msg = 'err', f'DESATUALIZADO: última data {ult_s}, esperado atualização diária'
+                    st, msg = 'err', f'DESATUALIZADO: última data {ult_s}, esperado hoje'
             else:
-                fim_mes = date(ref[0], ref[1], calendar.monthrange(*ref)[1])
-                atraso_ref = (ref_meses - ult_meses) if ult else 99
-                atraso_atual = (mes_hoje - ult_meses) if ult else 99
-                if atraso_ref >= 3 or (ultimo_da_familia and atraso_atual >= 3):
-                    st, msg = 'err', f'LOG DESATUALIZADO (3+ meses atrás): última data {ult_s} p/ ref {ref[1]:02d}/{ref[0]}'
+                fim = date(ref[0], ref[1], calendar.monthrange(*ref)[1])
+                meses_atras = (mes_hoje - (ult.year * 12 + ult.month)) if ult else 99
+                if ultimo_da_familia and meses_atras >= 3:
+                    st, msg = 'err', f'DESATUALIZADO: última data {ult_s} (3+ meses atrás) e sem log do mês atual'
                 elif ultimo_da_familia:
-                    st, msg = 'warn', f'Sem log do mês atual (último ficheiro: {ref[1]:02d}/{ref[0]}, data {ult_s})'
-                elif ult and ult >= fim_mes - timedelta(days=int(cfg.get('log_tolerancia_fim_mes_dias', 2))):
-                    st, msg = 'ok', f'Fechou com a última data do mês ({ult_s})'
+                    st, msg = 'warn', f'Sem log do mês atual (último: {ref[1]:02d}/{ref[0]}, até {ult_s})'
+                elif ult and ult >= fim - timedelta(days=int(cfg.get('log_tolerancia_fim_mes_dias', 3))):
+                    st, msg = 'ok', f'Fechou o mês em {ult_s}'
                 else:
-                    st, msg = 'warn', f'Incompleto no mês {ref[1]:02d}/{ref[0]}: última data {ult_s} (esperado {fim_mes:%d/%m/%Y})'
+                    st, msg = 'warn', f'Não chegou ao fim do mês (última data {ult_s})'
             det.append(dict(arquivo=a['arquivo'], ref=f'{ref[1]:02d}/{ref[0]}', ultima=ult_s, status=st, motivo=msg))
 
     ordem = {'err': 0, 'warn': 1, 'ok': 2}
     det.sort(key=lambda x: (ordem[x['status']], x['arquivo']))
-    r['logs_detalhe'] = det[:100]
+    r['logs_detalhe'] = det[:80]
     errs = [d for d in det if d['status'] == 'err']
     warns = [d for d in det if d['status'] == 'warn']
     if errs:
@@ -708,8 +644,8 @@ def auditar_logs_52(cfg, forcar=False):
     elif warns:
         r['status'] = 'warn'
     if warns:
-        r['avisos'].append(f'{len(warns)} log(s) com alerta na Pasta 52')
-    r['infos'].append(f'{len(det)} ficheiros de log auditados na Pasta 52')
+        r['avisos'].append(f'{len(warns)} log(s) com alerta (ver lista abaixo)')
+    r['infos'].append(f'{len(det)} logs analisados na Pasta 52')
     _CACHE_LOGS.update(t=time.time(), item=json.loads(json.dumps(r)))
     return r
 
@@ -759,7 +695,7 @@ def ler_log(arq):
             dur = None
             if ini is not None and fim is not None:
                 dur = fim - ini + (1440 if fim < ini else 0)
-            script = next((t for t in txt if re.search(r'\.(py|yxmd|csv|xlsx|parquet)$', t, re.I)), txt[2] if len(txt) > 2 else txt[0])
+            script = next((t for t in txt if re.search(r'\.(py|yxmd)$', t, re.I)), txt[2] if len(txt) > 2 else txt[0])
             saida.append(dict(
                 d=d, ini=ini, fim=fim, ini_hms=ini_hms, fim_hms=fim_hms,
                 dur=dur, st=txt[si].upper()[:3], script=script, msg=' | '.join(txt[si + 1:])
@@ -771,8 +707,6 @@ def ler_log(arq):
 def avaliar(m, cfg):
     agora = datetime.now()
     hoje = agora.date()
-    ontem_util = _dia_util_anterior(hoje)
-    aceita_d1 = m.get('d_menos_1', False) or m.get('prio') == 'P2'
     regra = m.get('regra', '')
     dias_uteis = calcular_dias_uteis_mes(hoje)
     qtd_dias_uteis = len(dias_uteis)
@@ -798,9 +732,6 @@ def avaliar(m, cfg):
         eventos_hoje=[]
     )
 
-    if aceita_d1:
-        r['infos'].append('Padrão P2: aceita referência D-1 conforme janela de execução')
-
     ult_mod_log = None
     if m.get('log'):
         pasta_52 = resolver_pasta_automatica(cfg, cfg['pasta_logs'])
@@ -813,11 +744,6 @@ def avaliar(m, cfg):
                 ult_mod_log = datetime.fromtimestamp(arq.stat().st_mtime)
                 linhas = ler_log(arq)
                 td = [x for x in linhas if x['d'] == hoje]
-                if not td and aceita_d1:
-                    td = [x for x in linhas if x['d'] in (hoje - timedelta(days=1), ontem_util)]
-                    if td:
-                        r['infos'].append(f"Exibindo execução D-1 ({td[-1]['d']:%d/%m/%Y})")
-
                 r.update(
                     linhas_hoje=len(td),
                     ok_hoje=sum(x['st'] == 'SUC' for x in td),
@@ -838,22 +764,22 @@ def avaliar(m, cfg):
                         r['infos'].append(f"Aguardando execução prevista para {m['hora_inicio']}")
                     else:
                         r['status'] = 'warn'
-                        r['avisos'].append('Nenhuma execução registada hoje (ou D-1) no log')
+                        r['avisos'].append('Nenhuma execução registrada hoje no log')
                 else:
                     rod = [x for x in ultimo.values() if x['st'] in ('EXE', 'ROD', 'EM ')]
                     if rod:
                         r['status'] = 'run'
-                        r['infos'].append('A executar: ' + ', '.join(x['script'] for x in rod))
+                        r['infos'].append('Rodando: ' + ', '.join(x['script'] for x in rod))
                     for x in ultimo.values():
                         if x['st'] == 'ERR':
                             r['status'] = 'err'
                             r['erros'].append(f"{x['script']} ({x['ini_hms']}): {x['msg'] or 'erro sem mensagem'}")
                     reex = [x for x in td if x['st'] == 'ERR' and ultimo[x['script']] is not x]
                     if reex:
-                        r['avisos'].append(f'{len(reex)} erro(s) já reexecutado(s) com sucesso')
+                        r['avisos'].append(f'{len(reex)} erro(s) hoje já reexecutado(s) com sucesso')
                     if r['status'] == 'ok' and len(td) < m.get('min_linhas', 0) and regra not in ('aprr', 'tele') and agora.strftime('%H:%M') >= m.get('hora_fim', '00:00'):
                         r['status'] = 'warn'
-                        r['avisos'].append(f"Log com {len(td)} linhas; esperado {m['min_linhas']}+")
+                        r['avisos'].append(f"Log com {len(td)} linhas hoje; esperado {m['min_linhas']}+")
             except Exception as e:
                 r['status'] = 'err'
                 r['erros'].append(f'Falha ao ler o log: {e}')
@@ -869,10 +795,10 @@ def avaliar(m, cfg):
     total_arquivos_hoje = 0
 
     for f in m.get('pastas', []):
-        eh_aprr = (f.get('regra') == 'aprr')
+        eh_aprr = (regra == 'aprr' or f.get('regra') == 'aprr')
         esperado_dia = aprr_info['esperado'] if eh_aprr else f['esperado']
         if f.get('dias_mes'):
-            esperado_dia = f['esperado'] if hoje.day in f['dias_mes'] else 0
+            esperado_dia = 1 if hoje.day in f['dias_mes'] else 0
         if f.get('hora_limite') and agora.strftime('%H:%M') < f['hora_limite']:
             esperado_dia = 0
         conf_mensal = f.get('conf_mensal', False)
@@ -900,7 +826,6 @@ def avaliar(m, cfg):
                     raise FileNotFoundError(f'Pasta não encontrada: {pasta}')
             else:
                 chave_hoje = tok(f.get('contem', ''), hoje).lower()
-                chave_d1 = tok(f.get('contem', ''), ontem_util).lower() if aceita_d1 else ''
                 n_hoje = 0
                 n_mes = 0
                 mtimes_hoje = []
@@ -919,8 +844,8 @@ def avaliar(m, cfg):
                         if f"{du.day:02d}{du.month:02d}{du.year}" in nome_low:
                             datas_com_arquivo_no_mes.add(du)
 
-                    mod_hoje = (mtime_dt.date() == hoje) or (aceita_d1 and mtime_dt.date() in (hoje - timedelta(days=1), ontem_util))
-                    tem_chave = (chave_hoje in nome_low) or (bool(chave_d1) and chave_d1 in nome_low) if chave_hoje else False
+                    mod_hoje = (mtime_dt.date() == hoje)
+                    tem_chave = (chave_hoje in nome_low) if chave_hoje else False
 
                     if chave_hoje:
                         if tem_chave or mod_hoje:
@@ -930,7 +855,7 @@ def avaliar(m, cfg):
                         n_hoje += 1
                         mtimes_hoje.append(mtime_dt)
 
-                if f.get('so_mes') or f.get('dias_mes'):
+                if f.get('so_mes'):
                     n_hoje = n_mes
                 o['n'] = n_hoje
                 o['n_mes'] = n_mes
@@ -944,7 +869,7 @@ def avaliar(m, cfg):
                     if r['status'] == 'ok':
                         r['status'] = 'warn'
                     r['avisos'].append(
-                        f"{f['rotulo']}: Falta ficheiro em {len(dias_faltantes)} dia(s) útil(eis) do mês ({', '.join(dias_faltantes[:5])})"
+                        f"{f['rotulo']}: Falta arquivo em {len(dias_faltantes)} dia(s) útil(eis) do mês ({', '.join(dias_faltantes[:5])})"
                     )
 
                 if mtimes_hoje:
@@ -960,16 +885,16 @@ def avaliar(m, cfg):
                         o['tempo_medio_arq'] = round(r['media_min'] or 1.0, 2)
                     tempos_por_arq.append(o['tempo_medio_arq'])
 
-                if f.get('dias_mes') and f.get('prefixos') and (hoje.day >= min(f['dias_mes'])):
+                if f.get('dias_mes') and f.get('prefixos') and (hoje.day > min(f['dias_mes']) or agora.hour >= 12):
                     tok_mes = tok('{MM}{YYYY}', hoje)
                     nomes_mes = [e.name.lower() for e in pasta.iterdir() if e.is_file() and tok_mes in e.name]
                     faltam = [p for p in f['prefixos'] if not any(p.lower() in nm for nm in nomes_mes)]
                     if faltam:
                         r['status'] = 'err'
-                        r['erros'].append(f"NÃO BAIXOU: {f['rotulo']} sem ficheiro de {', '.join(faltam)} (dias {f['dias_mes']})")
+                        r['erros'].append(f"NÃO BAIXOU: {f['rotulo']} sem arquivo de {', '.join(faltam)} (baixa nos dias {f['dias_mes']})")
                 if n_hoje < esperado_dia:
                     r['status'] = 'err'
-                    r['erros'].append(f"NÃO BAIXOU: {f['rotulo']} tem {n_hoje} de {esperado_dia} ficheiros hoje")
+                    r['erros'].append(f"NÃO BAIXOU: {f['rotulo']} tem {n_hoje} de {esperado_dia} arquivos hoje")
         except Exception as e:
             o['erro'] = str(e)
             r['status'] = 'err'
@@ -998,9 +923,10 @@ def avaliar(m, cfg):
 
 
 # ==============================================================================
-# 6. GERAÇÃO DO .XLSX E AUTOMAÇÃO DE UPLOAD NA VERCEL A CADA 30 MINUTOS
+# 6. GERAÇÃO DO .XLSX E AUTOMACAO DE UPLOAD NA VERCEL A CADA 30 MINUTOS
 # ==============================================================================
 def gerar_relatorio_xlsx(cfg, res, snaps_hoje, hist_diario, salvar_em_pasta_especifica=None):
+    """Gera o arquivo .xlsx na pasta solicitada (ou tanto em Desktop\\dashboard acompanhamento quanto em G:\\...)."""
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Alignment
 
@@ -1016,7 +942,7 @@ def gerar_relatorio_xlsx(cfg, res, snaps_hoje, hist_diario, salvar_em_pasta_espe
     cab1 = [
         "Data/Hora (HH:MM:SS)", "Categoria", "Processo", "Prioridade", "Status",
         "Execuções Hoje", "Sucessos Hoje", "Erros Hoje", "Último Fim (HH:MM:SS)",
-        "Tempo Médio Processo (min)", "Tempo Médio / Ficheiro (min)", "Meta Diária / Mensal", "Alertas / Erros"
+        "Tempo Médio Processo (min)", "Tempo Médio / Arquivo (min)", "Meta Diária / Mensal", "Alertas / Erros"
     ]
     ws1.append(cab1)
     for col_num in range(1, len(cab1) + 1):
@@ -1030,8 +956,6 @@ def gerar_relatorio_xlsx(cfg, res, snaps_hoje, hist_diario, salvar_em_pasta_espe
             f"{p['rotulo']}: Dia {p['n']}/{p['esperado']}" + (f" (Mês {p['n_mes']}/{p['esperado_mes']})" if p.get('conf_mensal') else "")
             for p in r['pastas']
         )
-        if r.get('pbix'):
-            metas_txt = f"PBIX: {r['pbix'].get('ultima') or 'N/D'} ({r['pbix'].get('esperado')})"
         ws1.append([
             r['quando'],
             {'bi': 'Painel BI', 'pbix': 'BI (.pbix)', 'logs': 'Auditoria de Logs'}.get(r['categoria'], 'Base de Dados'),
@@ -1049,7 +973,7 @@ def gerar_relatorio_xlsx(cfg, res, snaps_hoje, hist_diario, salvar_em_pasta_espe
         ])
 
     ws2 = wb.create_sheet("Estado_Por_Hora")
-    cab2 = ["Hora do Registo", "Horário Exato (HH:MM:SS)", "Processo", "Categoria", "Status na Hora", "Qtd Erros", "Mensagens de Falha"]
+    cab2 = ["Hora do Registro", "Horário Exato (HH:MM:SS)", "Processo", "Categoria", "Status na Hora", "Qtd Erros", "Mensagens de Falha"]
     ws2.append(cab2)
     for col_num in range(1, len(cab2) + 1):
         c = ws2.cell(row=1, column=col_num)
@@ -1080,6 +1004,7 @@ def gerar_relatorio_xlsx(cfg, res, snaps_hoje, hist_diario, salvar_em_pasta_espe
     for h in hist_diario:
         ws3.append([h.get('dia'), h.get('h'), h.get('ok'), h.get('warn'), h.get('err')])
 
+    # 1. Salva sempre na pasta C:\Users\agenor.sales\Desktop\dashboard acompanhamento
     pasta_local_acomp = Path(cfg.get('pasta_dashboard_acompanhamento', DEFAULT['pasta_dashboard_acompanhamento']))
     try:
         pasta_local_acomp.mkdir(parents=True, exist_ok=True)
@@ -1090,20 +1015,25 @@ def gerar_relatorio_xlsx(cfg, res, snaps_hoje, hist_diario, salvar_em_pasta_espe
     arq_local_fixo = pasta_local_acomp / "monitoramento_atual.xlsx"
     wb.save(arq_local_datado)
     wb.save(arq_local_fixo)
-    log.info('Folha de cálculo guardada em %s', arq_local_datado)
+    log.info('Planilha salva em %s', arq_local_datado)
 
+    # 2. Se for o relatório diário ou solicitado, salva também na rede G:\...
     if salvar_em_pasta_especifica:
         try:
             p_rede = Path(salvar_em_pasta_especifica)
             p_rede.mkdir(parents=True, exist_ok=True)
             wb.save(p_rede / nome_arq)
         except Exception as e:
-            log.warning('Não foi possível guardar cópia na rede %s: %s', salvar_em_pasta_especifica, e)
+            log.warning('Não foi possível salvar cópia na rede %s: %s', salvar_em_pasta_especifica, e)
 
     return arq_local_datado
 
 
 def enviar_xlsx_para_painel_vercel(cfg, caminho_xlsx):
+    """
+    Abre o Google Chrome no link https://acompanhameto-fluxo-diario-de-taref.vercel.app/,
+    clica na aba Monitoramento e inclui o arquivo .xlsx gerado.
+    """
     from selenium import webdriver
     from selenium.webdriver.chrome.options import Options
     from selenium.webdriver.common.by import By
@@ -1111,11 +1041,12 @@ def enviar_xlsx_para_painel_vercel(cfg, caminho_xlsx):
     from selenium.webdriver.support import expected_conditions as EC
 
     url_vercel = cfg.get('url_painel_vercel', DEFAULT['url_painel_vercel'])
-    porta_vercel = 9225
+    porta_vercel = 9225  # Porta separada para não conflitar com o WhatsApp (9222)
     proc = None
+    drv = None
 
     try:
-        log.info('A iniciar upload do ficheiro %s para o painel Vercel (%s)...', caminho_xlsx.name, url_vercel)
+        log.info('Iniciando upload do arquivo %s para o painel Vercel (%s)...', caminho_xlsx.name, url_vercel)
         encerrar_chrome_porta(porta_vercel)
 
         w = cfg['whatsapp']
@@ -1127,7 +1058,7 @@ def enviar_xlsx_para_painel_vercel(cfg, caminho_xlsx):
         ]
         exe = next((c for c in cands if c and os.path.exists(c)), None)
         if not exe:
-            log.error('chrome.exe não encontrado para enviar folha de cálculo para a Vercel.')
+            log.error('chrome.exe não encontrado para subir planilha na Vercel.')
             return False
 
         perfil_vercel = r'C:\chrome_vercel_monitor'
@@ -1151,6 +1082,7 @@ def enviar_xlsx_para_painel_vercel(cfg, caminho_xlsx):
         drv.get(url_vercel)
         time.sleep(5)
 
+        # 1. Procura e clica na aba "Monitoramento"
         xpaths_aba = [
             "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'monitoramento')]",
             "//button[contains(., 'Monitoramento')]",
@@ -1167,19 +1099,23 @@ def enviar_xlsx_para_painel_vercel(cfg, caminho_xlsx):
                     except Exception:
                         pass
 
+        # 2. Localiza o <input type="file"> na aba Monitoramento e envia o caminho do .xlsx
         inputs_file = drv.find_elements(By.XPATH, "//input[@type='file']")
         if not inputs_file:
+            # Aguarda até 15s caso a aba ainda esteja renderizando
             inp = WebDriverWait(drv, 15).until(
                 EC.presence_of_element_located((By.XPATH, "//input[@type='file']"))
             )
         else:
             inp = inputs_file[0]
 
+        # Torna o input visível caso esteja com classe 'hidden' no React/Tailwind
         drv.execute_script("arguments[0].style.display = 'block'; arguments[0].style.visibility = 'visible';", inp)
         time.sleep(1)
         inp.send_keys(str(caminho_xlsx.resolve()))
-        time.sleep(6)
+        time.sleep(6)  # Aguarda o processamento/sincronização do arquivo na aplicação
 
+        # Se houver botão de confirmar/salvar/enviar após selecionar o arquivo, clica nele
         botoes_confirmar = drv.find_elements(
             By.XPATH,
             "//button[contains(., 'Salvar') or contains(., 'Enviar') or contains(., 'Importar') or contains(., 'Sincronizar')]"
@@ -1192,11 +1128,11 @@ def enviar_xlsx_para_painel_vercel(cfg, caminho_xlsx):
                 except Exception:
                     pass
 
-        log.info('Ficheiro %s incluído com sucesso na aba Monitoramento da Vercel!', caminho_xlsx.name)
+        log.info('Arquivo %s incluído com sucesso na aba Monitoramento da Vercel!', caminho_xlsx.name)
         return True
 
     except Exception as e:
-        log.error('Falha ao incluir ficheiro na Vercel: %s', str(e)[:250])
+        log.error('Falha ao incluir arquivo na Vercel: %s', str(e)[:250])
         return False
     finally:
         if proc:
@@ -1208,6 +1144,7 @@ def enviar_xlsx_para_painel_vercel(cfg, caminho_xlsx):
 
 
 def rotina_vercel_30_minutos(cfg, res, snaps_hoje, hist, forcar=False):
+    """Executa a cada 30 minutos: gera o .xlsx na pasta do Desktop e inclui na aba Monitoramento da Vercel."""
     est = json.loads(ESTADO.read_text(encoding='utf-8')) if ESTADO.exists() else {}
     agora = datetime.now()
     ult_str = est.get('ultimo_upload_vercel')
@@ -1222,7 +1159,7 @@ def rotina_vercel_30_minutos(cfg, res, snaps_hoje, hist, forcar=False):
 
 
 # ==============================================================================
-# 7. TEMPLATE DO DASHBOARD LOCAL (HTML COM ABA DE BIs, GRÁFICOS E MODAL POP-UP)
+# 7. TEMPLATE DO DASHBOARD LOCAL (HTML)
 # ==============================================================================
 HTML = r'''<!DOCTYPE html>
 <html lang="pt-BR">
@@ -1266,7 +1203,6 @@ HTML = r'''<!DOCTYPE html>
     button.p { background: var(--gold); color: var(--blue-dark); border-color: var(--gold); }
     button.p:hover { background: var(--blue-dark); color: var(--gold); }
     button.g { background: var(--blue-dark); color: var(--card); border-color: var(--blue-dark); }
-    button.danger { background: var(--red); color: #fff; border-color: var(--red); }
     .nav-tabs { display: flex; gap: 4px; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 8px; overflow-x: auto; }
     .nav-tab { background: transparent; color: var(--slate-200); border: none; border-bottom: 3px solid transparent; border-radius: 6px 6px 0 0; padding: 8px 18px; font-weight: 600; cursor: pointer; }
     .nav-tab:hover { background: var(--blue-dark); color: var(--card); }
@@ -1295,21 +1231,35 @@ HTML = r'''<!DOCTYPE html>
     .msg.w { background: var(--amber-50); color: var(--amber-800); border-left-color: var(--gold); }
     .msg.i { background: var(--slate-100); color: var(--blue-inst); border-left-color: var(--blue-inst); }
     .ok { --c: var(--ok); } .err { --c: var(--red); } .warn { --c: var(--gold); } .run { --c: var(--blue-inst); } .nd { --c: var(--slate-400); }
-    dialog { border: 0; border-radius: 12px; width: min(860px, 95vw); padding: 0; box-shadow: 0 20px 50px rgba(0,0,0,0.35); }
-    dialog::backdrop { background: rgba(18,42,68,0.72); backdrop-filter: blur(2px); }
-    .dh { padding: 14px 18px; background: var(--blue-inst); color: #fff; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-    .db { padding: 16px 18px; background: #fff; max-height: 78vh; overflow-y: auto; }
+    dialog { border: 0; border-radius: 10px; width: min(880px, 95vw); padding: 0; } dialog::backdrop { background: rgba(18,42,68,0.65); }
+    .dh { padding: 14px 18px; background: var(--blue-inst); color: #fff; display: flex; justify-content: space-between; align-items: center; }
+    .db { padding: 16px 18px; background: #fff; }
     .hidden { display: none !important; }
-    .alert-badge { position: fixed; right: 18px; bottom: 18px; z-index: 50; background: var(--red); color: #fff; border: 0; border-radius: 99px; padding: 11px 20px; font: 700 13.5px 'IBM Plex Sans', sans-serif; cursor: pointer; box-shadow: 0 4px 16px rgba(242,29,47,.55); animation: pulso 1.5s infinite; }
-    @keyframes pulso { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
-    #dAlert { border-top: 6px solid var(--red); width: min(760px, 95vw); }
-    #dAlert .dh { background: linear-gradient(90deg, var(--red), #b91c1c); }
-    #dAlert .al { border-left: 5px solid var(--c); background: var(--slate-100); border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; font-size: 13px; }
-    #dAlert .al b { color: var(--blue-dark); font-size: 13.5px; }
-    #dAlert .al small { display: block; color: var(--red); font-weight: 600; margin-top: 3px; }
+    .alert-badge { position: fixed; right: 18px; bottom: 18px; z-index: 50; background: var(--red); color: #fff; border: 0; border-radius: 99px; padding: 10px 18px; font: 700 13px 'IBM Plex Sans', sans-serif; cursor: pointer; box-shadow: 0 4px 14px rgba(242,29,47,.45); animation: pulso 1.6s infinite; }
+    @keyframes pulso { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+    #dAlert { border-top: 6px solid var(--red); width: min(720px, 95vw); }
+    #dAlert .al { border-left: 4px solid var(--c); background: var(--slate-100); border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; font-size: 13px; }
+    #dAlert .al b { color: var(--blue-dark); } #dAlert .al small { display: block; color: var(--slate-600); margin-top: 2px; }
     .lt { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 11.5px; }
-    .lt td, .lt th { border-bottom: 1px solid var(--slate-200); padding: 4px 6px; text-align: left; }
+    .lt td, .lt th { border-bottom: 1px solid var(--slate-200); padding: 3px 4px; text-align: left; }
     .lt .s-err { color: var(--red); font-weight: 700; } .lt .s-warn { color: var(--amber-800); font-weight: 600; } .lt .s-ok { color: var(--blue-inst); }
+    .box.big { padding: 18px; } .box.big h3 { font-size: 15px; }
+    .cw { position: relative; height: 380px; } .charts2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(560px, 1fr)); gap: 16px; margin-bottom: 18px; }
+    .grid1 { display: block; } .sum .k b { font-size: 32px; }
+    .pb { margin-bottom: 12px; } .pb-h { display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 4px; } .pb-h span { color: var(--slate-600); }
+    .pb-t { background: var(--slate-200); border-radius: 99px; height: 20px; overflow: hidden; }
+    .pb-f { height: 100%; width: 0; border-radius: 99px; transition: width 1.4s cubic-bezier(.22,.9,.3,1); }
+    .pb0 .pb-t { height: 28px; } .pb0 .pb-h { font-size: 15px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .chip-f { border: 1px solid var(--blue-inst); background: #fff; color: var(--blue-inst); border-radius: 99px; padding: 6px 14px; font: 600 12.5px 'IBM Plex Sans', sans-serif; cursor: pointer; }
+    .chip-f span { background: var(--slate-100); color: var(--slate-600); border-radius: 99px; padding: 0 7px; margin-left: 4px; }
+    .chip-f.on { background: var(--blue-inst); color: #fff; } .chip-f.on span { background: rgba(255,255,255,.25); color: #fff; }
+    #toasts { position: fixed; right: 14px; top: 150px; z-index: 60; display: flex; flex-direction: column; gap: 8px; width: 290px; pointer-events: none; }
+    .toast { pointer-events: auto; position: relative; background: #fff; border-left: 5px solid var(--c); border-radius: 8px; padding: 8px 26px 8px 10px; box-shadow: 0 4px 14px rgba(18,42,68,.28); font-size: 12px; animation: entra .35s ease-out; }
+    .toast .t1 { font-weight: 700; color: var(--blue-dark); } .toast .t2 { color: var(--slate-600); margin: 2px 0; } .toast .t3 { color: var(--ink); }
+    .toast .x { position: absolute; right: 4px; top: 2px; border: 0; background: none; font-size: 18px; cursor: pointer; color: var(--slate-600); padding: 0 6px; }
+    @keyframes entra { from { transform: translateX(120%); opacity: 0; } to { transform: none; opacity: 1; } }
+    @media(max-width:600px){ #toasts { width: 240px; } .charts2 { grid-template-columns: 1fr; } }
     @media(max-width:600px){ .grid, .charts { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -1332,19 +1282,18 @@ HTML = r'''<!DOCTYPE html>
       </div>
     </div>
     <div class="bar">
-      <button class="g" id="bSound" title="Ativar ou silenciar o alerta sonoro do Pop-up">🔊 Som: Ativo</button>
       <button class="p" id="bRefresh">🔄 Atualizar Agora</button>
       <button class="g" id="bVercel">☁️ Enviar p/ Vercel Agora</button>
       <button class="g" id="bRel">📊 Salvar Relatório (.xlsx)</button>
       <button class="g" id="bWa">💬 Resumo no WhatsApp</button>
+      <button id="bBell" title="Reexibir alertas dispensados">🔔 <span id="bellN">0</span></button>
     </div>
   </div>
   <nav class="nav-tabs" id="tabs">
-    <button class="nav-tab active" data-tab="all">Visão Geral (Todos)</button>
-    <button class="nav-tab" data-tab="pbix">📊 Monitoramento de BIs (PBIX + Pasta 52)</button>
-    <button class="nav-tab" data-tab="bi">Fluxos de Execução BI</button>
-    <button class="nav-tab" data-tab="base">Bases de Dados (Diário + Mensal)</button>
-    <button class="nav-tab" data-tab="charts">Gráficos & Evolução (Hora / Dia)</button>
+    <button class="nav-tab active" data-tab="geral">Visão Geral</button>
+    <button class="nav-tab" data-tab="pbix">📊 Monitoramento de BIs</button>
+    <button class="nav-tab" data-tab="logs">🗂️ Logs (Pasta 52)</button>
+    <button class="nav-tab" data-tab="det">🧩 Detalhamento dos Processos</button>
   </nav>
 </header>
 
@@ -1356,55 +1305,45 @@ HTML = r'''<!DOCTYPE html>
       <span id="snapInfo" style="font-size:12px;color:var(--slate-600);margin-left:8px"></span>
     </div>
     <div style="font-size:12px;color:var(--slate-600)">
-      <strong>Manhã:</strong> até 11h | <strong>APRR/Vagas:</strong> 2h em 2h | <strong>Cliente Oculto:</strong> 10h | <strong>P2:</strong> D-1
+      <strong>Vercel (.xlsx):</strong> a cada 30 min | <strong>WhatsApp:</strong> a cada 6 horas | <strong>Relatório Final:</strong> 18:00
     </div>
   </div>
 
-  <div class="sum" id="sum"></div>
+  <section id="s-geral">
+    <div class="sum" id="sum"></div>
+    <div class="box big" style="margin-bottom:16px"><h3>Monitoramento dos BIs — horas desde a última atualização (cor = situação, nome = BI · responsável)</h3><div class="cw" id="cwBis"><canvas id="cBis"></canvas></div></div>
+    <div class="box big" style="margin-bottom:16px">
+      <h3>Evolução da equipe OptimusBI — % de itens em dia por responsável</h3>
+      <div id="team"></div>
+    </div>
+    <div class="charts2">
+      <div class="box big"><h3>Evolução por hora (hoje) — % em dia (colunas) e falhas (linha)</h3><div class="cw"><canvas id="cHoraE"></canvas></div></div>
+      <div class="box big"><h3>Evolução por dia — % em dia da equipe e de cada responsável (linhas)</h3><div class="cw"><canvas id="cDiaE"></canvas></div></div>
+    </div>
+  </section>
 
-  <div class="charts" id="chartsBox">
-    <div class="box"><h3>Erros e Sucessos por Hora/Minuto (Hoje)</h3><canvas id="cHora" height="170"></canvas></div>
-    <div class="box"><h3>Evolução Diária (Sucessos vs Erros por Dia)</h3><canvas id="cDia" height="170"></canvas></div>
-    <div class="box"><h3>Tempo Médio de Execução por Processo (min)</h3><canvas id="c1" height="170"></canvas></div>
-    <div class="box"><h3>Tempo Médio por Arquivo Baixado (min / arquivo)</h3><canvas id="cArq" height="170"></canvas></div>
-  </div>
+  <section id="s-pbix" class="hidden">
+    <div class="chips" id="chipsBi"></div>
+    <div class="grid" id="gridBi"></div>
+  </section>
 
-  <div class="charts hidden" id="pbixBox">
-    <div class="box"><h3>Proporção de Status dos BIs (Tempo Real)</h3><canvas id="cPbDonut" height="180"></canvas></div>
-    <div class="box"><h3>Situação dos BIs por Prioridade (P0, P1 e P2)</h3><canvas id="cPbPrio" height="180"></canvas></div>
-    <div class="box"><h3>Horas desde a última atualização de cada BI (.pbix)</h3><canvas id="cPbIdade" height="210"></canvas></div>
-    <div class="box"><h3>Atualizações dos BIs por Hora do Dia (Hoje)</h3><canvas id="cPbHora" height="210"></canvas></div>
-  </div>
+  <section id="s-logs" class="hidden">
+    <div class="sum" id="sumLogs"></div>
+    <div class="grid1" id="gridLogs"></div>
+  </section>
 
-  <div class="grid" id="grid"></div>
+  <section id="s-det" class="hidden">
+    <div class="chips" id="chipsDet"></div>
+    <div class="grid" id="gridDet"></div>
+  </section>
 </main>
 
-<button id="alertBadge" class="alert-badge hidden"></button>
-
-<dialog id="dAlert">
-  <div class="dh">
-    <b>🚨 ALERTA DE MONITORAMENTO: P0 / BIs FORA DO LIMITE</b>
-    <div style="display:flex;gap:6px">
-      <button id="bModalSound" style="padding:5px 10px;font-size:12px">🔊 Testar / Alternar Som</button>
-      <button id="bAlertOk" style="padding:5px 10px;font-size:12px"> Silenciar 30 min</button>
-    </div>
-  </div>
-  <div class="db">
-    <p style="margin:0 0 10px;font-size:13px;color:var(--slate-600)">
-      Os seguintes itens críticos (<strong>P0</strong>) ou painéis (<strong>BIs</strong>) ultrapassaram o horário limite ou apresentaram erro:
-    </p>
-    <div id="alertList"></div>
-    <div class="bar" style="margin-top:14px;justify-content:space-between">
-      <button class="p" id="bAlertBis">📊 Ver Aba Monitoramento de BIs</button>
-      <button id="bAlertClose">Fechar Janela</button>
-    </div>
-  </div>
-</dialog>
+<div id="toasts"></div>
 
 <dialog id="dWa">
   <div class="dh"><b>Resumo para WhatsApp (A cada 6 horas)</b><button id="bWc">Fechar</button></div>
   <div class="db">
-    <p style="font-size:12px;color:var(--slate-600);margin-top:0">O Python envia automaticamente a cada 6 horas (1 mensagem por contacto, fechando e reiniciando o navegador).</p>
+    <p style="font-size:12px;color:var(--slate-600);margin-top:0">O Python envia automaticamente a cada 6 horas (1 mensagem por contato, fechando e reiniciando o navegador).</p>
     <textarea id="waTxt" rows="11" style="width:100%;font:inherit;padding:8px"></textarea>
     <div class="bar" id="waBtns" style="margin-top:10px"></div>
   </div>
@@ -1416,28 +1355,13 @@ const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
 const p2 = n => String(n).padStart(2, '0');
 const fmtHMS = (d = new Date()) => `${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;
-const L = { ok: 'ATUALIZADO / OK', err: 'ATRASADO / ERRO', warn: 'ALERTA', run: 'RODANDO', nd: 'PRÉ-CADASTRADO' };
-const CAT = { bi: 'Fluxo BI (Pasta 52)', base: 'Base de Dados (Pasta 7)', pbix: 'Painel BI (Pasta 3 - PBIX)', logs: 'Auditoria Pasta 52' };
-
-let activeTab = 'all';
-let charts = {};
-let secLeft = 60;
-let soundEnabled = localStorage.getItem('optimusSound') !== 'off';
-
-function updateSoundBtn() {
-  const txt = soundEnabled ? '🔊 Som: Ativo' : '🔇 Som: Mudo';
-  $('#bSound').textContent = txt;
-  if ($('#bModalSound')) $('#bModalSound').textContent = txt;
-}
-updateSoundBtn();
-
-$('#bSound').onclick = () => {
-  soundEnabled = !soundEnabled;
-  localStorage.setItem('optimusSound', soundEnabled ? 'on' : 'off');
-  updateSoundBtn();
-  if (soundEnabled) beep();
-};
-$('#bModalSound').onclick = () => $('#bSound').click();
+const L = { ok: 'OK', err: 'ERRO', warn: 'ALERTA', run: 'RODANDO', nd: 'PRÉ-CADASTRADO' };
+const CAT = { bi: 'Fluxo de execução', base: 'Download de base', pbix: 'BI (.pbix oficial)', logs: 'Auditoria de Logs' };
+const COR = { ok: '#0339A6', warn: '#F2B705', err: '#F21D2F', nd: '#94A3B8' };
+const PESSOA = { Karine: '#F24405', Agenor: '#F2B705', Miller: '#122A44', Daniel: '#6B7280' };
+const resp = r => r.responsavel || 'Equipe OptimusBI';
+const donos = r => (r.responsavel || '').split(/\s+e\s+|,/).map(x => x.trim()).filter(Boolean);
+let tab = 'geral', fDet = 'todos', fBi = 'todos', charts = {}, secLeft = 60;
 
 const savedLogo = localStorage.getItem('optimusLogo');
 if (savedLogo) { $('#logoImg').src = savedLogo; $('#logoImg').style.display = 'block'; }
@@ -1448,336 +1372,195 @@ $('#logoFile').onchange = e => {
   rd.onload = () => { localStorage.setItem('optimusLogo', rd.result); location.reload(); };
   rd.readAsDataURL(f);
 };
-
 const snaps = D.snaps || {};
 Object.keys(snaps).sort().forEach(h => {
   const s = snaps[h];
   const errs = (s.itens || []).filter(x => x.status === 'err').length;
-  $('#hourSel').insertAdjacentHTML('beforeend', `<option value="${h}">Estado às ${h} (Registado às ${s.salvo_as} - ${errs} erro(s))</option>`);
+  $('#hourSel').insertAdjacentHTML('beforeend', `<option value="${h}">Estado às ${h} (Registrado às ${s.salvo_as} - ${errs} erro(s))</option>`);
 });
-
 $('#hourSel').onchange = render;
 $$('#tabs .nav-tab').forEach(b => b.onclick = () => {
   $$('#tabs .nav-tab').forEach(x => x.classList.remove('active'));
-  b.classList.add('active');
-  activeTab = b.dataset.tab;
-  render();
+  b.classList.add('active'); tab = b.dataset.tab; render();
 });
-
 $('#bRefresh').onclick = async () => {
-  $('#bRefresh').disabled = true;
-  $('#bRefresh').textContent = '⏳ Atualizando...';
-  $('#last').textContent = 'Atualizado em: ' + new Date().toLocaleDateString('pt-BR') + ' ' + fmtHMS();
-  try { await fetch('/api/atualizar'); } catch(e) {}
+  $('#bRefresh').disabled = true; $('#bRefresh').textContent = '⏳ Atualizando...';
+  try { await fetch('/api/atualizar'); } catch (e) {}
   location.reload();
 };
-
 $('#bVercel').onclick = async () => {
-  $('#bVercel').disabled = true;
-  $('#bVercel').textContent = '⏳ Enviando p/ Vercel...';
-  try {
-    const r = await fetch('/api/vercel');
-    const j = await r.json();
-    alert('Planilha gerada e enviada para a aba Monitoramento da Vercel!\nArquivo: ' + j.arquivo);
-  } catch(e) {
-    alert('O upload automático ocorre a cada 30 minutos pelo Python.');
-  }
-  $('#bVercel').disabled = false;
-  $('#bVercel').textContent = '☁️ Enviar p/ Vercel Agora';
+  $('#bVercel').disabled = true; $('#bVercel').textContent = '⏳ Enviando p/ Vercel...';
+  try { const j = await (await fetch('/api/vercel')).json(); alert('Planilha gerada e enviada para a aba Monitoramento da Vercel!\nArquivo: ' + j.arquivo); }
+  catch (e) { alert('O upload automático ocorre a cada 30 minutos pelo Python.'); }
+  $('#bVercel').disabled = false; $('#bVercel').textContent = '☁️ Enviar p/ Vercel Agora';
 };
-
 $('#bRel').onclick = async () => {
-  try {
-    const r = await fetch('/api/relatorio');
-    const j = await r.json();
-    alert('Relatório .xlsx salvo em:\n' + j.arquivo);
-  } catch(e) {
-    alert('Relatório salvo automaticamente na pasta configurada!');
-  }
+  try { const j = await (await fetch('/api/relatorio')).json(); alert('Relatório .xlsx salvo em:\n' + j.arquivo); }
+  catch (e) { alert('Relatório salvo automaticamente na pasta configurada!'); }
 };
 
+// ---------- cartão de detalhamento ----------
+function logsTable(ls, tudo) {
+  const sh = tudo ? ls : ls.filter(l => l.status !== 'ok').slice(0, 25);
+  if (!sh.length) return '<div class="msg i">Todos os logs analisados estão em dia.</div>';
+  return `<table class="lt"><tr><th>Log</th><th>Ref.</th><th>Última data</th><th>Situação</th></tr>` +
+    sh.map(l => `<tr><td>${l.arquivo}</td><td>${l.ref}</td><td>${l.ultima}</td><td class="s-${l.status}">${l.motivo}</td></tr>`).join('') + '</table>';
+}
+function card(r) {
+  const w = [];
+  w.push(['👤 Responsável', `<b>${resp(r)}</b>`]);
+  if (r.linhas_hoje != null) {
+    w.push(['Execuções hoje', `${r.linhas_hoje} (${r.ok_hoje} ok / ${r.err_hoje} erro)`], ['Último fim (HH:MM:SS)', r.ultimo_fim || '-'],
+      ['Tempo médio processo', r.media_min == null ? '-' : r.media_min.toFixed(2) + ' min']);
+  }
+  (r.pastas || []).forEach(f => {
+    const tArq = f.tempo_medio_arq != null ? ` (${f.tempo_medio_arq} min/arq)` : '';
+    w.push([f.rotulo + ' (Meta Diária)', f.erro ? `<b style="color:var(--red)">${f.erro}</b>` : `<b>${f.n}/${f.esperado} hoje</b>${tArq} ` + (f.n >= f.esperado ? '✔' : '✖')]);
+    if (f.conf_mensal) w.push([f.rotulo + ' (Meta Mensal Útil)', `${f.n_mes}/${f.esperado_mes} no mês (${f.dias_uteis_ok}/${f.total_dias_uteis} dias úteis) ` + (f.dias_uteis_ok >= f.total_dias_uteis ? '✔' : '⚠️')]);
+  });
+  if (r.pbix) {
+    w.push(['Arquivo .pbix', r.pbix.arquivo || '<b>não localizado</b>'], ['Última atualização', `<b>${r.pbix.ultima || '-'}</b>`], ['Regra esperada', r.pbix.esperado || '-']);
+    if (r.pbix.arquivo) w.push(['Tempo desde a atualização', r.pbix.idade_h + ' h'], ['Atraso sobre o esperado', r.pbix.atraso_min ? `<b style="color:var(--red)">${r.pbix.atraso_min} min</b>` : '0 min']);
+  }
+  w.push(['Verificado em (Hora:Min:Seg)', `<b>${r.quando}</b>`]);
+  return `<div class="m ${r.status}">
+    <h2><span>${r.nome}</span><span class="chip">${r.pausa ? 'EM PAUSA' : L[r.status]}</span></h2>
+    <div class="meta"><span class="p-tag p-${r.prio}">Prioridade ${r.prio}</span><span class="c-tag">${CAT[r.categoria] || 'Outros'}</span></div>
+    ${w.map(x => `<div class="row"><span>${x[0]}</span><span>${x[1]}</span></div>`).join('')}
+    ${(r.erros || []).map(x => `<div class="msg">${x}</div>`).join('')}
+    ${(r.avisos || []).map(x => `<div class="msg w">${x}</div>`).join('')}
+    ${(r.infos || []).map(x => `<div class="msg i">${x}</div>`).join('')}
+    ${r.logs_detalhe ? logsTable(r.logs_detalhe, false) : ''}
+  </div>`;
+}
+const ordena = a => [...a].sort((x, y) => x.prio.localeCompare(y.prio) || x.nome.localeCompare(y.nome));
+function chips(el, opcoes, atual, set) {
+  $(el).innerHTML = opcoes.map(([k, t, n]) => `<button class="chip-f ${k === atual ? 'on' : ''}" data-k="${k}">${t} <span>${n}</span></button>`).join('');
+  $$(el + ' .chip-f').forEach(b => b.onclick = () => { set(b.dataset.k); render(); });
+}
+const mk = (id, cfg) => { charts[id]?.destroy(); charts[id] = new Chart($('#' + id), cfg); };
+
+// ---------- render ----------
 function render() {
   const hVal = $('#hourSel').value;
   let list = D.r;
   if (hVal !== 'now' && snaps[hVal]) {
     list = snaps[hVal].itens;
     $('#snapInfo').innerHTML = `<b style="color:var(--orange)">Exibindo fotografia das ${hVal} (salva às ${snaps[hVal].salvo_as})</b>`;
-  } else {
-    $('#snapInfo').textContent = 'Pastas 1, 3, 7 e 52 lidas automaticamente pelo Python.';
-  }
+  } else $('#snapInfo').textContent = 'Pastas lidas automaticamente pelo Python.';
+  $$('main > section').forEach(s => s.classList.toggle('hidden', s.id !== 's-' + tab));
+  const ativos = list.filter(r => r.status !== 'nd');
+  if (tab === 'geral') renderGeral(list, ativos);
+  if (tab === 'pbix') renderBis(list);
+  if (tab === 'logs') renderLogs(list);
+  if (tab === 'det') renderDet(list);
+  renderToasts(hVal);
+}
 
-  const filtered = list.filter(r => {
-    if (activeTab === 'bi') return r.categoria === 'bi';
-    if (activeTab === 'pbix') return r.categoria === 'pbix' || r.categoria === 'logs';
-    if (activeTab === 'base') return r.categoria === 'base';
-    return true;
-  });
-
-  const c = { ok: 0, err: 0, warn: 0, run: 0 };
-  filtered.forEach(r => { if (c[r.status] != null) c[r.status]++; });
+function renderGeral(list, ativos) {
+  const c = { ok: 0, warn: 0, err: 0 };
+  ativos.forEach(r => { if (c[r.status] != null) c[r.status]++; });
+  const bis = ativos.filter(r => r.categoria === 'pbix'), bOk = bis.filter(r => r.status === 'ok').length;
+  const saude = ativos.length ? Math.round(100 * c.ok / ativos.length) : 0;
   $('#sum').innerHTML = [
-    ['Monitorados na Aba', filtered.length, 'var(--blue-inst)'],
-    ['Atualizados (OK)', c.ok, 'var(--ok)'],
-    ['Em Execução', c.run, 'var(--blue-dark)'],
-    ['Em Alerta', c.warn, 'var(--gold)'],
-    ['Atrasados / Erro', c.err, 'var(--red)']
+    ['Itens monitorados', ativos.length, 'var(--blue-inst)'], ['Em dia (OK)', c.ok, 'var(--blue-inst)'],
+    ['Alertas (Média)', c.warn, 'var(--gold)'], ['Crítico / Erro', c.err, 'var(--red)'],
+    ['BIs em dia', `${bOk}/${bis.length}`, 'var(--blue-dark)'], ['Saúde geral', saude + '%', saude >= 90 ? 'var(--blue-inst)' : saude >= 70 ? 'var(--gold)' : 'var(--red)']
   ].map(([a, b, col]) => `<div class="k" style="--c:${col}"><b>${b}</b><span>${a}</span></div>`).join('');
 
-  $('#chartsBox').classList.toggle('hidden', activeTab === 'bi' || activeTab === 'base' || activeTab === 'pbix');
-  $('#pbixBox').classList.toggle('hidden', activeTab !== 'pbix');
-  $('#grid').classList.toggle('hidden', activeTab === 'charts');
+  const px = ordena(list.filter(r => r.categoria === 'pbix' && r.pbix && r.pbix.arquivo));
+  $('#cwBis').style.height = Math.max(380, px.length * 30 + 60) + 'px';
+  mk('cBis', {
+    type: 'bar',
+    data: { labels: px.map(r => `${r.nome.replace('PBIX · ', '')} · ${resp(r)}`), datasets: [{ data: px.map(r => r.pbix.idade_h), backgroundColor: px.map(r => COR[r.status]), borderRadius: 4 }] },
+    options: { indexAxis: 'y', maintainAspectRatio: false, animation: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.raw} h desde a última atualização (${px[c.dataIndex].pbix.ultima})` } } }, scales: { x: { title: { display: true, text: 'horas' } } } }
+  });
 
-  $('#grid').innerHTML = [...filtered].sort((a, b) => a.prio.localeCompare(b.prio)).map(r => {
-    const w = [];
-    if (r.linhas_hoje != null) {
-      w.push(
-        ['Execuções (log)', `${r.linhas_hoje} (${r.ok_hoje} ok / ${r.err_hoje} erro)`],
-        ['Último fim (HH:MM:SS)', r.ultimo_fim || '-'],
-        ['Tempo médio processo', r.media_min == null ? '-' : r.media_min.toFixed(2) + ' min']
-      );
-    }
-    if (r.media_arq_min != null || (r.pastas && r.pastas.length)) {
-      w.push(['Tempo médio / arquivo', r.media_arq_min == null ? '-' : r.media_arq_min.toFixed(2) + ' min/arq']);
-    }
-
-    r.pastas.forEach(f => {
-      const tArq = f.tempo_medio_arq != null ? ` (${f.tempo_medio_arq} min/arq)` : '';
-      w.push([
-        f.rotulo + ' (Meta Diária)',
-        f.erro ? `<b style="color:var(--red)">${f.erro}</b>` : `<b>${f.n}/${f.esperado} hoje</b>${tArq} ` + (f.n >= f.esperado ? '✔' : '✖')
-      ]);
-      if (f.conf_mensal) {
-        w.push([
-          f.rotulo + ' (Meta Mensal Útil)',
-          `${f.n_mes}/${f.esperado_mes} no mês (${f.dias_uteis_ok}/${f.total_dias_uteis} dias úteis) ` + (f.dias_uteis_ok >= f.total_dias_uteis ? '✔' : '⚠️')
-        ]);
-      }
-    });
-    if (r.pbix) {
-      w.push(
-        ['Arquivo .pbix (Pasta 3)', r.pbix.arquivo || '<b>não localizado</b>'],
-        ['Última atualização', `<b>${r.pbix.ultima || '-'}</b>`],
-        ['Regra de horário', r.pbix.esperado || '-']
-      );
-      if (r.pbix.arquivo) {
-        w.push(
-          ['Tempo desde atualização', r.pbix.idade_h + ' h'],
-          ['Atraso acumulado', r.pbix.atraso_min ? `<b style="color:var(--red)">${r.pbix.atraso_min} min</b>` : '<b style="color:var(--ok)">No prazo</b>']
-        );
-      }
-    }
-    w.push(['Verificado em', `<b>${r.quando}</b>`]);
-
-    return `<div class="m ${r.status}">
-      <h2><span>${r.nome}</span><span class="chip">${L[r.status]}</span></h2>
-      <div class="meta">
-        <span class="p-tag p-${r.prio}">Prioridade ${r.prio}</span>
-        <span class="c-tag">${CAT[r.categoria] || 'Base de Dados'}</span>
-      </div>
-      ${w.map(x => `<div class="row"><span>${x[0]}</span><span>${x[1]}</span></div>`).join('')}
-      ${(r.erros || []).map(x => `<div class="msg">${x}</div>`).join('')}
-      ${(r.avisos || []).map(x => `<div class="msg w">${x}</div>`).join('')}
-      ${(r.infos || []).map(x => `<div class="msg i">${x}</div>`).join('')}
-      ${r.logs_detalhe ? logsTable(r.logs_detalhe) : ''}
-    </div>`;
+  // equipe: barras crescentes
+  const eq = {};
+  const add = (n, r) => { const e = eq[n] || (eq[n] = [0, 0]); e[1]++; if (r.status === 'ok') e[0]++; };
+  ativos.forEach(r => donos(r).forEach(n => add(n, r)));
+  const linhas = [['Equipe OptimusBI (geral)', ativos.filter(r => r.status === 'ok').length, ativos.length], ...Object.entries(eq).sort().map(([n, v]) => [n, v[0], v[1]])];
+  $('#team').innerHTML = linhas.map(([n, ok, t], i) => {
+    const pct = t ? Math.round(100 * ok / t) : 0, cor = pct >= 90 ? 'var(--blue-inst)' : pct >= 70 ? 'var(--gold)' : 'var(--red)';
+    return `<div class="pb ${i === 0 ? 'pb0' : ''}"><div class="pb-h"><b>${i ? '👤 ' : '👥 '}${n}</b><span>${ok} de ${t} em dia · <b>${pct}%</b></span></div><div class="pb-t"><div class="pb-f" data-w="${pct}" style="background:${cor}"></div></div></div>`;
   }).join('');
+  requestAnimationFrame(() => setTimeout(() => $$('.pb-f').forEach(el => el.style.width = el.dataset.w + '%'), 60));
 
-  renderCharts(list);
-  renderPbixCharts(list);
-  checkAlerts(hVal);
-}
-
-function logsTable(ls) {
-  const sh = ls.filter(l => l.status !== 'ok').slice(0, 30);
-  if (!sh.length) return '<div class="msg i">Todos os logs da Pasta 52 analisados estão em dia.</div>';
-  return `<details open style="margin-top:8px"><summary style="cursor:pointer;font-weight:700;color:var(--blue-inst)">Ver Logs Desatualizados / Alerta (${sh.length})</summary><table class="lt"><tr><th>Ficheiro Log</th><th>Ref.</th><th>Última Data</th><th>Diagnóstico</th></tr>` +
-    sh.map(l => `<tr><td>${l.arquivo}</td><td>${l.ref}</td><td>${l.ultima}</td><td class="s-${l.status}">${l.motivo}</td></tr>`).join('') + '</table></details>';
-}
-
-function renderCharts(list) {
-  const mk = (id, cfg) => { charts[id]?.destroy(); charts[id] = new Chart($('#' + id), cfg); };
-
-  const hMap = {};
-  for (let h = 5; h <= 22; h++) hMap[p2(h) + ':00'] = { ok: 0, err: 0 };
-  list.forEach(r => (r.eventos_hoje || []).forEach(ev => {
-    const hk = (ev.h || '00:00').slice(0, 2) + ':00';
-    if (!hMap[hk]) hMap[hk] = { ok: 0, err: 0 };
-    if (ev.st === 'SUC') hMap[hk].ok++;
-    if (ev.st === 'ERR') hMap[hk].err++;
-  }));
-  const hKeys = Object.keys(hMap).sort();
-  mk('cHora', {
-    data: {
-      labels: hKeys,
-      datasets: [
-        { type: 'line', label: 'Linha de Erros', data: hKeys.map(k => hMap[k].err), borderColor: '#F21D2F', backgroundColor: '#F21D2F', tension: 0.3 },
-        { type: 'bar', label: 'Sucessos', data: hKeys.map(k => hMap[k].ok), backgroundColor: '#0339A6' },
-        { type: 'bar', label: 'Erros', data: hKeys.map(k => hMap[k].err), backgroundColor: '#F24405' }
-      ]
-    },
-    options: { animation: false }
+  const hoje = new Date().toISOString().slice(0, 10), H = D.hist || [];
+  const pct = x => { const t = x.ok + x.warn + x.err; return t ? Math.round(100 * x.ok / t) : 0; };
+  const porHora = {}; H.filter(x => x.dia === hoje).forEach(x => porHora[x.h.slice(0, 2)] = x);
+  const hk = Object.keys(porHora).sort();
+  mk('cHoraE', {
+    data: { labels: hk.map(h => h + 'h'), datasets: [
+      { type: 'bar', label: '% em dia', data: hk.map(h => pct(porHora[h])), backgroundColor: hk.map(h => pct(porHora[h]) >= 90 ? '#0339A6' : pct(porHora[h]) >= 70 ? '#F2B705' : '#F21D2F'), borderRadius: 4, yAxisID: 'y' },
+      { type: 'line', label: 'Falhas', data: hk.map(h => porHora[h].err), borderColor: '#F21D2F', backgroundColor: '#F21D2F', tension: .3, yAxisID: 'y1' }] },
+    options: { maintainAspectRatio: false, animation: false, scales: { y: { min: 0, max: 100, title: { display: true, text: '% em dia' } }, y1: { position: 'right', grid: { drawOnChartArea: false }, beginAtZero: true, title: { display: true, text: 'falhas' } } } }
   });
-
-  const dayMap = {};
-  (D.hist || []).forEach(x => { dayMap[x.dia] = x; });
-  const dKeys = Object.keys(dayMap).sort().slice(-15);
-  mk('cDia', {
+  const porDia = {}; H.forEach(x => porDia[x.dia] = x);
+  const dk = Object.keys(porDia).sort().slice(-20);
+  const nomes = [...new Set(dk.flatMap(d => Object.keys(porDia[d].eq || {})))].sort();
+  mk('cDiaE', {
     type: 'line',
-    data: {
-      labels: dKeys,
-      datasets: [
-        { label: 'Processos OK no Dia', data: dKeys.map(k => dayMap[k].ok), borderColor: '#0339A6', backgroundColor: '#0339A6', tension: 0.25 },
-        { label: 'Processos com Erro no Dia', data: dKeys.map(k => dayMap[k].err), borderColor: '#F21D2F', backgroundColor: '#F21D2F', tension: 0.25 }
-      ]
-    },
-    options: { animation: false }
-  });
-
-  const lg = list.filter(r => r.media_min != null);
-  mk('c1', {
-    type: 'bar',
-    data: { labels: lg.map(r => r.nome), datasets: [{ data: lg.map(r => r.media_min), backgroundColor: '#0339A6' }] },
-    options: { indexAxis: 'y', plugins: { legend: { display: false } }, animation: false }
-  });
-
-  const fa = list.filter(r => r.media_arq_min != null);
-  mk('cArq', {
-    type: 'bar',
-    data: { labels: fa.map(r => r.nome), datasets: [{ data: fa.map(r => r.media_arq_min), backgroundColor: '#F2B705' }] },
-    options: { plugins: { legend: { display: false } }, animation: false }
+    data: { labels: dk.map(d => d.slice(8) + '/' + d.slice(5, 7)), datasets: [
+      { label: 'Equipe (geral)', data: dk.map(d => pct(porDia[d])), borderColor: '#0339A6', backgroundColor: '#0339A6', borderWidth: 4, tension: .3 },
+      ...nomes.map(n => ({ label: n, data: dk.map(d => { const e = (porDia[d].eq || {})[n]; return e && e[1] ? Math.round(100 * e[0] / e[1]) : null; }), borderColor: PESSOA[n] || '#94A3B8', backgroundColor: PESSOA[n] || '#94A3B8', tension: .3, borderDash: [5, 4], spanGaps: true }))] },
+    options: { maintainAspectRatio: false, animation: false, scales: { y: { min: 0, max: 100, title: { display: true, text: '% em dia' } } } }
   });
 }
 
-function renderPbixCharts(list) {
-  const mk = (id, cfg) => { charts[id]?.destroy(); charts[id] = new Chart($('#' + id), cfg); };
-  const COR = { ok: '#10B981', warn: '#F2B705', err: '#F21D2F', run: '#0339A6', nd: '#94A3B8' };
-  const allBis = list.filter(r => r.categoria === 'pbix' || r.categoria === 'bi');
-
-  const nOk = allBis.filter(r => r.status === 'ok').length;
-  const nWarn = allBis.filter(r => r.status === 'warn').length;
-  const nErr = allBis.filter(r => r.status === 'err').length;
-  mk('cPbDonut', {
-    type: 'doughnut',
-    data: {
-      labels: ['Atualizados (OK)', 'Em Alerta', 'Atrasados / Erro'],
-      datasets: [{ data: [nOk, nWarn, nErr], backgroundColor: ['#10B981', '#F2B705', '#F21D2F'] }]
-    },
-    options: { animation: false, plugins: { legend: { position: 'bottom' } } }
-  });
-
-  const pr = ['P0', 'P1', 'P2'];
-  const cnt = (p, s) => allBis.filter(r => r.prio === p && r.status === s).length;
-  mk('cPbPrio', {
-    type: 'bar',
-    data: {
-      labels: pr,
-      datasets: [
-        { label: 'OK', data: pr.map(p => cnt(p, 'ok')), backgroundColor: '#10B981' },
-        { label: 'Alerta', data: pr.map(p => cnt(p, 'warn')), backgroundColor: '#F2B705' },
-        { label: 'Atrasado / Erro', data: pr.map(p => cnt(p, 'err')), backgroundColor: '#F21D2F' }
-      ]
-    },
-    options: { scales: { x: { stacked: true }, y: { stacked: true } }, animation: false }
-  });
-
-  const px = list.filter(r => r.categoria === 'pbix' && r.pbix && r.pbix.arquivo);
-  mk('cPbIdade', {
-    type: 'bar',
-    data: {
-      labels: px.map(r => r.nome.replace('PBIX · ', '')),
-      datasets: [{ label: 'Horas desde última atualização', data: px.map(r => r.pbix.idade_h), backgroundColor: px.map(r => COR[r.status]) }]
-    },
-    options: { indexAxis: 'y', plugins: { legend: { display: false } }, animation: false }
-  });
-
-  const hh = Array(24).fill(0);
-  px.forEach(r => {
-    const d = new Date(r.pbix.ultima_iso);
-    if (d.toDateString() === new Date().toDateString()) hh[d.getHours()]++;
-  });
-  mk('cPbHora', {
-    type: 'bar',
-    data: {
-      labels: hh.map((_, i) => p2(i) + 'h'),
-      datasets: [{ label: 'BIs atualizados nesta hora (hoje)', data: hh, backgroundColor: '#0339A6' }]
-    },
-    options: { animation: false }
-  });
+function renderBis(list) {
+  const bis = list.filter(r => r.categoria === 'pbix');
+  const pessoas = [...new Set(bis.flatMap(donos))].sort();
+  chips('#chipsBi', [['todos', 'Todos', bis.length], ...pessoas.map(p => [p, '👤 ' + p, bis.filter(r => donos(r).includes(p)).length]),
+    ['falha', '🚨 Com falha/alerta', bis.filter(r => r.status === 'err' || r.status === 'warn').length], ['pausa', '⏸️ Em pausa', bis.filter(r => r.pausa).length]], fBi, k => fBi = k);
+  const f = bis.filter(r => fBi === 'todos' ? true : fBi === 'pausa' ? r.pausa : fBi === 'falha' ? (r.status === 'err' || r.status === 'warn') : donos(r).includes(fBi));
+  $('#gridBi').innerHTML = ordena(f).map(card).join('') || '<div class="msg i">Nenhum BI neste filtro.</div>';
 }
 
+function renderLogs(list) {
+  const it = list.find(r => r.categoria === 'logs');
+  if (!it) { $('#sumLogs').innerHTML = ''; $('#gridLogs').innerHTML = '<div class="msg i">Auditoria de logs ainda não executada.</div>'; return; }
+  const ls = it.logs_detalhe || [], n = s => ls.filter(l => l.status === s).length;
+  $('#sumLogs').innerHTML = [['Logs analisados', ls.length, 'var(--blue-inst)'], ['Em dia', n('ok'), 'var(--blue-inst)'], ['Com alerta', n('warn'), 'var(--gold)'], ['Desatualizados', n('err'), 'var(--red)']]
+    .map(([a, b, col]) => `<div class="k" style="--c:${col}"><b>${b}</b><span>${a}</span></div>`).join('');
+  $('#gridLogs').innerHTML = `<div class="box"><h3>Regra: log do mês atual atualizado diariamente · logs anteriores fechando o mês · 3+ meses sem atualizar = desatualizado</h3>${(it.erros || []).map(x => `<div class="msg">${x}</div>`).join('')}${logsTable(ls, true)}<div class="row" style="margin-top:8px"><span>Verificado em</span><span><b>${it.quando}</b></span></div></div>`;
+}
+
+function renderDet(list) {
+  const base = list.filter(r => r.categoria !== 'logs');
+  const tipo = r => r.categoria === 'pbix' ? 'pbix' : (r.tipo_proc || 'outros');
+  const cn = k => base.filter(r => tipo(r) === k).length;
+  chips('#chipsDet', [['todos', 'Todos', base.length], ['fluxo', '⚙️ Fluxo de execução', cn('fluxo')], ['download', '⬇️ Download de bases', cn('download')], ['pbix', '📊 BIs (.pbix)', cn('pbix')], ['outros', 'Outros', cn('outros')]], fDet, k => fDet = k);
+  $('#gridDet').innerHTML = ordena(base.filter(r => fDet === 'todos' || tipo(r) === fDet)).map(card).join('') || '<div class="msg i">Nada neste filtro.</div>';
+}
+
+// ---------- pop-ups pequenos na lateral ----------
+function renderToasts(hVal) {
+  const al = ordena(D.r.filter(r => r.status === 'err'));
+  const dis = JSON.parse(localStorage.getItem('optimusDismiss') || '{}'), seen = JSON.parse(sessionStorage.getItem('optimusSeen') || '{}'), now = Date.now();
+  const key = r => r.nome + '|' + (r.erros[0] || '');
+  const vis = al.filter(r => !(dis[key(r)] && now - dis[key(r)] < 30 * 60000));
+  $('#bellN').textContent = al.length;
+  if (hVal !== 'now') { $('#toasts').innerHTML = ''; return; }
+  const cor = r => r.prio === 'P0' ? 'var(--red)' : r.prio === 'P1' ? 'var(--orange)' : 'var(--gold)';
+  $('#toasts').innerHTML = vis.slice(0, 5).map(r => {
+    const e = (r.erros[0] || 'Falha detectada'); 
+    return `<div class="toast" style="--c:${cor(r)}" data-k="${encodeURIComponent(key(r))}"><button class="x" title="Dispensar por 30 min">×</button>
+      <div class="t1">🚨 [${r.prio}] ${r.nome.replace('PBIX · ', '')}</div><div class="t2">${e.length > 150 ? e.slice(0, 150) + '…' : e}</div>
+      <div class="t3">👤 Responsável: <b>${resp(r)}</b></div></div>`;
+  }).join('') + (vis.length > 5 ? `<div class="toast mais" style="--c:var(--slate-600)">+ ${vis.length - 5} alerta(s) — veja em Detalhamento dos Processos</div>` : '');
+  $$('#toasts .x').forEach(b => b.onclick = () => { const k = decodeURIComponent(b.parentElement.dataset.k); dis[k] = Date.now(); localStorage.setItem('optimusDismiss', JSON.stringify(dis)); render(); });
+  let novo = false; vis.forEach(r => { if (!seen[key(r)]) { seen[key(r)] = 1; novo = true; } });
+  if (novo) { sessionStorage.setItem('optimusSeen', JSON.stringify(seen)); beep(); }
+}
 function beep() {
-  if (!soundEnabled) return;
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    [880, 660, 880].forEach((freq, idx) => {
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.type = 'sawtooth'; o.frequency.value = freq; g.gain.value = 0.08;
-      o.start(ctx.currentTime + idx * 0.22);
-      o.stop(ctx.currentTime + idx * 0.22 + 0.18);
-    });
-  } catch (e) {}
+  try { const a = new (window.AudioContext || window.webkitAudioContext)(), o = a.createOscillator(), g = a.createGain(); o.connect(g); g.connect(a.destination); o.type = 'square'; o.frequency.value = 880; g.gain.value = 0.05; o.start(); setTimeout(() => { o.stop(); a.close(); }, 350); } catch (e) {}
 }
+$('#bBell').onclick = () => { localStorage.removeItem('optimusDismiss'); render(); };
 
-function getCriticalAlerts() {
-  return D.r.filter(r =>
-    r.status === 'err' && (r.prio === 'P0' || r.categoria === 'pbix' || r.categoria === 'bi' || r.categoria === 'logs')
-  ).sort((a, b) => a.prio.localeCompare(b.prio));
-}
-
-function ackAlert() {
-  const al = getCriticalAlerts();
-  localStorage.setItem('optimusAck', JSON.stringify({
-    sig: al.map(r => r.nome + '|' + (r.erros[0] || '')).sort().join('#'),
-    ts: Date.now()
-  }));
-}
-
-function checkAlerts(hVal) {
-  const al = getCriticalAlerts();
-  const badge = $('#alertBadge');
-  badge.classList.toggle('hidden', !al.length);
-  badge.textContent = `🚨 ${al.length} Alerta(s) P0 / BI`;
-  if (!al.length) { localStorage.removeItem('optimusAck'); return; }
-
-  const warns = D.r.filter(r => r.status === 'warn').length;
-  $('#alertList').innerHTML = al.slice(0, 15).map(r =>
-    `<div class="al" style="--c:${r.prio === 'P0' ? 'var(--red)' : r.prio === 'P1' ? 'var(--orange)' : 'var(--gold)'}">
-      <b>[${r.prio}] ${r.nome}</b>
-      ${(r.erros || []).slice(0, 3).map(e => `<small>❌ ${e}</small>`).join('')}
-    </div>`
-  ).join('') +
-  (al.length > 15 ? `<p>... e mais ${al.length - 15} alerta(s).</p>` : '') +
-  (warns ? `<p style="font-size:12px;color:var(--slate-600)">Há também ${warns} item(ns) em estado de atenção (amarelo).</p>` : '') +
-  `<p style="font-size:11px;color:var(--slate-600);margin-bottom:0">Leitura efetuada em: ${D.gerado}</p>`;
-
-  const sig = al.map(r => r.nome + '|' + (r.erros[0] || '')).sort().join('#');
-  const ack = JSON.parse(localStorage.getItem('optimusAck') || 'null');
-  const reabrir = !ack || ack.sig !== sig || (Date.now() - ack.ts) > 30 * 60000;
-  if (reabrir && hVal === 'now' && !$('#dAlert').open) {
-    $('#dAlert').showModal();
-    beep();
-  }
-}
-
-$('#alertBadge').onclick = () => { $('#dAlert').showModal(); beep(); };
-$('#bAlertOk').onclick = () => { ackAlert(); $('#dAlert').close(); };
-$('#bAlertClose').onclick = () => $('#dAlert').close();
-$('#dAlert').addEventListener('cancel', ackAlert);
-$('#bAlertBis').onclick = () => {
-  ackAlert();
-  $('#dAlert').close();
-  document.querySelector('#tabs [data-tab="pbix"]').click();
-};
-
-$('#last').textContent = 'Último monitoramento registado: ' + D.gerado;
-setInterval(() => {
-  $('#liveClock').textContent = fmtHMS(new Date());
-  secLeft = Math.max(0, secLeft - 1);
-  $('#cd').textContent = secLeft + 's';
-  if (secLeft === 0 && !$('#dAlert').open && !$('#dWa').open) location.reload();
-}, 1000);
-
+$('#last').textContent = 'Último monitoramento registrado: ' + D.gerado;
+setInterval(() => { $('#liveClock').textContent = fmtHMS(new Date()); secLeft = Math.max(0, secLeft - 1); $('#cd').textContent = secLeft + 's'; if (secLeft === 0 && !$('#dWa').open) location.reload(); }, 1000);
 $('#bWa').onclick = () => {
   $('#waTxt').value = D.texto;
   const lk = p => `https://web.whatsapp.com/send?phone=${p.numero}&text=${encodeURIComponent($('#waTxt').value)}`;
@@ -1787,7 +1570,6 @@ $('#bWa').onclick = () => {
   $('#dWa').showModal();
 };
 $('#bWc').onclick = () => $('#dWa').close();
-
 render();
 </script>
 </body>
@@ -1814,15 +1596,13 @@ def gerar_dashboard(cfg, res):
     ativos = [x for x in res if x['status'] != 'nd']
     c = lambda s: sum(x['status'] == s for x in ativos)
     agora_str = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-    hist.append(dict(
-        dia=date.today().isoformat(),
-        h=datetime.now().strftime('%H:%M:%S'),
-        ok=c('ok'),
-        warn=c('warn'),
-        err=c('err'),
-        bi_ok=sum(1 for x in ativos if x.get('categoria') == 'pbix' and x['status'] == 'ok'),
-        bi_err=sum(1 for x in ativos if x.get('categoria') == 'pbix' and x['status'] == 'err')
-    ))
+    eq = {}
+    for x in ativos:
+        for p in [q.strip() for q in re.split(r'\s+e\s+|,', x.get('responsavel') or '') if q.strip()]:
+            e = eq.setdefault(p, [0, 0]); e[1] += 1; e[0] += (x['status'] == 'ok')
+    hist.append(dict(dia=date.today().isoformat(), eq=eq, h=datetime.now().strftime('%H:%M:%S'), ok=c('ok'), warn=c('warn'), err=c('err'),
+                     bi_ok=sum(1 for x in ativos if x.get('categoria') == 'pbix' and x['status'] == 'ok'),
+                     bi_err=sum(1 for x in ativos if x.get('categoria') == 'pbix' and x['status'] == 'err')))
     hist = hist[-500:]
     HIST.write_text(json.dumps(hist, ensure_ascii=False), encoding='utf-8')
 
@@ -1852,62 +1632,28 @@ def gerar_dashboard(cfg, res):
 
 
 # ==============================================================================
-# 8. WHATSAPP A CADA 6 HORAS (360 MIN) - FECHANDO E REINICIANDO POR CONTACTO
+# 8. WHATSAPP A CADA 6 HORAS (360 MIN) - FECHANDO E REINICIANDO POR CONTATO
 # ==============================================================================
 ICON = {'ok': '✅', 'err': '❌', 'warn': '⚠️', 'run': '🔄', 'nd': '➖'}
 
 
 def resumo(res, titulo='Monitoramento OptimusBI'):
-    """
-    Gera uma mensagem formatada e limpa para envio via WhatsApp,
-    destacando itens críticos (P0/P1) e agrupando falhas no topo.
-    """
     ativos = [x for x in res if x['status'] != 'nd']
-    
-    # Contadores
-    total_ok = sum(1 for x in ativos if x['status'] == 'ok')
-    total_warn = sum(1 for x in ativos if x['status'] == 'warn')
-    total_err = sum(1 for x in ativos if x['status'] == 'err')
-    total_run = sum(1 for x in ativos if x['status'] == 'run')
-
-    # Cabeçalho da mensagem
-    agora_str = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-    t = f"📊 *{titulo}*\n"
-    t += f"🕒 _{agora_str}_\n\n"
-    t += f"📈 *Resumo Geral:*\n"
-    t += f"✅ OK: *{total_ok}* | ⚠️ Alertas: *{total_warn}* | ❌ Erros: *{total_err}*"
-    if total_run > 0:
-        t += f" | 🔄 Rodando: *{total_run}*"
-    t += "\n\n───────────────────\n"
-
-    # Separa itens com problema (err e warn) dos demais (ok)
-    criticos = [x for x in ativos if x['status'] in ('err', 'warn')]
-    sucessos = [x for x in ativos if x['status'] == 'ok']
-
-    # Ordena críticos por prioridade (P0 primeiro, depois P1, P2)
-    ordem_prio = {'P0': 0, 'P1': 1, 'P2': 2, 'P3': 3}
-    criticos.sort(key=lambda x: (ordem_prio.get(x.get('prio', 'P2'), 2), x['nome']))
-
-    if criticos:
-        t += "🚨 *Itens que requerem atenção:*\n"
-        for x in criticos:
-            icone = ICON.get(x['status'], '⚠️')
-            prio = x.get('prio', 'P2')
-            t += f"\n{icone} *[{prio}] {x['nome']}*"
-            
-            # Adiciona os erros principais
-            for e in x.get('erros', []):
-                t += f"\n   └ ❌ {e}"
-            
-            # Adiciona avisos caso não haja erros
-            if not x.get('erros') and x.get('avisos'):
-                for a in x.get('avisos', [])[:1]:
-                    t += f"\n   └ ⚠️ {a}"
-        t += "\n───────────────────\n"
-
-    # Se houver itens OK e quiseres um resumo breve no fim (opcional)
-    t += f"💡 _Todos os outros {len(sucessos)} fluxos encontram-se operacionais._"
-    
+    c = lambda s: sum(x['status'] == s for x in ativos)
+    t = (
+        f"*{titulo}* - {datetime.now():%d/%m/%Y %H:%M:%S}\n"
+        f"✅ OK: {c('ok')} | ⚠️ Alerta: {c('warn')} | ❌ Erro: {c('err')}"
+        + (f" | 🔄 Rodando: {c('run')}" if c('run') else '') + '\n'
+    )
+    for x in sorted(ativos, key=lambda x: x['prio']):
+        if x.get('categoria') == 'pbix' and x['status'] == 'ok':
+            continue
+        t += f"\n{ICON[x['status']]} [{x['prio']}] {x['nome']}" + (f" — Resp.: {x['responsavel']}" if x.get('responsavel') and x['status'] in ('err', 'warn') else '')
+        for e in x['erros']:
+            t += f"\n   - {e}"
+        if x['status'] == 'warn':
+            for a in x['avisos'][:1]:
+                t += f"\n   - {a}"
     return t
 
 
@@ -1971,7 +1717,7 @@ def enviar_whatsapp(cfg, texto):
     for idx, d in enumerate(destinos, start=1):
         proc = None
         try:
-            log.info('[%s/%s] A iniciar janela do navegador para %s...', idx, len(destinos), d['nome'])
+            log.info('[%s/%s] Iniciando janela do navegador para %s...', idx, len(destinos), d['nome'])
             encerrar_chrome_porta(porta)
             proc = abrir_chrome_limpo(cfg)
             if not proc:
@@ -1989,7 +1735,7 @@ def enviar_whatsapp(cfg, texto):
             time.sleep(2)
             caixa.send_keys(Keys.ENTER)
             time.sleep(5)
-            log.info('WhatsApp enviado para %s (1 mensagem). A fechar janela...', d['nome'])
+            log.info('WhatsApp enviado para %s (1 mensagem). Fechando janela...', d['nome'])
         except Exception as e:
             ok_all = False
             log.error('Falha WhatsApp %s: %s', d['nome'], str(e)[:200])
@@ -2005,12 +1751,13 @@ def enviar_whatsapp(cfg, texto):
 
 
 def rotina_whatsapp(cfg, res, enviar):
+    """Envia a atualização no WhatsApp somente a cada 6 horas (360 minutos)."""
     w = cfg['whatsapp']
     if not (enviar and w.get('ativo')):
         return
     est = json.loads(ESTADO.read_text(encoding='utf-8')) if ESTADO.exists() else {}
     agora = datetime.now()
-    freq_min = int(w.get('resumo_a_cada_min', 360))
+    freq_min = int(w.get('resumo_a_cada_min', 360))  # 360 min = 6 horas
     ultimo = datetime.fromisoformat(est['ultimo_resumo']) if est.get('ultimo_resumo') else None
     ativos = [x for x in res if x['status'] != 'nd']
     erros = sorted(f"{x['nome']}|{e}" for x in ativos for e in x['erros'])
@@ -2025,7 +1772,7 @@ def rotina_whatsapp(cfg, res, enviar):
 
 
 # ==============================================================================
-# 9. SERVIDOR WEB EMBUTIDO E CICLO PRINCIPAL (SEM DUPLICAÇÃO)
+# 9. SERVIDOR WEB EMBUTIDO E CICLO PRINCIPAL
 # ==============================================================================
 ULTIMO_ESTADO_GLOBAL = {'cfg': None, 'res': [], 'snaps': {}, 'hist': []}
 
@@ -2105,7 +1852,7 @@ def verificar_relatorio_final_do_dia(cfg, res, snaps_hoje, hist, forcar=False):
         )
         est['ultimo_relatorio_xlsx'] = hoje_iso
         ESTADO.write_text(json.dumps(est, ensure_ascii=False), encoding='utf-8')
-        print(f"[OptimusBI] Relatório diário .xlsx guardado em: {arq_salvo}")
+        print(f"[OptimusBI] Relatório diário .xlsx salvo em: {arq_salvo}")
 
 
 def ciclo(enviar, forcar_relatorio=False, forcar_vercel=False):
@@ -2115,7 +1862,7 @@ def ciclo(enviar, forcar_relatorio=False, forcar_vercel=False):
         try:
             res.append(avaliar(m, cfg))
         except Exception:
-            log.error('Erro a avaliar %s\n%s', m['nome'], traceback.format_exc())
+            log.error('Erro avaliando %s\n%s', m['nome'], traceback.format_exc())
             res.append(dict(
                 nome=m['nome'], categoria=m.get('categoria', 'bi'), prio=m['prio'], status='err',
                 erros=['Falha interna na verificação'], avisos=[], infos=[], pastas=[],
@@ -2123,6 +1870,12 @@ def ciclo(enviar, forcar_relatorio=False, forcar_vercel=False):
                 linhas_hoje=None, ok_hoje=None, err_hoje=None, media_min=None, media_arq_min=None, ultimo_fim=None
             ))
 
+    _por_nome = {m['nome']: m for m in cfg['monitores']}
+    for x in res:
+        mm = _por_nome.get(x['nome'])
+        if mm:
+            x['responsavel'] = mm.get('responsavel', '')
+            x['tipo_proc'] = mm.get('tipo_proc') or ('download' if x.get('categoria') == 'base' else 'fluxo')
     try:
         res.extend(avaliar_pbix(cfg))
         res.append(auditar_logs_52(cfg))
@@ -2167,7 +1920,7 @@ if __name__ == '__main__':
     a = ap.parse_args()
 
     if a.testar_whatsapp:
-        sucesso = enviar_whatsapp(sincronizar_config_automatico(), 'Teste Monitoramento OptimusBI ✅ (1 mensagem por contacto)')
+        sucesso = enviar_whatsapp(sincronizar_config_automatico(), 'Teste Monitoramento OptimusBI ✅ (1 mensagem por contato)')
         print('Enviado!' if sucesso else 'Falhou - veja monitor.log')
         sys.exit()
 
