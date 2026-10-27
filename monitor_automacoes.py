@@ -1161,6 +1161,8 @@ def rotina_vercel_30_minutos(cfg, res, snaps_hoje, hist, forcar=False):
 # ==============================================================================
 # 7. TEMPLATE DO DASHBOARD LOCAL (HTML)
 # ==============================================================================
+VERSAO_PAINEL = 'v5.2 · Visão Geral | BIs | Logs | Detalhamento'
+
 HTML = r'''<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -1278,6 +1280,7 @@ HTML = r'''<!DOCTYPE html>
           <span id="last"></span>
           <span>| Relógio: <b class="badge" id="liveClock">--:--:--</b></span>
           <span>| Atualização: <b class="badge" id="cd">60s</b></span>
+          <span>| Painel: <b class="badge">__VERSAO__</b></span>
         </div>
       </div>
     </div>
@@ -1616,7 +1619,7 @@ def gerar_dashboard(cfg, res):
         texto=resumo(res),
         destinos=cfg['whatsapp']['destinos']
     )
-    conteudo_html = HTML.replace('__DATA__', json.dumps(dados, ensure_ascii=False))
+    conteudo_html = HTML.replace('__VERSAO__', VERSAO_PAINEL).replace('__DATA__', json.dumps(dados, ensure_ascii=False))
 
     destino = AQUI / cfg.get('dashboard_html', 'dashboard.html')
     destino.write_text(conteudo_html, encoding='utf-8')
@@ -1637,24 +1640,104 @@ def gerar_dashboard(cfg, res):
 ICON = {'ok': '✅', 'err': '❌', 'warn': '⚠️', 'run': '🔄', 'nd': '➖'}
 
 
-def resumo(res, titulo='Monitoramento OptimusBI'):
+def _cut(s, n):
+    s = ' '.join(str(s).split())
+    return s if len(s) <= n else s[:n - 3] + '...'
+
+
+def _motivo_curto(msg):
+    m = str(msg)
+    m = re.sub(r'(\d\d)/(\d\d)/\d{4} (\d\d:\d\d):\d\d', r'\1/\2 \3', m)
+    m = re.sub(r'(\d\d/\d\d) (\d\d:\d\d):\d\d', r'\1 \2', m)
+    m = re.sub(r'ATRASADO: esperada atualização do horário das (\d\d:\d\d).*?Última: (.+)$', r'Esperado \1; ultima \2', m)
+    m = re.sub(r'ATRASADO: sem atualização hoje \(prazo (\S+)\)\. Última: (.+)$', r'Sem atualizar hoje (prazo \1); ultima \2', m)
+    m = re.sub(r'NÃO BAIXOU: (.+?) tem (\d+) de (\d+) arquivos hoje', r'Nao baixou \1: \2/\3', m)
+    m = re.sub(r'Log do mês não encontrado: .*', 'Log do mes nao encontrado', m)
+    m = re.sub(r'Pasta não encontrada: .*', 'Pasta do dia nao encontrada', m)
+    return m
+
+
+def resumo(res, titulo='Monitoramento OptimusBI', max_chars=950):
+    """Resumo em formato de planilha (texto monoespaçado, sem emojis), cabendo na legenda de uma imagem."""
     ativos = [x for x in res if x['status'] != 'nd']
     c = lambda s: sum(x['status'] == s for x in ativos)
-    t = (
-        f"*{titulo}* - {datetime.now():%d/%m/%Y %H:%M:%S}\n"
-        f"✅ OK: {c('ok')} | ⚠️ Alerta: {c('warn')} | ❌ Erro: {c('err')}"
-        + (f" | 🔄 Rodando: {c('run')}" if c('run') else '') + '\n'
-    )
-    for x in sorted(ativos, key=lambda x: x['prio']):
-        if x.get('categoria') == 'pbix' and x['status'] == 'ok':
-            continue
-        t += f"\n{ICON[x['status']]} [{x['prio']}] {x['nome']}" + (f" — Resp.: {x['responsavel']}" if x.get('responsavel') and x['status'] in ('err', 'warn') else '')
-        for e in x['erros']:
-            t += f"\n   - {e}"
-        if x['status'] == 'warn':
-            for a in x['avisos'][:1]:
-                t += f"\n   - {a}"
+    bis = [x for x in ativos if x.get('categoria') == 'pbix']
+    saude = round(100 * c('ok') / len(ativos)) if ativos else 0
+    eq = {}
+    for x in ativos:
+        for p in [q.strip() for q in re.split(r'\s+e\s+|,', x.get('responsavel') or '') if q.strip()]:
+            e = eq.setdefault(p, [0, 0])
+            e[1] += 1
+            e[0] += (x['status'] == 'ok')
+    falhas = sorted([x for x in ativos if x['status'] == 'err'], key=lambda x: (x['prio'], x['nome']))
+    alertas = sorted([x for x in ativos if x['status'] == 'warn'], key=lambda x: (x['prio'], x['nome']))
+
+    def montar(n_falhas, n_alertas):
+        L = [f"*{titulo}* {datetime.now():%d/%m/%Y %H:%M}", '```',
+             f"Saude geral : {saude}%",
+             f"OK/Alerta/Falha : {c('ok')}/{c('warn')}/{c('err')}",
+             f"BIs em dia  : {sum(x['status'] == 'ok' for x in bis)}/{len(bis)}", '',
+             'RESP.      OK/TOT   %']
+        for p, (o, t) in sorted(eq.items()):
+            L.append(f"{p[:10]:<10} {o:>2}/{t:<4} {round(100 * o / t):>3}%")
+        if falhas:
+            L += ['', f"FALHAS ({len(falhas)})"]
+            for x in falhas[:n_falhas]:
+                nome = x['nome'].replace('PBIX · ', '') + (' (pbix)' if x.get('categoria') == 'pbix' else '')
+                L.append(f"{x['prio']} {_cut(nome, 30)} | {_cut(x.get('responsavel') or '-', 10)}")
+                L.append(f"   {_cut(_motivo_curto(x['erros'][0]) if x['erros'] else '-', 54)}")
+            if len(falhas) > n_falhas:
+                L.append(f"   (+{len(falhas) - n_falhas} no painel)")
+        if alertas and n_alertas:
+            L += ['', f"ALERTAS ({len(alertas)}): " + _cut(', '.join(x['nome'].replace('PBIX · ', '') for x in alertas[:n_alertas]), 150)]
+        L.append('```')
+        return '\n'.join(L)
+
+    for nf, na in [(12, 6), (8, 4), (6, 3), (4, 2), (3, 0), (2, 0), (1, 0), (0, 0)]:
+        t = montar(nf, na)
+        if len(t) <= max_chars:
+            return t
     return t
+
+
+def _achar_chrome(cfg):
+    cands = [cfg['whatsapp'].get('chrome_exe', ''), r'C:\Program Files\Google\Chrome\Application\chrome.exe',
+             r'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe', os.path.expandvars(r'%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe')]
+    return next((c for c in cands if c and os.path.exists(c)), None)
+
+
+def capturar_visao_geral(cfg):
+    """Tira um print da aba Visão Geral do dashboard (Chrome headless, perfil temporário) e devolve o caminho do PNG."""
+    try:
+        from selenium import webdriver
+        from selenium.webdriver.chrome.options import Options
+        html = AQUI / cfg.get('dashboard_html', 'dashboard.html')
+        if not html.exists():
+            return None
+        op = Options()
+        for a in ('--headless=new', '--hide-scrollbars', '--force-device-scale-factor=1', '--window-size=1500,1800', '--disable-gpu',
+                  f"--user-data-dir={AQUI / 'chrome_print_tmp'}"):
+            op.add_argument(a)
+        exe = _achar_chrome(cfg)
+        if exe:
+            op.binary_location = exe
+        drv = webdriver.Chrome(options=op)
+        try:
+            drv.get(html.as_uri())
+            time.sleep(6)  # Chart.js + barras de evolução
+            drv.execute_script("var t=document.getElementById('toasts'); if(t) t.style.display='none';")
+            altura = min(3400, int(drv.execute_script('return document.documentElement.scrollHeight')) + 20)
+            drv.set_window_size(1500, altura)
+            time.sleep(2)
+            img = AQUI / 'visao_geral.png'
+            drv.save_screenshot(str(img))
+            log.info('Print da Visão Geral salvo em %s', img)
+            return img
+        finally:
+            drv.quit()
+    except Exception as e:
+        log.error('Falha ao capturar print da Visão Geral: %s', str(e)[:200])
+        return None
 
 
 def porta_aberta(p):
@@ -1701,7 +1784,31 @@ def abrir_chrome_limpo(cfg):
     return None
 
 
-def enviar_whatsapp(cfg, texto):
+def _enviar_imagem(drv, caminho_img, legenda):
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.common.keys import Keys
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    icones = "@data-icon='plus' or @data-icon='attach-menu-plus' or @data-icon='clip'"
+    WebDriverWait(drv, 30).until(EC.element_to_be_clickable((By.XPATH, f"//footer//span[{icones}]"))).click()
+    time.sleep(1)
+    inp = WebDriverWait(drv, 15).until(EC.presence_of_element_located((By.XPATH, "//input[@type='file' and contains(@accept,'image')]")))
+    inp.send_keys(str(caminho_img))
+    time.sleep(4)
+    caixa = drv.find_elements(By.XPATH, "//div[@contenteditable='true']")[-1]  # campo de legenda da pré-visualização
+    caixa.click()
+    for i, linha in enumerate(legenda.split('\n')):
+        if i:
+            caixa.send_keys(Keys.SHIFT, Keys.ENTER)
+        caixa.send_keys(linha)
+    time.sleep(1)
+    WebDriverWait(drv, 15).until(EC.element_to_be_clickable(
+        (By.XPATH, "//span[@data-icon='send' or @data-icon='wds-ic-send-filled']/ancestor::*[@role='button' or self::button][1]"))).click()
+    time.sleep(8)
+
+
+def enviar_whatsapp(cfg, texto, imagem=None):
+    """1 mensagem por contato: print da Visão Geral com o resumo na legenda (ou só texto, se o print falhar)."""
     from selenium import webdriver
     from selenium.webdriver.chrome.options import Options
     from selenium.webdriver.common.by import By
@@ -1713,6 +1820,7 @@ def enviar_whatsapp(cfg, texto):
     porta = w['porta_chrome']
     destinos = w.get('destinos', [])
     ok_all = True
+    xp_caixa = "//footer//div[@contenteditable='true']"
 
     for idx, d in enumerate(destinos, start=1):
         proc = None
@@ -1723,19 +1831,28 @@ def enviar_whatsapp(cfg, texto):
             if not proc:
                 ok_all = False
                 continue
-
             op = Options()
             op.debugger_address = f"127.0.0.1:{porta}"
             drv = webdriver.Chrome(options=op)
 
-            drv.get(f"https://web.whatsapp.com/send?phone={d['numero']}&text={quote(texto)}")
-            caixa = WebDriverWait(drv, 90).until(
-                EC.presence_of_element_located((By.XPATH, "//footer//div[@contenteditable='true']"))
-            )
-            time.sleep(2)
-            caixa.send_keys(Keys.ENTER)
-            time.sleep(5)
-            log.info('WhatsApp enviado para %s (1 mensagem). Fechando janela...', d['nome'])
+            enviado = False
+            if imagem and Path(imagem).exists():
+                try:
+                    drv.get(f"https://web.whatsapp.com/send?phone={d['numero']}")
+                    WebDriverWait(drv, 90).until(EC.presence_of_element_located((By.XPATH, xp_caixa)))
+                    time.sleep(2)
+                    _enviar_imagem(drv, imagem, texto)
+                    enviado = True
+                    log.info('WhatsApp enviado para %s (print + resumo). Fechando janela...', d['nome'])
+                except Exception as e:
+                    log.error('Falha ao enviar print para %s (%s). Enviando só texto.', d['nome'], str(e)[:160])
+            if not enviado:
+                drv.get(f"https://web.whatsapp.com/send?phone={d['numero']}&text={quote(texto)}")
+                caixa = WebDriverWait(drv, 90).until(EC.presence_of_element_located((By.XPATH, xp_caixa)))
+                time.sleep(2)
+                caixa.send_keys(Keys.ENTER)
+                time.sleep(5)
+                log.info('WhatsApp enviado para %s (texto). Fechando janela...', d['nome'])
         except Exception as e:
             ok_all = False
             log.error('Falha WhatsApp %s: %s', d['nome'], str(e)[:200])
@@ -1764,8 +1881,8 @@ def rotina_whatsapp(cfg, res, enviar):
     sig = '\n'.join(erros)
 
     if ultimo is None or (agora - ultimo) >= timedelta(minutes=freq_min):
-        titulo = '🚨 Monitoramento OptimusBI (6h)' if erros else 'Monitoramento OptimusBI (6h)'
-        if enviar_whatsapp(cfg, resumo(res, titulo)):
+        titulo = 'ALERTA - Monitoramento OptimusBI' if erros else 'Monitoramento OptimusBI'
+        if enviar_whatsapp(cfg, resumo(res, titulo), capturar_visao_geral(cfg)):
             est['ultimo_resumo'] = agora.isoformat()
             est['ultima_assinatura'] = sig
             ESTADO.write_text(json.dumps(est, ensure_ascii=False), encoding='utf-8')
@@ -1915,6 +2032,8 @@ if __name__ == '__main__':
     ap.add_argument('--uma-vez', action='store_true')
     ap.add_argument('--sem-whatsapp', action='store_true')
     ap.add_argument('--testar-whatsapp', action='store_true')
+    ap.add_argument('--testar-resumo', action='store_true', help='Gera o resumo real + print da Visão Geral e envia agora')
+    ap.add_argument('--so-print', action='store_true', help='Só gera o print visao_geral.png (sem enviar)')
     ap.add_argument('--gerar-relatorio', action='store_true')
     ap.add_argument('--enviar-vercel', action='store_true', help='Força geração do .xlsx e upload imediato na Vercel')
     a = ap.parse_args()
@@ -1924,10 +2043,25 @@ if __name__ == '__main__':
         print('Enviado!' if sucesso else 'Falhou - veja monitor.log')
         sys.exit()
 
+    if a.testar_resumo or a.so_print:
+        cfg_t = ciclo(enviar=False)
+        img = capturar_visao_geral(cfg_t)
+        print('Print:', img)
+        if a.testar_resumo:
+            print('Enviado!' if enviar_whatsapp(cfg_t, resumo(ULTIMO_ESTADO_GLOBAL['res']), img) else 'Falhou - veja monitor.log')
+        sys.exit()
+
     cfg_ini = sincronizar_config_automatico()
     if not a.uma_vez and not a.gerar_relatorio and not a.enviar_vercel:
         porta_web = int(cfg_ini.get('porta_servidor_web', 8080))
-        if iniciar_servidor_web(porta_web) and cfg_ini.get('abrir_navegador_ao_iniciar', True):
+        if not iniciar_servidor_web(porta_web):
+            msg = (f'\n*** ATENÇÃO: a porta {porta_web} já está em uso. Existe OUTRO monitor rodando (provavelmente a versão antiga), '
+                   f'que continua servindo e regravando o dashboard antigo. Feche a outra janela do monitor (ou finalize o python.exe '
+                   f'no Gerenciador de Tarefas) e abra este de novo. ***\n')
+            print(msg); log.error(msg.strip())
+            sys.exit(3)
+        log.info('Monitoramento OptimusBI %s iniciado (PID %s)', VERSAO_PAINEL, os.getpid())
+        if cfg_ini.get('abrir_navegador_ao_iniciar', True):
             webbrowser.open(f'http://localhost:{porta_web}')
 
     while True:
