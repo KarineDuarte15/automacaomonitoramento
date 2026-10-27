@@ -369,14 +369,19 @@ def sincronizar_config_automatico():
     if CFG.exists():
         try:
             antigo = json.loads(CFG.read_text(encoding='utf-8'))
-            if 'whatsapp' in antigo and 'destinos' in antigo['whatsapp']:
-                cfg_final['whatsapp']['destinos'] = antigo['whatsapp']['destinos']
-            if 'email_outlook' in antigo and 'destinatarios' in antigo['email_outlook']:
-                cfg_final['email_outlook']['destinatarios'] = antigo['email_outlook']['destinatarios']
-            if 'planner' in antigo and 'url_planner' in antigo['planner']:
-                cfg_final['planner']['url_planner'] = antigo['planner']['url_planner']
-        except Exception:
-            pass
+            if not isinstance(antigo, dict):
+                raise ValueError('a raiz da configuração deve ser um objeto JSON')
+
+            def mesclar(base, personalizado):
+                for chave, valor in personalizado.items():
+                    if isinstance(valor, dict) and isinstance(base.get(chave), dict):
+                        mesclar(base[chave], valor)
+                    else:
+                        base[chave] = valor
+
+            mesclar(cfg_final, antigo)
+        except (OSError, json.JSONDecodeError, TypeError, ValueError) as e:
+            log.warning('Configuração personalizada inválida; usando padrões: %s', e)
     cfg_final['whatsapp']['resumo_a_cada_min'] = 360
     cfg_final['intervalo_vercel_min'] = 30
     CFG.write_text(json.dumps(cfg_final, indent=2, ensure_ascii=False), encoding='utf-8')
@@ -493,6 +498,13 @@ def _item_base(nome, prio, categoria):
 def _regra_pbix(b, mt, agora):
     hoje = agora.date()
     regra = b.get('regra', 'diaria')
+    if regra == 'intervalo_horas':
+        intervalo_h = float(b.get('intervalo_h', 2))
+        idade_h = max(0, (agora - mt).total_seconds() / 3600)
+        if idade_h <= intervalo_h:
+            return 'ok', f'Atualizado há {idade_h:.1f} hora(s)', f'Atualizar a cada {intervalo_h:g} hora(s)', 0
+        atraso = int((idade_h - intervalo_h) * 60)
+        return 'err', f'ATRASADO: última atualização há {idade_h:.1f} hora(s) (limite {intervalo_h:g} h)', f'Atualizar a cada {intervalo_h:g} hora(s)', atraso
     if regra == 'mensal':
         ok = (mt.year, mt.month) == (hoje.year, hoje.month)
         return ('ok' if ok else 'err', f'Atualizado em {mt:%d/%m/%Y}' if ok else f'Sem atualização neste mês (última: {mt:%d/%m/%Y})', 'Atualização mensal', 0)
@@ -1518,7 +1530,7 @@ def dar_check_planner_navegador(cfg):
         time.sleep(10)
 
         # Localiza os botões de conclusão (check) das tarefas não concluídas no Planner
-         seletores_check = (
+        seletores_check = (
             "//button[contains(@aria-label,'Concluir tarefa') or contains(@aria-label,'Complete task') "
             "or contains(@aria-label,'Marcar como concluída') or contains(@title,'Concluir')]"
             " | //div[@role='checkbox' and @aria-checked='false']"
