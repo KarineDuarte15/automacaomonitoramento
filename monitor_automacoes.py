@@ -443,11 +443,10 @@ def _arquivo_aprr_valido(nome, modificado_em, hoje):
         return False, None, None
 
     hora_nome = data_no_nome.hour
-    inicio_janela = datetime.combine(hoje, dtime(hora_nome))
-    fim_janela = inicio_janela + timedelta(hours=1)
     pc_na_mesma_janela = (
         modificado_em.date() == hoje
-        and inicio_janela <= modificado_em < fim_janela
+        and datetime.combine(hoje, dtime(hora_nome)) <= modificado_em
+        < datetime.combine(hoje, dtime(hora_nome + 1))
     )
     alerta = None if pc_na_mesma_janela else (
         f'⚠️ Nome indica {data_no_nome:%d/%m/%Y %H:%M:%S}, '
@@ -1374,7 +1373,6 @@ HTML = r'''<!DOCTYPE html>
       <button class="g" id="bRel">📊 Salvar Relatório (.xlsx)</button>
       <button class="g" id="bPdf">📄 PDF Saúde da Equipe</button>
       <button class="g" id="bWa">💬 Resumo no WhatsApp</button>
-      <button class="g" id="bTeams">🟣 Rodar Teams Agora</button>
       <button id="bBell" title="Reexibir alertas dispensados">🔔 <span id="bellN">0</span></button>
     </div>
   </div>
@@ -1494,19 +1492,6 @@ $('#bPdf').onclick = async () => {
 $('#bRel').onclick = async () => {
   try { const j = await (await fetch('/api/relatorio')).json(); alert('Relatório .xlsx salvo em:\n' + j.arquivo); }
   catch (e) { alert('Relatório salvo automaticamente na pasta configurada!'); }
-};
-$('#bTeams').onclick = async () => {
-  $('#bTeams').disabled = true; $('#bTeams').textContent = '⏳ Enviando para o Teams...';
-  try {
-    const r = await fetch('/api/teams');
-    const j = await r.json();
-    if (!r.ok || !j.ok) throw new Error(j.erro || 'Não foi possível enviar para o Teams.');
-    alert('Resumo enviado para o Teams' + (j.arquivo ? ' com o PDF:\n' + j.arquivo : '.'));
-  } catch (e) {
-    alert('Falha ao rodar a automação do Teams: ' + e.message);
-  } finally {
-    $('#bTeams').disabled = false; $('#bTeams').textContent = '🟣 Rodar Teams Agora';
-  }
 };
 
 // ---------- cartão de detalhamento ----------
@@ -2616,33 +2601,6 @@ class PainelHandler(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'application/json; charset=utf-8')
             self.end_headers()
             self.wfile.write(json.dumps({'ok': True, 'arquivo': str(arq)}).encode('utf-8'))
-            return
-
-        if self.path.startswith('/api/teams'):
-            try:
-                cfg = ULTIMO_ESTADO_GLOBAL['cfg'] or sincronizar_config_automatico()
-                if not ULTIMO_ESTADO_GLOBAL['res']:
-                    ciclo(enviar=False)
-                res = ULTIMO_ESTADO_GLOBAL['res']
-                erros = any(x['status'] == 'err' for x in res)
-                titulo = 'ALERTA - Monitoramento OptimusBI' if erros else 'Monitoramento OptimusBI'
-                arq_pdf = gerar_pdf_saude(cfg, res)
-                enviado = enviar_teams_desktop(cfg, resumo(res, titulo), arq_pdf)
-                resposta = {
-                    'ok': enviado,
-                    'arquivo': str(arq_pdf or ''),
-                    'erro': '' if enviado else (
-                        'Não foi possível enviar. Confira grupo_rotina, ativo e o monitor.log.'
-                    )
-                }
-                self.send_response(200 if enviado else 502)
-            except Exception as e:
-                log.error('Falha ao executar automação manual do Teams\n%s', traceback.format_exc())
-                resposta = {'ok': False, 'arquivo': '', 'erro': str(e)[:250]}
-                self.send_response(500)
-            self.send_header('Content-type', 'application/json; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(json.dumps(resposta, ensure_ascii=False).encode('utf-8'))
             return
 
         if self.path.startswith('/logo.png') and (AQUI / 'logo.png').exists():
