@@ -15,9 +15,7 @@
   "whatsapp": {
     "ativo": true,
     "porta_edge": 9222,
-    "resumo_a_cada_min": 120,
-    "grupo_rotina": "",
-    "enviar_para_destinos_individuais": true,
+    "resumo_a_cada_min": 360,
     "horarios_resumo": [
       "00:00",
       "06:00",
@@ -38,12 +36,6 @@
         "numero": "553199300997"
       }
     ]
-  },
-  "teams": {
-    "ativo": true,
-    "grupo_rotina": "",
-    "enviar_pdf": true,
-    "exe": "C:\\Users\\%USERNAME%\\AppData\\Local\\Microsoft\\Teams\\current\\ms-teams.exe"
   },
   "monitores": [
     {
