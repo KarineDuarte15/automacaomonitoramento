@@ -41,7 +41,7 @@
   },
   "teams": {
     "ativo": true,
-    "grupo_rotina": "",
+    "grupo_rotina": "acompanhamento de rotinas",
     "enviar_pdf": true,
     "exe": "C:\\Users\\%USERNAME%\\AppData\\Local\\Microsoft\\Teams\\current\\ms-teams.exe"
   },

@@ -104,7 +104,7 @@ DEFAULT = {
     },
     'teams': {
         'ativo': True,
-        'grupo_rotina': '',
+        'grupo_rotina': 'acompanhamento de rotinas',
         'enviar_pdf': True,
         'exe': r'C:\Users\%USERNAME%\AppData\Local\Microsoft\Teams\current\ms-teams.exe',
     },
@@ -2042,8 +2042,57 @@ def enviar_whatsapp(cfg, texto, imagem=None, pdf=None):
     return ok_all
 
 
+def _verificar_planner_teams(janela):
+    """Abre a aba Planner e devolve o texto visível das rotinas do dia."""
+    aba = next(
+        (x for x in janela.descendants()
+         if x.is_visible() and x.is_enabled()
+         and re.search(r'\bplanner\b', x.window_text(), re.I)),
+        None
+    )
+    if not aba:
+        log.warning('Aba Planner não encontrada no grupo do Teams.')
+        return False, 'Planner: aba não encontrada'
+
+    aba.click_input()
+    time.sleep(3)
+    textos = []
+    vistos = set()
+    for controle in janela.descendants():
+        if not controle.is_visible():
+            continue
+        texto = re.sub(r'\s+', ' ', controle.window_text()).strip()
+        if texto and texto.lower() not in vistos and len(texto) <= 180:
+            vistos.add(texto.lower())
+            textos.append(texto)
+
+    hoje = date.today().strftime('%d/%m')
+    candidatos = [
+        texto for texto in textos
+        if hoje in texto or re.search(r'\bhoje\b|\bpendente\b|\batrasad[ao]\b|\bconclu[ií]d[ao]\b', texto, re.I)
+    ]
+    if candidatos:
+        return True, 'Planner (rotinas do dia): ' + ' | '.join(candidatos[:12])
+    if textos:
+        return True, 'Planner aberto; não foram identificadas rotinas com data de hoje na tela.'
+    return True, 'Planner aberto; nenhuma rotina visível foi encontrada.'
+
+
+def _voltar_conversa_teams(janela):
+    """Retorna da aba Planner para a área de conversa antes do envio."""
+    aba_conversa = next(
+        (x for x in janela.descendants()
+         if x.is_visible() and x.is_enabled()
+         and re.search(r'^(posts?|conversa|chat|publica[cç][oõ]es?)$', x.window_text(), re.I)),
+        None
+    )
+    if aba_conversa:
+        aba_conversa.click_input()
+        time.sleep(2)
+
+
 def enviar_teams_desktop(cfg, texto, pdf=None):
-    """Envia texto e PDF no grupo do Teams usando os controles visíveis do Teams Desktop."""
+    """Verifica o Planner e envia texto e PDF no grupo do Teams."""
     teams = cfg.get('teams') or {}
     grupo = str(teams.get('grupo_rotina') or '').strip()
     if not teams.get('ativo') or not grupo:
@@ -2076,6 +2125,11 @@ def enviar_teams_desktop(cfg, texto, pdf=None):
             resultado = janela.child_window(title=grupo)
         resultado.click_input()
         time.sleep(2)
+        planner_ok, planner_resumo = _verificar_planner_teams(janela)
+        texto = f'{texto}\n\n{planner_resumo}'
+        if not planner_ok:
+            log.warning('Não foi possível verificar o Planner do grupo %s.', grupo)
+        _voltar_conversa_teams(janela)
         campos = [x for x in janela.descendants(control_type='Edit') if x.is_visible() and x.is_enabled()]
         caixa = campos[-1] if campos else None
         if not caixa:
