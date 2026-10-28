@@ -245,7 +245,13 @@ DEFAULT['versao_config'] = 5
 DEFAULT['pasta_pbix'] = r'3 - ATUALIZAÇÃO PBIX\PBIX OFICIAL'
 DEFAULT['hora_limite_manha'] = '11:00'          # painéis da manhã: atualizados até 11h
 DEFAULT['bi_checar_fim_de_semana'] = False
-DEFAULT['logs_ignorar'] = []                    # trechos de nome de logs que não devem ser auditados
+DEFAULT['logs_ignorar'] = []
+DEFAULT['equipe'] = ['Karine', 'Agenor', 'Miller']     # Daniel removido da equipe
+DEFAULT['intervalo_pdf_horas'] = 2                      # PDF de saúde da equipe a cada 2 horas
+DEFAULT['pastas_pdf_saude'] = [                         # cópias extras do PDF (a cópia local fica em .\pdf_saude_equipe)
+    r'C:\Users\agenor.sales\Desktop\dashboard acompanhamento\PDF SAUDE EQUIPE',
+    r'G:\Credenciamento Medico\NUCLEO DE AGENDAS\RAFAEL FERNANDES\7 - BASES DE RELATORIOS\RELATORIO PAINEL MONITORAMENTO DIARIO\PDF SAUDE EQUIPE',
+]                    # trechos de nome de logs que não devem ser auditados
 _APRR_H = ['06:00', '09:00', '11:00', '13:00', '15:00', '17:00']
 DEFAULT['bis_pbix'] = [
     _bi('Alerta de Vagas v2', ['alerta', 'vagas', 'v2'], 'P0', 'horarios', horarios=_APRR_H, tolerancia_min=150, excluir=['sub', 'tele'], resp='Karine'),
@@ -259,8 +265,8 @@ DEFAULT['bis_pbix'] = [
     _bi('Controle de Agendas', ['controle', 'agendas'], 'P1', 'ate_hora', hora_limite='17:00', tolerancia_min=30, resp='Karine'),
     _bi('Farol de Índice Consultas por Hora - ICH', ['farol'], 'P1', 'ate_hora', hora_limite='14:00', tolerancia_min=30, resp='Karine'),
     _bi('Relatório de Estoque e Abastecimento v2', ['estoque', 'abastecimento'], 'P1', resp='Agenor'),
-    _bi('Acompanhamento de Pagamentos Prestadores', ['pagamentos', 'prestadores'], 'P1', 'ultima', resp='Agenor'),
-    _bi('Escala Especial', ['escala', 'especial'], 'P2', resp='Agenor'),
+    _bi('Acompanhamento de Pagamentos Prestadores', ['pagamentos', 'prestadores'], 'P1', 'ultima', resp='Miller'),
+    _bi('Escala Especial', ['escala', 'especial'], 'P2', resp='Miller'),
     _bi('Relatório Atraso dos Médicos', ['atraso', 'medicos'], 'P2', resp='Karine'),
     _bi('Relatório de Consultas em Transferência', ['transferencia'], 'P2', resp='Karine'),
     _bi('Relatório de Cancelamento v2', ['cancelamento'], 'P2', resp='Karine'),
@@ -269,7 +275,7 @@ DEFAULT['bis_pbix'] = [
     _bi('Relatório de Cirurgias', ['cirurgias'], 'P2', resp='Karine'),
     _bi('Relatório SAC (mensal)', ['sac'], 'P2', 'mensal', excluir=['nip'], resp='Karine'),
     _bi('Médicos Novos (mensal)', ['medicos', 'novos'], 'P2', 'mensal', resp='Karine'),
-    _bi('Relatório de SAC e NIP (desenvolvimento)', ['sac', 'nip'], 'P2', 'horarios', horarios=['07:30', '09:00', '13:00', '22:30'], tolerancia_min=90, resp='Daniel'),
+    _bi('Relatório de SAC e NIP (desenvolvimento)', ['sac', 'nip'], 'P2', 'horarios', horarios=['07:30', '09:00', '13:00', '22:30'], tolerancia_min=90, resp=''),  # Daniel saiu da equipe: sem responsável
     _bi('Relatório de Tagueamento', ['tagueamento'], 'P2', 'horarios', horarios=['08:00', '11:30', '17:00'], tolerancia_min=90, resp='Miller'),
     _bi('Acompanhamento de Valores Pagos por Especialidade', ['valores', 'pagos', 'especialidade'], 'P2', 'ate_hora', hora_limite='05:00', tolerancia_min=60, resp='Agenor'),
     _bi('Forecast Monitoramento Limites e Mediana', ['forecast'], 'P2', 'ultima', resp='Miller e Agenor'),
@@ -360,6 +366,7 @@ def sincronizar_config_automatico():
     # Garante sempre 6 horas (360 min) no WhatsApp e 30 min para a Vercel
     cfg_final['whatsapp']['resumo_a_cada_min'] = 360
     cfg_final['intervalo_vercel_min'] = 30
+    cfg_final['intervalo_pdf_horas'] = 2
     CFG.write_text(json.dumps(cfg_final, indent=2, ensure_ascii=False), encoding='utf-8')
     return cfg_final
 
@@ -1161,7 +1168,7 @@ def rotina_vercel_30_minutos(cfg, res, snaps_hoje, hist, forcar=False):
 # ==============================================================================
 # 7. TEMPLATE DO DASHBOARD LOCAL (HTML)
 # ==============================================================================
-VERSAO_PAINEL = 'v5.2 · Visão Geral | BIs | Logs | Detalhamento'
+VERSAO_PAINEL = 'v6.0 · Visão Geral | BIs | Logs | Detalhamento'
 
 HTML = r'''<!DOCTYPE html>
 <html lang="pt-BR">
@@ -1288,6 +1295,7 @@ HTML = r'''<!DOCTYPE html>
       <button class="p" id="bRefresh">🔄 Atualizar Agora</button>
       <button class="g" id="bVercel">☁️ Enviar p/ Vercel Agora</button>
       <button class="g" id="bRel">📊 Salvar Relatório (.xlsx)</button>
+      <button class="g" id="bPdf">📄 PDF Saúde da Equipe</button>
       <button class="g" id="bWa">💬 Resumo no WhatsApp</button>
       <button id="bBell" title="Reexibir alertas dispensados">🔔 <span id="bellN">0</span></button>
     </div>
@@ -1308,19 +1316,20 @@ HTML = r'''<!DOCTYPE html>
       <span id="snapInfo" style="font-size:12px;color:var(--slate-600);margin-left:8px"></span>
     </div>
     <div style="font-size:12px;color:var(--slate-600)">
-      <strong>Vercel (.xlsx):</strong> a cada 30 min | <strong>WhatsApp:</strong> a cada 6 horas | <strong>Relatório Final:</strong> 18:00
+      <strong>Vercel (.xlsx):</strong> a cada 30 min | <strong>WhatsApp:</strong> a cada 6 horas | <strong>PDF Saúde da Equipe:</strong> a cada 2 horas | <strong>Relatório Final:</strong> 18:00
     </div>
   </div>
 
   <section id="s-geral">
     <div class="sum" id="sum"></div>
-    <div class="box big" style="margin-bottom:16px"><h3>Monitoramento dos BIs — horas desde a última atualização (cor = situação, nome = BI · responsável)</h3><div class="cw" id="cwBis"><canvas id="cBis"></canvas></div></div>
+    <div class="box big" style="margin-bottom:16px"><h3>Monitoramento dos BIs — atualizações por hora (área empilhada: cada cor = um BI)</h3><div id="biNote" style="font-size:12px;color:var(--slate-600);margin:-4px 0 8px"></div><div class="cw" id="cwBis"><canvas id="cBis"></canvas></div></div>
     <div class="box big" style="margin-bottom:16px">
       <h3>Evolução da equipe OptimusBI — % de itens em dia por responsável</h3>
       <div id="team"></div>
     </div>
+    <div class="box big" style="margin-bottom:16px"><h3>Evolução da equipe por hora (hoje) — % de feito (itens em dia), equipe e cada responsável</h3><div class="cw"><canvas id="cEqHora"></canvas></div></div>
     <div class="charts2">
-      <div class="box big"><h3>Evolução por hora (hoje) — % em dia (colunas) e falhas (linha)</h3><div class="cw"><canvas id="cHoraE"></canvas></div></div>
+      <div class="box big"><h3>Falhas × tempo de resolução por hora (hoje) — linhas</h3><div class="cw"><canvas id="cHoraE"></canvas></div></div>
       <div class="box big"><h3>Evolução por dia — % em dia da equipe e de cada responsável (linhas)</h3><div class="cw"><canvas id="cDiaE"></canvas></div></div>
     </div>
   </section>
@@ -1361,9 +1370,10 @@ const fmtHMS = (d = new Date()) => `${p2(d.getHours())}:${p2(d.getMinutes())}:${
 const L = { ok: 'OK', err: 'ERRO', warn: 'ALERTA', run: 'RODANDO', nd: 'PRÉ-CADASTRADO' };
 const CAT = { bi: 'Fluxo de execução', base: 'Download de base', pbix: 'BI (.pbix oficial)', logs: 'Auditoria de Logs' };
 const COR = { ok: '#0339A6', warn: '#F2B705', err: '#F21D2F', nd: '#94A3B8' };
-const PESSOA = { Karine: '#F24405', Agenor: '#F2B705', Miller: '#122A44', Daniel: '#6B7280' };
+const PESSOA = { Karine: '#F24405', Agenor: '#F2B705', Miller: '#122A44' };
+const EQUIPE = D.equipe || ['Karine', 'Agenor', 'Miller'];
 const resp = r => r.responsavel || 'Equipe OptimusBI';
-const donos = r => (r.responsavel || '').split(/\s+e\s+|,/).map(x => x.trim()).filter(Boolean);
+const donos = r => (r.responsavel || '').split(/\s+e\s+|,/).map(x => x.trim()).filter(x => x && EQUIPE.includes(x));
 let tab = 'geral', fDet = 'todos', fBi = 'todos', charts = {}, secLeft = 60;
 
 const savedLogo = localStorage.getItem('optimusLogo');
@@ -1396,6 +1406,12 @@ $('#bVercel').onclick = async () => {
   try { const j = await (await fetch('/api/vercel')).json(); alert('Planilha gerada e enviada para a aba Monitoramento da Vercel!\nArquivo: ' + j.arquivo); }
   catch (e) { alert('O upload automático ocorre a cada 30 minutos pelo Python.'); }
   $('#bVercel').disabled = false; $('#bVercel').textContent = '☁️ Enviar p/ Vercel Agora';
+};
+$('#bPdf').onclick = async () => {
+  $('#bPdf').disabled = true; $('#bPdf').textContent = '⏳ Gerando PDF...';
+  try { const j = await (await fetch('/api/pdf')).json(); alert(j.ok ? 'PDF de saúde da equipe gerado em:\n' + j.arquivo : 'Não foi possível gerar o PDF. Veja o monitor.log (confira se reportlab e matplotlib estão instalados).'); }
+  catch (e) { alert('O PDF é gerado automaticamente a cada 2 horas pelo Python.'); }
+  $('#bPdf').disabled = false; $('#bPdf').textContent = '📄 PDF Saúde da Equipe';
 };
 $('#bRel').onclick = async () => {
   try { const j = await (await fetch('/api/relatorio')).json(); alert('Relatório .xlsx salvo em:\n' + j.arquivo); }
@@ -1453,14 +1469,14 @@ function render() {
   } else $('#snapInfo').textContent = 'Pastas lidas automaticamente pelo Python.';
   $$('main > section').forEach(s => s.classList.toggle('hidden', s.id !== 's-' + tab));
   const ativos = list.filter(r => r.status !== 'nd');
-  if (tab === 'geral') renderGeral(list, ativos);
+  if (tab === 'geral') renderGeral(list, ativos, hVal);
   if (tab === 'pbix') renderBis(list);
   if (tab === 'logs') renderLogs(list);
   if (tab === 'det') renderDet(list);
   renderToasts(hVal);
 }
 
-function renderGeral(list, ativos) {
+function renderGeral(list, ativos, hVal) {
   const c = { ok: 0, warn: 0, err: 0 };
   ativos.forEach(r => { if (c[r.status] != null) c[r.status]++; });
   const bis = ativos.filter(r => r.categoria === 'pbix'), bOk = bis.filter(r => r.status === 'ok').length;
@@ -1471,12 +1487,27 @@ function renderGeral(list, ativos) {
     ['BIs em dia', `${bOk}/${bis.length}`, 'var(--blue-dark)'], ['Saúde geral', saude + '%', saude >= 90 ? 'var(--blue-inst)' : saude >= 70 ? 'var(--gold)' : 'var(--red)']
   ].map(([a, b, col]) => `<div class="k" style="--c:${col}"><b>${b}</b><span>${a}</span></div>`).join('');
 
-  const px = ordena(list.filter(r => r.categoria === 'pbix' && r.pbix && r.pbix.arquivo));
-  $('#cwBis').style.height = Math.max(380, px.length * 30 + 60) + 'px';
+  // BIs: área empilhada — horas x atualizações de BI (uma série por BI)
+  const snapOn = hVal !== 'now' && snaps[hVal];
+  const hLim = snapOn ? parseInt(hVal) : 23;
+  const hBi = h => +h.t.slice(11, 13);
+  const ev = (D.bi_ev || []).filter(e => e.t.slice(0, 10) === D.hoje && hBi(e) <= hLim);
+  const maxH = Math.max(1, snapOn ? hLim : new Date().getHours(), ...ev.map(hBi));
+  const horasBi = Array.from({ length: maxH + 1 }, (_, i) => i);
+  const nomesBi = [...new Set(ev.map(e => e.bi))].sort();
+  const dsBi = nomesBi.map((n, i) => {
+    const hue = Math.round(360 * i / Math.max(1, nomesBi.length)), dono = ev.find(e => e.bi === n).resp || 'Equipe';
+    return { label: `${n} · ${dono}`, data: horasBi.map(h => ev.filter(e => e.bi === n && hBi(e) === h).length), fill: true, stack: 'bi', tension: .3, pointRadius: 2, borderWidth: 1.5,
+      borderColor: `hsl(${hue},65%,42%)`, backgroundColor: `hsla(${hue},65%,50%,.72)` };
+  });
+  $('#cwBis').style.height = '440px';
+  $('#biNote').textContent = ev.length ? `${ev.length} atualização(ões) de BI registrada(s) hoje, em ${nomesBi.length} BI(s).` : 'Nenhuma atualização de BI registrada hoje até o momento.';
   mk('cBis', {
-    type: 'bar',
-    data: { labels: px.map(r => `${r.nome.replace('PBIX · ', '')} · ${resp(r)}`), datasets: [{ data: px.map(r => r.pbix.idade_h), backgroundColor: px.map(r => COR[r.status]), borderRadius: 4 }] },
-    options: { indexAxis: 'y', maintainAspectRatio: false, animation: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.raw} h desde a última atualização (${px[c.dataIndex].pbix.ultima})` } } }, scales: { x: { title: { display: true, text: 'horas' } } } }
+    type: 'line',
+    data: { labels: horasBi.map(h => p2(h) + 'h'), datasets: dsBi },
+    options: { maintainAspectRatio: false, animation: false, interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }, tooltip: { itemSort: (a, b) => b.raw - a.raw, filter: i => i.raw > 0 } },
+      scales: { x: { title: { display: true, text: 'hora do dia' } }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 }, title: { display: true, text: 'atualizações de BI na hora' } } } }
   });
 
   // equipe: barras crescentes
@@ -1490,19 +1521,30 @@ function renderGeral(list, ativos) {
   }).join('');
   requestAnimationFrame(() => setTimeout(() => $$('.pb-f').forEach(el => el.style.width = el.dataset.w + '%'), 60));
 
-  const hoje = new Date().toISOString().slice(0, 10), H = D.hist || [];
+  const hoje = D.hoje, H = D.hist || [];
   const pct = x => { const t = x.ok + x.warn + x.err; return t ? Math.round(100 * x.ok / t) : 0; };
   const porHora = {}; H.filter(x => x.dia === hoje).forEach(x => porHora[x.h.slice(0, 2)] = x);
-  const hk = Object.keys(porHora).sort();
+  const resHora = {}; (D.inc || []).filter(i => i.dia === hoje).forEach(i => (resHora[i.h] = resHora[i.h] || []).push(i.min));
+  const hk = [...new Set([...Object.keys(porHora), ...Object.keys(resHora)])].sort();
   mk('cHoraE', {
+    type: 'line',
     data: { labels: hk.map(h => h + 'h'), datasets: [
-      { type: 'bar', label: '% em dia', data: hk.map(h => pct(porHora[h])), backgroundColor: hk.map(h => pct(porHora[h]) >= 90 ? '#0339A6' : pct(porHora[h]) >= 70 ? '#F2B705' : '#F21D2F'), borderRadius: 4, yAxisID: 'y' },
-      { type: 'line', label: 'Falhas', data: hk.map(h => porHora[h].err), borderColor: '#F21D2F', backgroundColor: '#F21D2F', tension: .3, yAxisID: 'y1' }] },
-    options: { maintainAspectRatio: false, animation: false, scales: { y: { min: 0, max: 100, title: { display: true, text: '% em dia' } }, y1: { position: 'right', grid: { drawOnChartArea: false }, beginAtZero: true, title: { display: true, text: 'falhas' } } } }
+      { label: 'Falhas (itens em erro)', data: hk.map(h => porHora[h] ? porHora[h].err : null), borderColor: '#F21D2F', backgroundColor: '#F21D2F', tension: .3, yAxisID: 'y', spanGaps: true, pointRadius: 3 },
+      { label: 'Tempo de resolução (min, média)', data: hk.map(h => resHora[h] ? Math.round(10 * resHora[h].reduce((a, b) => a + b, 0) / resHora[h].length) / 10 : null), borderColor: '#0339A6', backgroundColor: '#0339A6', tension: .3, yAxisID: 'y1', spanGaps: true, pointRadius: 3 }] },
+    options: { maintainAspectRatio: false, animation: false, interaction: { mode: 'index', intersect: false }, scales: { y: { beginAtZero: true, ticks: { precision: 0 }, title: { display: true, text: 'falhas' } }, y1: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: 'minutos para resolver' } } } }
+  });
+  // equipe por hora: % de feito
+  const hkE = Object.keys(porHora).sort();
+  mk('cEqHora', {
+    type: 'line',
+    data: { labels: hkE.map(h => h + 'h'), datasets: [
+      { label: 'Equipe (geral)', data: hkE.map(h => pct(porHora[h])), borderColor: '#0339A6', backgroundColor: '#0339A6', borderWidth: 4, tension: .3, pointRadius: 3 },
+      ...EQUIPE.map(n => ({ label: n, data: hkE.map(h => { const e = (porHora[h].eq || {})[n]; return e && e[1] ? Math.round(100 * e[0] / e[1]) : null; }), borderColor: PESSOA[n] || '#94A3B8', backgroundColor: PESSOA[n] || '#94A3B8', tension: .3, spanGaps: true, pointRadius: 3 }))] },
+    options: { maintainAspectRatio: false, animation: false, interaction: { mode: 'index', intersect: false }, scales: { y: { min: 0, max: 100, title: { display: true, text: '% feito (itens em dia)' } }, x: { title: { display: true, text: 'hora do dia' } } } }
   });
   const porDia = {}; H.forEach(x => porDia[x.dia] = x);
   const dk = Object.keys(porDia).sort().slice(-20);
-  const nomes = [...new Set(dk.flatMap(d => Object.keys(porDia[d].eq || {})))].sort();
+  const nomes = EQUIPE.filter(n => dk.some(d => (porDia[d].eq || {})[n]));
   mk('cDiaE', {
     type: 'line',
     data: { labels: dk.map(d => d.slice(8) + '/' + d.slice(5, 7)), datasets: [
@@ -1596,21 +1638,35 @@ def atualizar_snapshots_hora(res):
 
 def gerar_dashboard(cfg, res):
     hist = json.loads(HIST.read_text(encoding='utf-8')) if HIST.exists() else []
+    equipe = cfg.get('equipe') or EQUIPE_PADRAO
     ativos = [x for x in res if x['status'] != 'nd']
     c = lambda s: sum(x['status'] == s for x in ativos)
     agora_str = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
     eq = {}
     for x in ativos:
         for p in [q.strip() for q in re.split(r'\s+e\s+|,', x.get('responsavel') or '') if q.strip()]:
-            e = eq.setdefault(p, [0, 0]); e[1] += 1; e[0] += (x['status'] == 'ok')
-    hist.append(dict(dia=date.today().isoformat(), eq=eq, h=datetime.now().strftime('%H:%M:%S'), ok=c('ok'), warn=c('warn'), err=c('err'),
-                     bi_ok=sum(1 for x in ativos if x.get('categoria') == 'pbix' and x['status'] == 'ok'),
-                     bi_err=sum(1 for x in ativos if x.get('categoria') == 'pbix' and x['status'] == 'err')))
-    hist = hist[-500:]
+            if p in equipe:
+                e = eq.setdefault(p, [0, 0]); e[1] += 1; e[0] += (x['status'] == 'ok')
+    novo = dict(dia=date.today().isoformat(), eq=eq, h=datetime.now().strftime('%H:%M:%S'), ok=c('ok'), warn=c('warn'), err=c('err'),
+                bi_ok=sum(1 for x in ativos if x.get('categoria') == 'pbix' and x['status'] == 'ok'),
+                bi_err=sum(1 for x in ativos if x.get('categoria') == 'pbix' and x['status'] == 'err'))
+    # 1 registro por hora (o último da hora): mantém o dia inteiro e vários dias no histórico
+    if hist and hist[-1].get('dia') == novo['dia'] and hist[-1].get('h', '')[:2] == novo['h'][:2]:
+        hist[-1] = novo
+    else:
+        hist.append(novo)
+    hist = hist[-720:]
     HIST.write_text(json.dumps(hist, ensure_ascii=False), encoding='utf-8')
 
     snaps_hoje = atualizar_snapshots_hora(res)
+    incid = atualizar_incidentes(res)
+    bi_ev = atualizar_bi_eventos(res)
     dados = dict(
+        hoje=date.today().isoformat(),
+        equipe=equipe,
+        inc=incid.get('resolvidos', [])[-300:],
+        inc_abertos=incid.get('abertos', {}),
+        bi_ev=bi_ev,
         gerado=agora_str,
         intervalo=cfg.get('intervalo_seg', 60),
         r=res,
@@ -1896,6 +1952,409 @@ def rotina_whatsapp(cfg, res, enviar):
 ULTIMO_ESTADO_GLOBAL = {'cfg': None, 'res': [], 'snaps': {}, 'hist': []}
 
 
+# ==============================================================================
+# 8B. INCIDENTES (TEMPO DE RESOLUÇÃO) E ATUALIZAÇÕES DE BI POR HORA
+# ==============================================================================
+INCID = AQUI / 'incidentes.json'
+BIEV = AQUI / 'bi_eventos.json'
+EQUIPE_PADRAO = ['Karine', 'Agenor', 'Miller']
+
+
+def _ler_json(p, padrao):
+    try:
+        return json.loads(Path(p).read_text(encoding='utf-8')) if Path(p).exists() else padrao
+    except Exception:
+        return padrao
+
+
+def atualizar_incidentes(res):
+    """Abre um incidente quando o item entra em ERRO e fecha (com o tempo de resolução em minutos) quando sai do erro."""
+    agora = datetime.now()
+    d = _ler_json(INCID, {})
+    abertos = d.get('abertos') or {}
+    resolvidos = d.get('resolvidos') or []
+    for x in res:
+        nome, st = x['nome'], x.get('status')
+        if st == 'err':
+            abertos.setdefault(nome, dict(
+                inicio=agora.isoformat(timespec='seconds'), prio=x.get('prio', ''), resp=x.get('responsavel', ''),
+                erro=' '.join(str((x.get('erros') or [''])[0]).split())[:220]))
+        elif st == 'nd':
+            abertos.pop(nome, None)
+        elif nome in abertos:
+            a = abertos.pop(nome)
+            ini = datetime.fromisoformat(a['inicio'])
+            resolvidos.append(dict(
+                nome=nome, prio=a.get('prio', ''), resp=a.get('resp', ''), inicio=a['inicio'],
+                fim=agora.isoformat(timespec='seconds'), min=round((agora - ini).total_seconds() / 60.0, 1),
+                dia=agora.date().isoformat(), h=f'{agora.hour:02d}'))
+    d = dict(abertos=abertos, resolvidos=resolvidos[-1000:])
+    try:
+        INCID.write_text(json.dumps(d, ensure_ascii=False), encoding='utf-8')
+    except Exception:
+        log.error('Falha ao gravar incidentes\n%s', traceback.format_exc())
+    return d
+
+
+def atualizar_bi_eventos(res):
+    """Registra cada atualização de BI do dia (detectada pela mudança da data de modificação do .pbix)."""
+    hoje = date.today().isoformat()
+    d = _ler_json(BIEV, {})
+    if d.get('dia') != hoje:
+        d = dict(dia=hoje, ult=d.get('ult', {}), eventos=[])
+    ult, ev = d['ult'], d['eventos']
+    for x in res:
+        p = x.get('pbix')
+        if x.get('categoria') != 'pbix' or not p or not p.get('ultima_iso'):
+            continue
+        nome, iso = x['nome'].replace('PBIX · ', ''), p['ultima_iso']
+        if ult.get(nome) != iso:
+            if iso[:10] == hoje and not any(e['bi'] == nome and e['t'] == iso for e in ev):
+                ev.append(dict(bi=nome, t=iso, resp=x.get('responsavel', '')))
+            ult[nome] = iso
+    try:
+        BIEV.write_text(json.dumps(d, ensure_ascii=False), encoding='utf-8')
+    except Exception:
+        log.error('Falha ao gravar eventos de BI\n%s', traceback.format_exc())
+    return d['eventos']
+
+
+# ==============================================================================
+# 8C. PDF DE SAÚDE DA EQUIPE (GERADO A CADA 2 HORAS)
+# ==============================================================================
+def _donos(x):
+    return [q.strip() for q in re.split(r'\s+e\s+|,', x.get('responsavel') or '') if q.strip()]
+
+
+def _t(s):
+    """Texto seguro para o PDF (fontes padrão = Latin-1/cp1252)."""
+    return str(s if s is not None else '').encode('cp1252', 'replace').decode('cp1252')
+
+
+def _grafico_pdf(tipo, caminho, hist, inc, bi_ev, equipe, hoje, agora):
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    AZUL, VERM, LAR = '#0339A6', '#F21D2F', '#F24405'
+    cores_p = {'Karine': '#F24405', 'Agenor': '#F2B705', 'Miller': '#122A44'}
+    fig, ax = plt.subplots(figsize=(11.2, 5.3 if tipo == 'bi' else 2.8), dpi=150)
+    por_hora = {}
+    for h in hist:
+        if h.get('dia') == hoje:
+            por_hora[int(h['h'][:2])] = h
+    pct = lambda x: round(100 * x['ok'] / max(1, x['ok'] + x['warn'] + x['err']))
+
+    def vazio(msg):
+        ax.text(.5, .5, msg, ha='center', va='center', transform=ax.transAxes, color='#64748B')
+        ax.set_xticks([]); ax.set_yticks([])
+
+    if tipo == 'equipe':
+        hs = sorted(por_hora)
+        if not hs:
+            vazio('Ainda sem leituras registradas hoje.')
+        else:
+            ax.plot(hs, [pct(por_hora[h]) for h in hs], color=AZUL, lw=3.2, marker='o', label='Equipe (geral)')
+            for n in equipe:
+                ys = []
+                for h in hs:
+                    e = (por_hora[h].get('eq') or {}).get(n)
+                    ys.append(round(100 * e[0] / e[1]) if e and e[1] else None)
+                pts = [(h, y) for h, y in zip(hs, ys) if y is not None]
+                if pts:
+                    ax.plot([p[0] for p in pts], [p[1] for p in pts], color=cores_p.get(n, '#94A3B8'), lw=1.8, marker='o', ms=3, label=n)
+            ax.set_ylim(0, 105); ax.set_ylabel('% feito (itens em dia)'); ax.set_xlabel('hora do dia')
+            ax.set_xticks(hs); ax.set_xticklabels([f'{h:02d}h' for h in hs])
+            ax.legend(loc='lower left', ncol=4, fontsize=8, frameon=False)
+    elif tipo == 'bi':
+        ev = [e for e in bi_ev if e['t'][:10] == hoje]
+        if not ev:
+            vazio('Nenhuma atualização de BI registrada hoje até o momento.')
+        else:
+            maxh = max([1, agora.hour] + [int(e['t'][11:13]) for e in ev])
+            horas = list(range(maxh + 1))
+            nomes = sorted({e['bi'] for e in ev})
+            series = [[sum(1 for e in ev if e['bi'] == n and int(e['t'][11:13]) == h) for h in horas] for n in nomes]
+            cmap = plt.get_cmap('hsv')
+            cores = [cmap(i / max(1, len(nomes))) for i in range(len(nomes))]
+            ax.stackplot(horas, *series, labels=nomes, colors=cores, alpha=.8, edgecolor='white', linewidth=.4)
+            ax.set_xlim(0, maxh); ax.set_xticks(horas); ax.set_xticklabels([f'{h:02d}h' for h in horas], fontsize=7)
+            ax.set_ylabel('atualizações de BI na hora'); ax.set_xlabel('hora do dia')
+            ax.yaxis.get_major_locator().set_params(integer=True)
+            ax.legend(loc='upper center', bbox_to_anchor=(.5, -.16), ncol=3, fontsize=6.8, frameon=False)
+    else:  # falhas x tempo de resolução (duas linhas)
+        res_h = {}
+        for i in inc.get('resolvidos', []):
+            if i.get('dia') == hoje:
+                res_h.setdefault(int(i['h']), []).append(i['min'])
+        hs = sorted(set(por_hora) | set(res_h))
+        if not hs:
+            vazio('Ainda sem dados de falhas hoje.')
+        else:
+            pf = [(h, por_hora[h]['err']) for h in hs if h in por_hora]
+            ax.plot([p[0] for p in pf], [p[1] for p in pf], color=VERM, lw=2.4, marker='o', label='Falhas (itens em erro)')
+            ax.set_ylabel('falhas', color=VERM); ax.set_ylim(bottom=0)
+            ax.yaxis.get_major_locator().set_params(integer=True)
+            ax2 = ax.twinx()
+            pr = [(h, sum(res_h[h]) / len(res_h[h])) for h in hs if h in res_h]
+            if pr:
+                ax2.plot([p[0] for p in pr], [p[1] for p in pr], color=AZUL, lw=2.4, marker='s', label='Tempo de resolução (min, média)')
+            ax2.set_ylabel('minutos', color=AZUL); ax2.set_ylim(bottom=0)
+            ax.set_xticks(hs); ax.set_xticklabels([f'{h:02d}h' for h in hs]); ax.set_xlabel('hora do dia')
+            l1, n1 = ax.get_legend_handles_labels(); l2, n2 = ax2.get_legend_handles_labels()
+            ax.legend(l1 + l2, n1 + n2, loc='upper left', fontsize=8, frameon=False)
+    for s in ('top', 'right'):
+        ax.spines[s].set_visible(False)
+    ax.grid(axis='y', alpha=.25)
+    fig.tight_layout()
+    fig.savefig(caminho, bbox_inches='tight')
+    plt.close(fig)
+
+
+def gerar_pdf_saude(cfg, res):
+    """Gera o PDF 'Saúde da Equipe OptimusBI' (rotinas executadas + avanço do que é monitorado) e devolve o caminho."""
+    import tempfile
+    from xml.sax.saxutils import escape
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.units import cm
+    from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak,
+                                    KeepTogether, Flowable, CondPageBreak)
+
+    agora = datetime.now()
+    hoje = agora.date().isoformat()
+    equipe = cfg.get('equipe') or EQUIPE_PADRAO
+    hist = _ler_json(HIST, [])
+    inc = _ler_json(INCID, {'abertos': {}, 'resolvidos': []})
+    bi_ev = (_ler_json(BIEV, {}).get('eventos')) or []
+    janela_h = int(cfg.get('intervalo_pdf_horas', 2))
+    desde = agora - timedelta(hours=janela_h)
+
+    AZUL, AZ_ESC, CINZA = colors.HexColor('#0339A6'), colors.HexColor('#122A44'), colors.HexColor('#64748B')
+    COR = {'ok': colors.HexColor('#0339A6'), 'warn': colors.HexColor('#B8860B'), 'err': colors.HexColor('#F21D2F'), 'nd': CINZA}
+    TXT = {'ok': 'OK', 'warn': 'ALERTA', 'err': 'ERRO', 'nd': 'EM PAUSA'}
+
+    st_n = ParagraphStyle('n', fontName='Helvetica', fontSize=7.4, leading=9)
+    st_b = ParagraphStyle('b', parent=st_n, fontName='Helvetica-Bold')
+    st_h = ParagraphStyle('h', parent=st_n, fontName='Helvetica-Bold', textColor=colors.white)
+    st_t = ParagraphStyle('t', fontName='Helvetica-Bold', fontSize=17, leading=20, textColor=AZ_ESC)
+    st_s = ParagraphStyle('s', fontName='Helvetica', fontSize=8.5, leading=11, textColor=CINZA)
+    st_2 = ParagraphStyle('2', fontName='Helvetica-Bold', fontSize=11.5, leading=14, textColor=AZUL, spaceBefore=8, spaceAfter=4)
+    P = lambda s, e=st_n: Paragraph(escape(_t(s)), e)
+
+    class Barra(Flowable):
+        def __init__(self, pct, w=3.6 * cm, h=.32 * cm):
+            super().__init__(); self.pct, self.w, self.h = pct, w, h
+            self.width, self.height = w, h
+
+        def draw(self):
+            cor = COR['ok'] if self.pct >= 90 else colors.HexColor('#F2B705') if self.pct >= 70 else COR['err']
+            self.canv.setFillColor(colors.HexColor('#E2E8F0')); self.canv.roundRect(0, 0, self.w, self.h, 2, stroke=0, fill=1)
+            self.canv.setFillColor(cor); self.canv.roundRect(0, 0, max(2, self.w * self.pct / 100.0), self.h, 2, stroke=0, fill=1)
+
+    def tabela(dados, larg, extra=None):
+        t = Table(dados, colWidths=larg, repeatRows=1, hAlign='LEFT')
+        est = [('BACKGROUND', (0, 0), (-1, 0), AZUL), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+               ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F1F5F9')]),
+               ('GRID', (0, 0), (-1, -1), .25, colors.HexColor('#CBD5E1')),
+               ('TOPPADDING', (0, 0), (-1, -1), 2.2), ('BOTTOMPADDING', (0, 0), (-1, -1), 2.2)]
+        t.setStyle(TableStyle(est + (extra or [])))
+        return t
+
+    def stat(s, extra=''):
+        return Paragraph(f'<font color="{COR.get(s, CINZA).hexval().replace("0x", "#")}"><b>{TXT.get(s, s)}</b></font>' + escape(_t(extra)), st_n)
+
+    ativos = [x for x in res if x.get('status') != 'nd']
+    n = lambda lst, s: sum(1 for x in lst if x['status'] == s)
+    bis = [x for x in res if x.get('categoria') == 'pbix' and not x.get('pausa')]
+    logs_it = next((x for x in res if x.get('categoria') == 'logs'), None)
+    saude = round(100 * n(ativos, 'ok') / len(ativos)) if ativos else 0
+
+    # ---- gráficos (PNG temporários) ----
+    tmp = Path(tempfile.mkdtemp(prefix='optimus_pdf_'))
+    imgs = {}
+    for k in ('equipe', 'bi', 'falhas'):
+        try:
+            _grafico_pdf(k, str(tmp / f'{k}.png'), hist, inc, bi_ev, equipe, hoje, agora)
+            imgs[k] = tmp / f'{k}.png'
+        except Exception:
+            log.error('Falha ao desenhar gráfico %s do PDF\n%s', k, traceback.format_exc())
+
+    def img(k, w=25.2 * cm):
+        if k not in imgs:
+            return P('(gráfico indisponível)')
+        from reportlab.lib.utils import ImageReader
+        iw, ih = ImageReader(str(imgs[k])).getSize()
+        return Image(str(imgs[k]), width=w, height=w * ih / iw)
+
+    logo = None
+    lp = AQUI / 'logo.png'
+    if lp.exists():
+        try:
+            from PIL import Image as PI
+            im = PI.open(lp).convert('RGB'); im.thumbnail((360, 360)); logo = tmp / 'logo.jpg'; im.save(logo, quality=88)
+        except Exception:
+            logo = None
+
+    story = []
+    cab = [[Image(str(logo), width=1.9 * cm, height=1.9 * cm) if logo else '',
+            [Paragraph('Saúde da Equipe OptimusBI', st_t),
+             Paragraph(escape(_t(f'Rotinas executadas e avanço do que é monitorado · gerado em {agora:%d/%m/%Y às %H:%M} · '
+                                  f'ciclo de {janela_h} em {janela_h} horas · janela de referência: desde {desde:%H:%M}')), st_s)]]]
+    tc = Table(cab, colWidths=[2.4 * cm, 23 * cm]); tc.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('LEFTPADDING', (0, 0), (-1, -1), 0)]))
+    story += [tc, Spacer(1, 6)]
+
+    # ---- KPIs ----
+    bis_ok = sum(1 for x in bis if x['status'] == 'ok')
+    kp = [('Itens monitorados', len(ativos), AZUL), ('Em dia (OK)', n(ativos, 'ok'), AZUL), ('Alertas', n(ativos, 'warn'), colors.HexColor('#B8860B')),
+          ('Crítico / Erro', n(ativos, 'err'), COR['err']), ('BIs em dia', f'{bis_ok}/{len(bis)}', AZ_ESC),
+          ('Saúde geral', f'{saude}%', COR['ok'] if saude >= 90 else colors.HexColor('#B8860B') if saude >= 70 else COR['err'])]
+    cel = [[Paragraph(f'<font size="17" color="{c.hexval().replace("0x", "#")}"><b>{escape(str(v))}</b></font><br/><font size="7.5" color="#64748B">{a}</font>',
+                      ParagraphStyle('k', alignment=1, leading=20)) for a, v, c in kp]]
+    tk = Table(cel, colWidths=[4.2 * cm] * 6)
+    tk.setStyle(TableStyle([('BOX', (0, 0), (-1, -1), .5, colors.HexColor('#CBD5E1')), ('INNERGRID', (0, 0), (-1, -1), .5, colors.HexColor('#CBD5E1')),
+                            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F8FAFC')), ('TOPPADDING', (0, 0), (-1, -1), 6), ('BOTTOMPADDING', (0, 0), (-1, -1), 6)]))
+    story.append(tk)
+
+    ab_janela = [a for a in inc.get('abertos', {}).values() if a['inicio'] >= desde.isoformat()]
+    res_janela = [i for i in inc.get('resolvidos', []) if i['fim'] >= desde.isoformat()]
+    ini_janela = ab_janela + [i for i in inc.get('resolvidos', []) if i['inicio'] >= desde.isoformat()]
+    ev_janela = [e for e in bi_ev if e['t'] >= desde.isoformat(timespec='seconds')]
+    story.append(Paragraph(escape(_t(
+        f'Últimas {janela_h} h: {len(ev_janela)} atualização(ões) de BI · {len(ini_janela)} falha(s) aberta(s) · {len(res_janela)} falha(s) resolvida(s) · '
+        f'{len(inc.get("abertos", {}))} falha(s) em aberto agora.')), ParagraphStyle('j', parent=st_s, spaceBefore=5)))
+
+    # ---- Saúde da equipe ----
+    story.append(Paragraph('Saúde da equipe — % de itens em dia por responsável', st_2))
+    linhas = [('Equipe OptimusBI (geral)', ativos)] + [(p, [x for x in ativos if p in _donos(x)]) for p in equipe]
+    d = [[P('Responsável', st_h), P('Itens', st_h), P('Em dia', st_h), P('Alertas', st_h), P('Erros', st_h), P('% feito', st_h), P('Avanço', st_h)]]
+    for nome, lst in linhas:
+        pc = round(100 * n(lst, 'ok') / len(lst)) if lst else 0
+        d.append([P(nome, st_b), P(len(lst)), P(n(lst, 'ok')), P(n(lst, 'warn')), P(n(lst, 'err')), P(f'{pc}%', st_b), Barra(pc)])
+    story.append(tabela(d, [6.2 * cm, 2 * cm, 2 * cm, 2 * cm, 2 * cm, 2.2 * cm, 4.4 * cm]))
+
+    # ---- Avanço por categoria ----
+    story.append(Paragraph('Avanço do que é monitorado', st_2))
+    cats = [('Fluxos de execução (logs das rotinas)', [x for x in ativos if x.get('categoria') == 'bi']),
+            ('Download de bases', [x for x in ativos if x.get('categoria') == 'base']),
+            ('BIs (.pbix oficiais)', bis)]
+    d = [[P('Categoria', st_h), P('Total', st_h), P('OK', st_h), P('Alertas', st_h), P('Erros', st_h), P('% em dia', st_h), P('Avanço', st_h)]]
+    for nome, lst in cats:
+        pc = round(100 * n(lst, 'ok') / len(lst)) if lst else 0
+        d.append([P(nome, st_b), P(len(lst)), P(n(lst, 'ok')), P(n(lst, 'warn')), P(n(lst, 'err')), P(f'{pc}%', st_b), Barra(pc)])
+    if logs_it:
+        ls = logs_it.get('logs_detalhe') or []
+        pc = round(100 * sum(1 for l in ls if l['status'] == 'ok') / len(ls)) if ls else 0
+        d.append([P('Auditoria de logs (Pasta 52)', st_b), P(len(ls)), P(sum(1 for l in ls if l['status'] == 'ok')),
+                  P(sum(1 for l in ls if l['status'] == 'warn')), P(sum(1 for l in ls if l['status'] == 'err')), P(f'{pc}%', st_b), Barra(pc)])
+    story.append(tabela(d, [6.2 * cm, 2 * cm, 2 * cm, 2 * cm, 2 * cm, 2.2 * cm, 4.4 * cm]))
+    story.append(KeepTogether([Paragraph('Evolução da equipe por hora (hoje) — % de feito', st_2), img('equipe')]))
+
+    # ---- Rotinas executadas ----
+    story += [CondPageBreak(7 * cm), Paragraph('Rotinas executadas — fluxos de execução e download de bases', st_2)]
+    rot = sorted([x for x in ativos if x.get('categoria') in ('bi', 'base')], key=lambda x: (x.get('prio', ''), x['nome']))
+    d = [[P(h, st_h) for h in ('Rotina', 'Resp.', 'Prio', 'Tipo', 'Status', 'Exec. hoje', 'OK / Erro', 'Último fim', 'Tempo médio', 'Pastas (arquivos hoje / meta)')]]
+    extra = []
+    for i, x in enumerate(rot, 1):
+        pastas = '; '.join(f"{f['rotulo']} {f['n']}/{f['esperado']}" if f.get('n') is not None else f"{f['rotulo']} (erro)" for f in x.get('pastas', []))
+        d.append([P(x['nome'], st_b), P(x.get('responsavel') or '-'), P(x.get('prio', '')), P('Download' if x.get('categoria') == 'base' else 'Fluxo'), stat(x['status']),
+                  P('-' if x.get('linhas_hoje') is None else x['linhas_hoje']),
+                  P('-' if x.get('ok_hoje') is None else f"{x['ok_hoje']} / {x['err_hoje']}"), P(x.get('ultimo_fim') or '-'),
+                  P('-' if x.get('media_min') is None else f"{x['media_min']:.1f} min"), P(pastas or '-')])
+    story.append(tabela(d, [5.3 * cm, 1.9 * cm, 1.1 * cm, 1.8 * cm, 1.6 * cm, 1.6 * cm, 1.9 * cm, 1.9 * cm, 2 * cm, 6.1 * cm], extra))
+    problemas = [x for x in rot if x['status'] in ('err', 'warn')]
+    if problemas:
+        story.append(CondPageBreak(4 * cm))
+        story.append(Paragraph('Pontos de atenção nas rotinas', st_2))
+        d = [[P('Rotina', st_h), P('Resp.', st_h), P('Situação', st_h)]]
+        for x in problemas:
+            d.append([P(x['nome'], st_b), P(x.get('responsavel') or '-'), P(' | '.join((x.get('erros') or []) + (x.get('avisos') or []))[:420])])
+        story.append(tabela(d, [6 * cm, 2.4 * cm, 16.8 * cm]))
+
+    # ---- BIs ----
+    story += [CondPageBreak(7 * cm), Paragraph('Monitoramento dos BIs — atualização dos .pbix oficiais', st_2)]
+    d = [[P(h, st_h) for h in ('BI', 'Resp.', 'Prio', 'Última atualização', 'Regra esperada', 'Idade (h)', 'Atraso (min)', 'Status')]]
+    for x in sorted([x for x in res if x.get('categoria') == 'pbix'], key=lambda x: (x.get('prio', ''), x['nome'])):
+        p = x.get('pbix') or {}
+        pausa = x.get('pausa')
+        d.append([P(x['nome'].replace('PBIX · ', ''), st_b), P(x.get('responsavel') or '-'), P(x.get('prio', '')), P(p.get('ultima') or '-'), P(p.get('esperado') or '-'),
+                  P('-' if p.get('idade_h') is None else p['idade_h']), P(p.get('atraso_min') or 0), stat('nd' if pausa else x['status'])])
+    story.append(tabela(d, [6.2 * cm, 2.4 * cm, 1.1 * cm, 3.4 * cm, 6.2 * cm, 1.7 * cm, 2 * cm, 2.2 * cm]))
+    story.append(KeepTogether([Paragraph('Atualizações de BI por hora (hoje) — área empilhada, uma cor por BI', st_2), img('bi')]))
+
+    # ---- Falhas x resolução ----
+    story.append(KeepTogether([Paragraph('Falhas × tempo de resolução por hora (hoje)', st_2), img('falhas')]))
+    story.append(CondPageBreak(5 * cm))
+    story.append(Paragraph('Falhas em aberto agora', st_2))
+    d = [[P(h, st_h) for h in ('Item', 'Resp.', 'Prio', 'Aberta desde', 'Tempo aberta', 'Motivo')]]
+    abertos = sorted(inc.get('abertos', {}).items(), key=lambda kv: kv[1]['inicio'])
+    for nome, a in abertos:
+        ini = datetime.fromisoformat(a['inicio']); mins = int((agora - ini).total_seconds() // 60)
+        d.append([P(nome.replace('PBIX · ', ''), st_b), P(a.get('resp') or '-'), P(a.get('prio', '')), P(f'{ini:%d/%m %H:%M}'),
+                  P(f'{mins // 60}h{mins % 60:02d}min'), P(a.get('erro', ''))])
+    if len(d) == 1:
+        d.append([P('Nenhuma falha em aberto no momento.'), '', '', '', '', ''])
+    story.append(tabela(d, [6 * cm, 2.2 * cm, 1.1 * cm, 2.6 * cm, 2.4 * cm, 10.9 * cm]))
+    story.append(CondPageBreak(5 * cm))
+    story.append(Paragraph('Falhas resolvidas hoje', st_2))
+    d = [[P(h, st_h) for h in ('Item', 'Resp.', 'Prio', 'Aberta', 'Resolvida', 'Tempo de resolução')]]
+    for i in [i for i in inc.get('resolvidos', []) if i.get('dia') == hoje][-15:][::-1]:
+        d.append([P(i['nome'].replace('PBIX · ', ''), st_b), P(i.get('resp') or '-'), P(i.get('prio', '')), P(i['inicio'][11:16]), P(i['fim'][11:16]), P(f"{i['min']:.0f} min")])
+    if len(d) == 1:
+        d.append([P('Nenhuma falha resolvida hoje até o momento.'), '', '', '', '', ''])
+    story.append(tabela(d, [8 * cm, 3 * cm, 1.4 * cm, 3 * cm, 3 * cm, 5.8 * cm]))
+
+    def rodape(c, doc):
+        c.saveState(); c.setFont('Helvetica', 7); c.setFillColor(CINZA)
+        c.drawString(1.2 * cm, .8 * cm, _t(f'OptimusBI Squad · Monitoramento {VERSAO_PAINEL.split(" ·")[0]} · {agora:%d/%m/%Y %H:%M}'))
+        c.drawRightString(landscape(A4)[0] - 1.2 * cm, .8 * cm, f'Página {doc.page}')
+        c.restoreState()
+
+    nome_pdf = f'Saude_Equipe_OptimusBI_{agora:%Y-%m-%d_%H%M}.pdf'
+    pastas_saida = [AQUI / 'pdf_saude_equipe'] + [Path(p) for p in cfg.get('pastas_pdf_saude', []) if p]
+    principal = None
+    for i, pasta in enumerate(pastas_saida):
+        try:
+            pasta.mkdir(parents=True, exist_ok=True)
+            destino = pasta / nome_pdf
+            if principal is None:
+                SimpleDocTemplate(str(destino), pagesize=landscape(A4), leftMargin=1.2 * cm, rightMargin=1.2 * cm, topMargin=1.1 * cm,
+                                  bottomMargin=1.4 * cm, title='Saúde da Equipe OptimusBI', author='OptimusBI Squad').build(story, onFirstPage=rodape, onLaterPages=rodape)
+                principal = destino
+            else:
+                import shutil
+                shutil.copy2(principal, destino)
+        except Exception:
+            log.error('Não foi possível salvar o PDF em %s\n%s', pasta, traceback.format_exc())
+    try:
+        import shutil
+        shutil.rmtree(tmp, ignore_errors=True)
+    except Exception:
+        pass
+    if principal:
+        log.info('PDF de saúde da equipe gerado: %s', principal)
+    return principal
+
+
+def rotina_pdf_2h(cfg, res, forcar=False):
+    """Gera o PDF a cada 2 horas (00h, 02h, 04h ... 22h) — 1 PDF por faixa, mesmo que o monitor tenha ficado parado."""
+    agora = datetime.now()
+    passo = max(1, int(cfg.get('intervalo_pdf_horas', 2)))
+    faixa = f'{date.today().isoformat()}_{agora.hour // passo * passo:02d}'
+    est = _ler_json(ESTADO, {})
+    if forcar or est.get('ultimo_pdf_faixa') != faixa:
+        arq = gerar_pdf_saude(cfg, res)
+        if arq:
+            est = _ler_json(ESTADO, {})
+            est['ultimo_pdf_faixa'] = faixa
+            est['ultimo_pdf_arquivo'] = str(arq)
+            ESTADO.write_text(json.dumps(est, ensure_ascii=False), encoding='utf-8')
+            print(f'[OptimusBI] PDF de saúde da equipe salvo em: {arq}')
+        return arq
+    return None
+
+
 class PainelHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         return
@@ -1907,6 +2366,17 @@ class PainelHandler(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'application/json; charset=utf-8')
             self.end_headers()
             self.wfile.write(json.dumps({'ok': True, 'hora': datetime.now().strftime('%H:%M:%S')}).encode('utf-8'))
+            return
+
+        if self.path.startswith('/api/pdf'):
+            cfg = ULTIMO_ESTADO_GLOBAL['cfg'] or sincronizar_config_automatico()
+            if not ULTIMO_ESTADO_GLOBAL['res']:
+                ciclo(enviar=False)
+            arq = gerar_pdf_saude(cfg, ULTIMO_ESTADO_GLOBAL['res'])
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(json.dumps({'ok': bool(arq), 'arquivo': str(arq or '')}).encode('utf-8'))
             return
 
         if self.path.startswith('/api/relatorio'):
@@ -1974,7 +2444,7 @@ def verificar_relatorio_final_do_dia(cfg, res, snaps_hoje, hist, forcar=False):
         print(f"[OptimusBI] Relatório diário .xlsx salvo em: {arq_salvo}")
 
 
-def ciclo(enviar, forcar_relatorio=False, forcar_vercel=False):
+def ciclo(enviar, forcar_relatorio=False, forcar_vercel=False, forcar_pdf=False):
     cfg = sincronizar_config_automatico()
     res = []
     for m in cfg['monitores']:
@@ -2022,6 +2492,11 @@ def ciclo(enviar, forcar_relatorio=False, forcar_vercel=False):
         log.error('Falha ao gerar relatório diário .xlsx\n%s', traceback.format_exc())
 
     try:
+        rotina_pdf_2h(cfg, res, forcar=forcar_pdf)
+    except Exception:
+        log.error('Falha na rotina do PDF de saúde (2h)\n%s', traceback.format_exc())
+
+    try:
         rotina_whatsapp(cfg, res, enviar)
     except Exception:
         log.error('Falha na rotina WhatsApp\n%s', traceback.format_exc())
@@ -2037,6 +2512,7 @@ if __name__ == '__main__':
     ap.add_argument('--testar-resumo', action='store_true', help='Gera o resumo real + print da Visão Geral e envia agora')
     ap.add_argument('--so-print', action='store_true', help='Só gera o print visao_geral.png (sem enviar)')
     ap.add_argument('--gerar-relatorio', action='store_true')
+    ap.add_argument('--gerar-pdf', action='store_true', help='Gera agora o PDF de saúde da equipe')
     ap.add_argument('--enviar-vercel', action='store_true', help='Força geração do .xlsx e upload imediato na Vercel')
     a = ap.parse_args()
 
@@ -2054,7 +2530,7 @@ if __name__ == '__main__':
         sys.exit()
 
     cfg_ini = sincronizar_config_automatico()
-    if not a.uma_vez and not a.gerar_relatorio and not a.enviar_vercel:
+    if not a.uma_vez and not a.gerar_relatorio and not a.enviar_vercel and not a.gerar_pdf:
         porta_web = int(cfg_ini.get('porta_servidor_web', 8080))
         if not iniciar_servidor_web(porta_web):
             msg = (f'\n*** ATENÇÃO: a porta {porta_web} já está em uso. Existe OUTRO monitor rodando (provavelmente a versão antiga), '
@@ -2069,11 +2545,11 @@ if __name__ == '__main__':
     while True:
         ini = time.time()
         try:
-            cfg = ciclo(not a.sem_whatsapp, forcar_relatorio=a.gerar_relatorio, forcar_vercel=a.enviar_vercel)
+            cfg = ciclo(not a.sem_whatsapp, forcar_relatorio=a.gerar_relatorio, forcar_vercel=a.enviar_vercel, forcar_pdf=a.gerar_pdf)
         except Exception:
             log.error('Erro no ciclo\n%s', traceback.format_exc())
             cfg = DEFAULT
-        if a.uma_vez or a.gerar_relatorio or a.enviar_vercel:
+        if a.uma_vez or a.gerar_relatorio or a.enviar_vercel or a.gerar_pdf:
             break
         tempo_espera = max(10, int(cfg.get('intervalo_seg', 60)) - (time.time() - ini))
         time.sleep(tempo_espera)
