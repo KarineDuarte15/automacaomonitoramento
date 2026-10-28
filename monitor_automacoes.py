@@ -408,6 +408,32 @@ def hm(m):
     return '-' if m is None else f'{(m // 60) % 24:02d}:{m % 60:02d}'
 
 
+def _arquivo_aprr_valido(nome, modificado_em, hoje):
+    # Formato real das bases: NORMAL.PROC_DDMMYYYYHHMMSS.CSV.
+    trecho_data = re.search(r'(?i)(?:^|[_.])(\d{14})(?:\.csv)?$', nome)
+    if not trecho_data:
+        return False, None, None
+    try:
+        data_no_nome = datetime.strptime(trecho_data.group(1), '%d%m%Y%H%M%S')
+    except ValueError:
+        return False, None, None
+
+    if data_no_nome.date() != hoje or data_no_nome.hour not in HORARIOS_APRR:
+        return False, None, None
+
+    hora_nome = data_no_nome.hour
+    pc_na_mesma_janela = (
+        modificado_em.date() == hoje
+        and datetime.combine(hoje, dtime(hora_nome)) <= modificado_em
+        < datetime.combine(hoje, dtime(hora_nome + 1))
+    )
+    alerta = None if pc_na_mesma_janela else (
+        f'⚠️ Nome indica {data_no_nome:%d/%m/%Y %H:%M:%S}, '
+        f'mas o PC registrou o download em {modificado_em:%d/%m/%Y %H:%M:%S}'
+    )
+    return True, hora_nome, alerta
+
+
 # ==============================================================================
 # 4. REGRAS DE HORÁRIO: APRR (+2 A CADA HORÁRIO) E TELE SAÚDE (30M ANTES)
 # ==============================================================================
@@ -830,6 +856,9 @@ def avaliar(m, cfg):
                 n_mes = 0
                 mtimes_hoje = []
                 datas_com_arquivo_no_mes = set()
+                aprr_por_horario = {h: 0 for h in HORARIOS_APRR}
+                aprr_invalidos = []
+                aprr_alertas = []
 
                 for e in pasta.iterdir():
                     if not e.is_file():
@@ -847,7 +876,17 @@ def avaliar(m, cfg):
                     mod_hoje = (mtime_dt.date() == hoje)
                     tem_chave = (chave_hoje in nome_low) if chave_hoje else False
 
-                    if chave_hoje:
+                    if eh_aprr:
+                        valido, hora_aprr, alerta = _arquivo_aprr_valido(e.name, mtime_dt, hoje)
+                        if valido:
+                            aprr_por_horario[hora_aprr] += 1
+                            n_hoje += 1
+                            mtimes_hoje.append(mtime_dt)
+                            if alerta:
+                                aprr_alertas.append(alerta)
+                        else:
+                            aprr_invalidos.append(e.name)
+                    elif chave_hoje:
                         if tem_chave or mod_hoje:
                             n_hoje += 1
                             mtimes_hoje.append(mtime_dt)
@@ -857,6 +896,29 @@ def avaliar(m, cfg):
 
                 if f.get('so_mes'):
                     n_hoje = n_mes
+                if eh_aprr:
+                    janelas_apuradas = [
+                        h for h in HORARIOS_APRR
+                        if agora >= datetime.combine(hoje, dtime(h, 10))
+                    ]
+                    faltantes_aprr = [
+                        f'{h:02d}:00 ({aprr_por_horario[h]}/2)'
+                        for h in janelas_apuradas
+                        if aprr_por_horario[h] < 2
+                    ]
+                    if faltantes_aprr:
+                        r['status'] = 'err'
+                        r['erros'].append(
+                            f"NÃO BAIXOU: {f['rotulo']} sem arquivo APRR válido nas janelas "
+                            f"{', '.join(faltantes_aprr)}"
+                        )
+                    if aprr_invalidos:
+                        r['avisos'].append(
+                            f"{f['rotulo']}: {len(aprr_invalidos)} arquivo(s) ignorado(s) "
+                            'por nome fora do padrão APRR '
+                            '(NORMAL.PROC_DDMMYYYYHHMMSS.CSV)'
+                        )
+                    r['avisos'].extend(f'{f["rotulo"]}: {alerta}' for alerta in aprr_alertas)
                 o['n'] = n_hoje
                 o['n_mes'] = n_mes
                 total_arquivos_hoje += n_hoje
@@ -892,7 +954,7 @@ def avaliar(m, cfg):
                     if faltam:
                         r['status'] = 'err'
                         r['erros'].append(f"NÃO BAIXOU: {f['rotulo']} sem arquivo de {', '.join(faltam)} (baixa nos dias {f['dias_mes']})")
-                if n_hoje < esperado_dia:
+                if n_hoje < esperado_dia and not eh_aprr:
                     r['status'] = 'err'
                     r['erros'].append(f"NÃO BAIXOU: {f['rotulo']} tem {n_hoje} de {esperado_dia} arquivos hoje")
         except Exception as e:
