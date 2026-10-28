@@ -11,6 +11,9 @@ monitor.log
 estado.json
 historico.json
 snapshots_hora.json
+incidentes.json
+bi_eventos.json
+pdf_saude_equipe/
 visao_geral.png
 chrome_print_tmp/
 edge_print_tmp/

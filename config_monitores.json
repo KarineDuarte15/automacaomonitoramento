@@ -605,6 +605,16 @@
   "hora_limite_manha": "11:00",
   "bi_checar_fim_de_semana": false,
   "logs_ignorar": [],
+  "equipe": [
+    "Karine",
+    "Agenor",
+    "Miller"
+  ],
+  "intervalo_pdf_horas": 2,
+  "pastas_pdf_saude": [
+    "C:\\Users\\agenor.sales\\Desktop\\dashboard acompanhamento\\PDF SAUDE EQUIPE",
+    "G:\\Credenciamento Medico\\NUCLEO DE AGENDAS\\RAFAEL FERNANDES\\7 - BASES DE RELATORIOS\\RELATORIO PAINEL MONITORAMENTO DIARIO\\PDF SAUDE EQUIPE"
+  ],
   "bis_pbix": [
     {
       "nome": "Alerta de Vagas v2",
@@ -762,7 +772,7 @@
       ],
       "prio": "P1",
       "regra": "ultima",
-      "resp": "Agenor"
+      "resp": "Miller"
     },
     {
       "nome": "Escala Especial",
@@ -772,7 +782,7 @@
       ],
       "prio": "P2",
       "regra": "diaria",
-      "resp": "Agenor"
+      "resp": "Miller"
     },
     {
       "nome": "Relatório Atraso dos Médicos",
@@ -869,7 +879,7 @@
         "22:30"
       ],
       "tolerancia_min": 90,
-      "resp": "Daniel"
+      "resp": ""
     },
     {
       "nome": "Relatório de Tagueamento",
