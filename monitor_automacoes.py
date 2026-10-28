@@ -429,10 +429,11 @@ def _arquivo_aprr_valido(nome, modificado_em, hoje):
         return False, None, None
 
     hora_nome = data_no_nome.hour
+    inicio_janela = datetime.combine(hoje, dtime(hora_nome))
+    fim_janela = inicio_janela + timedelta(hours=1)
     pc_na_mesma_janela = (
         modificado_em.date() == hoje
-        and datetime.combine(hoje, dtime(hora_nome)) <= modificado_em
-        < datetime.combine(hoje, dtime(hora_nome + 1))
+        and inicio_janela <= modificado_em < fim_janela
     )
     alerta = None if pc_na_mesma_janela else (
         f'⚠️ Nome indica {data_no_nome:%d/%m/%Y %H:%M:%S}, '
