@@ -5,7 +5,7 @@ Monitoramento OptimusBI - Completo:
 - Verifica pastas e logs a cada 60s
 - A cada 30 minutos: gera o .xlsx em C:\\Users\\agenor.sales\\Desktop\\dashboard acompanhamento
   e faz o upload automático em https://acompanhameto-fluxo-diario-de-taref.vercel.app/ na aba Monitoramento
-- A cada 6 horas (360 min): envia resumo no WhatsApp (1 mensagem por contato, fechando e reiniciando o navegador)
+- A cada 2 horas (120 min): envia resumo e PDF no WhatsApp e Teams Desktop
 - Às 18h: guarda também o relatório diário final na pasta G:\\...
 """
 import argparse
@@ -71,7 +71,7 @@ B7 = '7 - BASES DE RELATORIOS\\'
 MM = '\\{YYYY}\\{MM} - {MES}'
 
 # ==============================================================================
-# 2. CONFIGURAÇÃO PADRÃO (INCLUINDO PASTA LOCALHOST 30 MIN, VERCEL E WHATSAPP 6H)
+# 2. CONFIGURAÇÃO PADRÃO (INCLUINDO VERCEL E ENVIO DOS CANAIS A CADA 2H)
 # ==============================================================================
 DEFAULT = {
     'versao_config': 4,
@@ -90,15 +90,23 @@ DEFAULT = {
     'whatsapp': {
         'ativo': True,
         'porta_edge': 9222,
-        'resumo_a_cada_min': 360,  # Envia no WhatsApp apenas a cada 6 horas (360 minutos)
+        'resumo_a_cada_min': 120,
+        'grupo_rotina': '',
+        'enviar_para_destinos_individuais': True,
         'horarios_resumo': ['00:00', '06:00', '12:00', '18:00', '23:59'],
-        'alerta_imediato_erro': False,  # Desativado para respeitar rigorosamente a janela de 6 horas
+        'alerta_imediato_erro': False,
         'perfil_edge': r'C:\edge_whatsapp_monitor',
         'edge_exe': '',
         'destinos': [
             {'nome': 'Agenor', 'numero': '558589768794'},
             {'nome': 'Miller', 'numero': '553199300997'}
         ]
+    },
+    'teams': {
+        'ativo': True,
+        'grupo_rotina': '',
+        'enviar_pdf': True,
+        'exe': r'C:\Users\%USERNAME%\AppData\Local\Microsoft\Teams\current\ms-teams.exe',
     },
     'monitores': [
         {
@@ -361,10 +369,16 @@ def sincronizar_config_automatico():
             antigo = json.loads(CFG.read_text(encoding='utf-8'))
             if 'whatsapp' in antigo and 'destinos' in antigo['whatsapp']:
                 cfg_final['whatsapp']['destinos'] = antigo['whatsapp']['destinos']
+            if 'whatsapp' in antigo:
+                for chave in ('grupo_rotina', 'enviar_para_destinos_individuais'):
+                    if chave in antigo['whatsapp']:
+                        cfg_final['whatsapp'][chave] = antigo['whatsapp'][chave]
+            if 'teams' in antigo:
+                cfg_final['teams'].update(antigo['teams'])
         except Exception:
             pass
-    # Garante sempre 6 horas (360 min) no WhatsApp e 30 min para a Vercel
-    cfg_final['whatsapp']['resumo_a_cada_min'] = 360
+    # Garante o intervalo operacional de 2 horas e 30 min para a Vercel.
+    cfg_final['whatsapp']['resumo_a_cada_min'] = 120
     cfg_final['intervalo_vercel_min'] = 30
     cfg_final['intervalo_pdf_horas'] = 2
     CFG.write_text(json.dumps(cfg_final, indent=2, ensure_ascii=False), encoding='utf-8')
@@ -1378,7 +1392,7 @@ HTML = r'''<!DOCTYPE html>
       <span id="snapInfo" style="font-size:12px;color:var(--slate-600);margin-left:8px"></span>
     </div>
     <div style="font-size:12px;color:var(--slate-600)">
-      <strong>Vercel (.xlsx):</strong> a cada 30 min | <strong>WhatsApp:</strong> a cada 6 horas | <strong>PDF Saúde da Equipe:</strong> a cada 2 horas | <strong>Relatório Final:</strong> 18:00
+    <strong>Vercel (.xlsx):</strong> a cada 30 min | <strong>WhatsApp + Teams:</strong> a cada 2 horas | <strong>PDF Saúde da Equipe:</strong> a cada 2 horas | <strong>Relatório Final:</strong> 18:00
     </div>
   </div>
 
@@ -1415,9 +1429,9 @@ HTML = r'''<!DOCTYPE html>
 <div id="toasts"></div>
 
 <dialog id="dWa">
-  <div class="dh"><b>Resumo para WhatsApp (A cada 6 horas)</b><button id="bWc">Fechar</button></div>
+    <div class="dh"><b>Resumo para WhatsApp e Teams (A cada 2 horas)</b><button id="bWc">Fechar</button></div>
   <div class="db">
-    <p style="font-size:12px;color:var(--slate-600);margin-top:0">O Python envia automaticamente a cada 6 horas (1 mensagem por contato, fechando e reiniciando o navegador).</p>
+    <p style="font-size:12px;color:var(--slate-600);margin-top:0">O Python envia automaticamente a cada 2 horas, com o PDF completo anexado nos canais configurados.</p>
     <textarea id="waTxt" rows="11" style="width:100%;font:inherit;padding:8px"></textarea>
     <div class="bar" id="waBtns" style="margin-top:10px"></div>
   </div>
@@ -1753,7 +1767,7 @@ def gerar_dashboard(cfg, res):
 
 
 # ==============================================================================
-# 8. WHATSAPP A CADA 6 HORAS (360 MIN) - FECHANDO E REINICIANDO POR CONTATO
+# 8. CANAIS A CADA 2 HORAS - WHATSAPP E TEAMS DESKTOP
 # ==============================================================================
 ICON = {'ok': '✅', 'err': '❌', 'warn': '⚠️', 'run': '🔄', 'nd': '➖'}
 
@@ -1775,47 +1789,30 @@ def _motivo_curto(msg):
     return m
 
 
-def resumo(res, titulo='Monitoramento OptimusBI', max_chars=950):
-    """Resumo em formato de planilha (texto monoespaçado, sem emojis), cabendo na legenda de uma imagem."""
+def resumo(res, titulo='Monitoramento OptimusBI', max_chars=3500):
+    """Monta a mensagem completa por prioridade, no formato usado no grupo de rotina."""
     ativos = [x for x in res if x['status'] != 'nd']
-    c = lambda s: sum(x['status'] == s for x in ativos)
-    bis = [x for x in ativos if x.get('categoria') == 'pbix']
-    saude = round(100 * c('ok') / len(ativos)) if ativos else 0
-    eq = {}
-    for x in ativos:
-        for p in [q.strip() for q in re.split(r'\s+e\s+|,', x.get('responsavel') or '') if q.strip()]:
-            e = eq.setdefault(p, [0, 0])
-            e[1] += 1
-            e[0] += (x['status'] == 'ok')
-    falhas = sorted([x for x in ativos if x['status'] == 'err'], key=lambda x: (x['prio'], x['nome']))
-    alertas = sorted([x for x in ativos if x['status'] == 'warn'], key=lambda x: (x['prio'], x['nome']))
-
-    def montar(n_falhas, n_alertas):
-        L = [f"*{titulo}* {datetime.now():%d/%m/%Y %H:%M}", '```',
-             f"Saude geral : {saude}%",
-             f"OK/Alerta/Falha : {c('ok')}/{c('warn')}/{c('err')}",
-             f"BIs em dia  : {sum(x['status'] == 'ok' for x in bis)}/{len(bis)}", '',
-             'RESP.      OK/TOT   %']
-        for p, (o, t) in sorted(eq.items()):
-            L.append(f"{p[:10]:<10} {o:>2}/{t:<4} {round(100 * o / t):>3}%")
-        if falhas:
-            L += ['', f"FALHAS ({len(falhas)})"]
-            for x in falhas[:n_falhas]:
-                nome = x['nome'].replace('PBIX · ', '') + (' (pbix)' if x.get('categoria') == 'pbix' else '')
-                L.append(f"{x['prio']} {_cut(nome, 30)} | {_cut(x.get('responsavel') or '-', 10)}")
-                L.append(f"   {_cut(_motivo_curto(x['erros'][0]) if x['erros'] else '-', 54)}")
-            if len(falhas) > n_falhas:
-                L.append(f"   (+{len(falhas) - n_falhas} no painel)")
-        if alertas and n_alertas:
-            L += ['', f"ALERTAS ({len(alertas)}): " + _cut(', '.join(x['nome'].replace('PBIX · ', '') for x in alertas[:n_alertas]), 150)]
-        L.append('```')
-        return '\n'.join(L)
-
-    for nf, na in [(12, 6), (8, 4), (6, 3), (4, 2), (3, 0), (2, 0), (1, 0), (0, 0)]:
-        t = montar(nf, na)
-        if len(t) <= max_chars:
-            return t
-    return t
+    nomes_prio = {'P0': '🔴 P0 — Crítica', 'P1': '🟠 P1 — Alta', 'P2': '🟡 P2 — Média', 'P3': '🔵 P3 — Baixa'}
+    linhas = [f'*{titulo}* · {datetime.now():%d/%m/%Y %H:%M}', '',
+              'Bom diaa a todos!!!',
+              'Atualização do grupo de acompanhamento de rotinas:', '']
+    for prio in ('P0', 'P1', 'P2', 'P3'):
+        itens = sorted((x for x in ativos if x.get('prio') == prio), key=lambda x: x['nome'])
+        if not itens:
+            continue
+        linhas.append(nomes_prio[prio])
+        for item in itens:
+            nome = item['nome'].replace('PBIX · ', '')
+            marca = ICON.get(item.get('status'), '➖')
+            detalhe = ''
+            if item.get('status') in ('err', 'warn'):
+                motivos = item.get('erros') or item.get('avisos') or []
+                if motivos:
+                    detalhe = f' — {_cut(_motivo_curto(motivos[0]), 110)}'
+            linhas.append(f' {nome} {marca}{detalhe}')
+        linhas.append('')
+    texto = '\n'.join(linhas).rstrip()
+    return texto if len(texto) <= max_chars else texto[:max_chars - 40].rstrip() + '\n... veja o painel localhost.'
 
 
 def _achar_edge(cfg):
@@ -1925,8 +1922,47 @@ def _enviar_imagem(drv, caminho_img, legenda):
     time.sleep(8)
 
 
-def enviar_whatsapp(cfg, texto, imagem=None):
-    """1 mensagem por contato: print da Visão Geral com o resumo na legenda (ou só texto, se o print falhar)."""
+def _enviar_arquivo_whatsapp(drv, caminho, legenda):
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.common.keys import Keys
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    icones = "@data-icon='plus' or @data-icon='attach-menu-plus' or @data-icon='clip'"
+    WebDriverWait(drv, 30).until(EC.element_to_be_clickable((By.XPATH, f"//footer//span[{icones}]"))).click()
+    inp = WebDriverWait(drv, 15).until(EC.presence_of_element_located((By.XPATH, "//input[@type='file']")))
+    inp.send_keys(str(Path(caminho).resolve()))
+    time.sleep(3)
+    caixas = drv.find_elements(By.XPATH, "//div[@contenteditable='true']")
+    if caixas:
+        caixa = caixas[-1]
+        caixa.click()
+        caixa.send_keys(legenda)
+    enviar = WebDriverWait(drv, 20).until(EC.element_to_be_clickable(
+        (By.XPATH, "//span[@data-icon='send' or @data-icon='wds-ic-send-filled']/ancestor::*[@role='button' or self::button][1]")))
+    enviar.click()
+    time.sleep(8)
+
+
+def _abrir_grupo_whatsapp(drv, nome_grupo):
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.common.keys import Keys
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    busca = WebDriverWait(drv, 30).until(EC.presence_of_element_located((
+        By.XPATH, "//div[@contenteditable='true' and (@data-tab='3' or @aria-label='Pesquisar' or @title='Pesquisar')]")
+    ))
+    busca.click()
+    busca.send_keys(Keys.CONTROL, 'a')
+    busca.send_keys(nome_grupo)
+    time.sleep(2)
+    resultado = WebDriverWait(drv, 20).until(EC.element_to_be_clickable((
+        By.XPATH, f"//*[normalize-space(@title)={json.dumps(nome_grupo)} or normalize-space(text())={json.dumps(nome_grupo)}]")))
+    resultado.click()
+    time.sleep(2)
+
+
+def enviar_whatsapp(cfg, texto, imagem=None, pdf=None):
+    """Envia a atualização para o grupo e, opcionalmente, para os contatos individuais."""
     from selenium import webdriver
     from selenium.webdriver.edge.options import Options
     from selenium.webdriver.common.by import By
@@ -1936,11 +1972,15 @@ def enviar_whatsapp(cfg, texto, imagem=None):
 
     w = cfg['whatsapp']
     porta = w['porta_edge']
-    destinos = w.get('destinos', [])
+    destinos = w.get('destinos', []) if w.get('enviar_para_destinos_individuais', True) else []
     ok_all = True
     xp_caixa = "//footer//div[@contenteditable='true']"
+    grupo = str(w.get('grupo_rotina') or '').strip()
+    destinos_envio = ([{'nome': grupo, 'grupo': True}] if grupo else []) + destinos
+    if not destinos_envio:
+        log.warning('WhatsApp sem grupo_rotina ou destinos configurados; envio ignorado.')
 
-    for idx, d in enumerate(destinos, start=1):
+    for idx, d in enumerate(destinos_envio, start=1):
         proc = None
         try:
             log.info('[%s/%s] Iniciando janela do navegador para %s...', idx, len(destinos), d['nome'])
@@ -1956,7 +1996,11 @@ def enviar_whatsapp(cfg, texto, imagem=None):
             enviado = False
             if imagem and Path(imagem).exists():
                 try:
-                    drv.get(f"https://web.whatsapp.com/send?phone={d['numero']}")
+                    if d.get('grupo'):
+                        drv.get('https://web.whatsapp.com')
+                        _abrir_grupo_whatsapp(drv, d['nome'])
+                    else:
+                        drv.get(f"https://web.whatsapp.com/send?phone={d['numero']}")
                     WebDriverWait(drv, 90).until(EC.presence_of_element_located((By.XPATH, xp_caixa)))
                     time.sleep(2)
                     _enviar_imagem(drv, imagem, texto)
@@ -1965,12 +2009,25 @@ def enviar_whatsapp(cfg, texto, imagem=None):
                 except Exception as e:
                     log.error('Falha ao enviar print para %s (%s). Enviando só texto.', d['nome'], str(e)[:160])
             if not enviado:
-                drv.get(f"https://web.whatsapp.com/send?phone={d['numero']}&text={quote(texto)}")
+                if d.get('grupo'):
+                    drv.get('https://web.whatsapp.com')
+                    _abrir_grupo_whatsapp(drv, d['nome'])
+                else:
+                    drv.get(f"https://web.whatsapp.com/send?phone={d['numero']}&text={quote(texto)}")
                 caixa = WebDriverWait(drv, 90).until(EC.presence_of_element_located((By.XPATH, xp_caixa)))
                 time.sleep(2)
                 caixa.send_keys(Keys.ENTER)
                 time.sleep(5)
                 log.info('WhatsApp enviado para %s (texto). Fechando janela...', d['nome'])
+            if pdf and Path(pdf).exists():
+                if d.get('grupo'):
+                    drv.get('https://web.whatsapp.com')
+                    _abrir_grupo_whatsapp(drv, d['nome'])
+                else:
+                    drv.get(f"https://web.whatsapp.com/send?phone={d['numero']}")
+                WebDriverWait(drv, 90).until(EC.presence_of_element_located((By.XPATH, xp_caixa)))
+                _enviar_arquivo_whatsapp(drv, pdf, f'Relatório PDF completo das abas do monitoramento: {Path(pdf).name}')
+                log.info('PDF enviado para WhatsApp: %s', d['nome'])
         except Exception as e:
             ok_all = False
             log.error('Falha WhatsApp %s: %s', d['nome'], str(e)[:200])
@@ -1985,25 +2042,108 @@ def enviar_whatsapp(cfg, texto, imagem=None):
     return ok_all
 
 
-def rotina_whatsapp(cfg, res, enviar):
-    """Envia a atualização no WhatsApp somente a cada 6 horas (360 minutos)."""
+def enviar_teams_desktop(cfg, texto, pdf=None):
+    """Envia texto e PDF no grupo do Teams usando os controles visíveis do Teams Desktop."""
+    teams = cfg.get('teams') or {}
+    grupo = str(teams.get('grupo_rotina') or '').strip()
+    if not teams.get('ativo') or not grupo:
+        log.warning('Teams sem grupo_rotina configurado; envio ignorado.')
+        return False
+    processo = None
+    try:
+        from pywinauto import Desktop
+        from pywinauto.keyboard import send_keys
+        desktop = Desktop(backend='uia')
+        janela = desktop.window(title_re='.*Microsoft Teams.*')
+        if not janela.exists(timeout=5):
+            exe = os.path.expandvars(str(teams.get('exe') or ''))
+            if exe and os.path.exists(exe):
+                processo = subprocess.Popen([exe])
+                time.sleep(8)
+            janela = Desktop(backend='uia').window(title_re='.*Microsoft Teams.*')
+        janela.wait('visible', timeout=30)
+        janela.set_focus()
+        edits = janela.descendants(control_type='Edit')
+        busca = next((x for x in edits if x.is_visible() and x.is_enabled()), None)
+        if not busca:
+            raise RuntimeError('Campo de pesquisa do Teams não encontrado')
+        busca.click_input()
+        busca.type_keys('^a')
+        busca.type_keys(grupo, with_spaces=True)
+        time.sleep(2)
+        resultado = janela.child_window(title=grupo, control_type='ListItem')
+        if not resultado.exists(timeout=10):
+            resultado = janela.child_window(title=grupo)
+        resultado.click_input()
+        time.sleep(2)
+        campos = [x for x in janela.descendants(control_type='Edit') if x.is_visible() and x.is_enabled()]
+        caixa = campos[-1] if campos else None
+        if not caixa:
+            raise RuntimeError('Caixa de mensagem do Teams não encontrada')
+        caixa.click_input()
+        try:
+            import pyperclip
+            pyperclip.copy(texto)
+            send_keys('^v{ENTER}')
+        except ImportError:
+            caixa.type_keys(texto, with_spaces=True)
+            send_keys('{ENTER}')
+        if pdf and teams.get('enviar_pdf') and Path(pdf).exists():
+            anexar = next((x for x in janela.descendants() if x.is_visible() and x.is_enabled() and re.search(r'anex|attach', x.window_text(), re.I)), None)
+            if not anexar:
+                raise RuntimeError('Botão de anexo do Teams não encontrado')
+            anexar.click_input()
+            time.sleep(1)
+            item_upload = next((x for x in janela.descendants()
+                                if x.is_visible() and x.is_enabled()
+                                and re.search(r'upload.*computer|carregar.*computador|meu computador', x.window_text(), re.I)), None)
+            if item_upload:
+                item_upload.click_input()
+            else:
+                send_keys('{DOWN}{ENTER}')
+            dialogo = Desktop(backend='uia').window(title_re='.*(Open|Abrir|Selecionar).*')
+            dialogo.wait('visible', timeout=15)
+            arquivo = dialogo.child_window(control_type='Edit')
+            arquivo.type_keys(str(Path(pdf).resolve()), with_spaces=True)
+            send_keys('{ENTER}')
+            time.sleep(3)
+            send_keys('{ENTER}')
+        log.info('Teams enviado para o grupo %s', grupo)
+        return True
+    except Exception as e:
+        log.error('Falha no Teams Desktop: %s', str(e)[:250])
+        return False
+    finally:
+        if processo:
+            log.info('Teams Desktop iniciado automaticamente para o envio.')
+
+
+def rotina_canais_2h(cfg, res, enviar):
+    """Gera uma mensagem e envia texto + PDF aos canais uma vez por faixa de 2 horas."""
     w = cfg['whatsapp']
-    if not (enviar and w.get('ativo')):
+    teams = cfg.get('teams') or {}
+    if not enviar or not (w.get('ativo') or teams.get('ativo')):
         return
     est = json.loads(ESTADO.read_text(encoding='utf-8')) if ESTADO.exists() else {}
     agora = datetime.now()
-    freq_min = int(w.get('resumo_a_cada_min', 360))  # 360 min = 6 horas
+    freq_min = int(w.get('resumo_a_cada_min', 120))
     ultimo = datetime.fromisoformat(est['ultimo_resumo']) if est.get('ultimo_resumo') else None
     ativos = [x for x in res if x['status'] != 'nd']
     erros = sorted(f"{x['nome']}|{e}" for x in ativos for e in x['erros'])
     sig = '\n'.join(erros)
 
-    if ultimo is None or (agora - ultimo) >= timedelta(minutes=freq_min):
+    faixa = f'{date.today().isoformat()}_{agora.hour * 60 // freq_min:04d}'
+    if ultimo is None or est.get('ultimo_canais_faixa') != faixa or (agora - ultimo) >= timedelta(minutes=freq_min):
         titulo = 'ALERTA - Monitoramento OptimusBI' if erros else 'Monitoramento OptimusBI'
         est['ultimo_resumo'] = agora.isoformat()
+        est['ultimo_canais_faixa'] = faixa
         ESTADO.write_text(json.dumps(est, ensure_ascii=False), encoding='utf-8')
         imagem = capturar_visao_geral(cfg)
-        if enviar_whatsapp(cfg, resumo(res, titulo), imagem):
+        pdf_cfg = _ler_json(ESTADO, {})
+        pdf = Path(pdf_cfg['ultimo_pdf_arquivo']) if pdf_cfg.get('ultimo_pdf_arquivo') else gerar_pdf_saude(cfg, res)
+        whatsapp_ok = enviar_whatsapp(cfg, resumo(res, titulo), imagem, pdf)
+        teams_ok = enviar_teams_desktop(cfg, resumo(res, titulo), pdf)
+        if whatsapp_ok or teams_ok:
             est['ultima_assinatura'] = sig
             ESTADO.write_text(json.dumps(est, ensure_ascii=False), encoding='utf-8')
 
@@ -2559,7 +2699,7 @@ def ciclo(enviar, forcar_relatorio=False, forcar_vercel=False, forcar_pdf=False)
         log.error('Falha na rotina do PDF de saúde (2h)\n%s', traceback.format_exc())
 
     try:
-        rotina_whatsapp(cfg, res, enviar)
+        rotina_canais_2h(cfg, res, enviar)
     except Exception:
         log.error('Falha na rotina WhatsApp\n%s', traceback.format_exc())
 
