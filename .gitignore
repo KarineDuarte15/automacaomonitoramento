@@ -13,6 +13,7 @@ historico.json
 snapshots_hora.json
 visao_geral.png
 chrome_print_tmp/
+edge_print_tmp/
 
 # Local tooling and operating-system files
 .pytest_cache/

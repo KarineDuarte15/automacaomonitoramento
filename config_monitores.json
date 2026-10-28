@@ -1,12 +1,8 @@
 {
-  "versao_config": 6,
+  "versao_config": 5,
   "raiz": "G:\\Credenciamento Medico\\NUCLEO DE AGENDAS\\RAFAEL FERNANDES",
   "raiz_rede_fallback": "\\\\10.1.17.4\\Usuarios\\Credenciamento Medico\\NUCLEO DE AGENDAS\\RAFAEL FERNANDES",
   "pasta_logs": "1 - RELATORIOS\\52 - LOGS PROJETOS",
-  "pasta_pbix": "3 - ATUALIZAÇÃO PBIX\\PBIX OFICIAL",
-  "hora_limite_manha": "11:00",
-  "bi_checar_fim_de_semana": false,
-  "logs_ignorar": [],
   "pasta_relatorio_diario": "G:\\Credenciamento Medico\\NUCLEO DE AGENDAS\\RAFAEL FERNANDES\\7 - BASES DE RELATORIOS\\RELATORIO PAINEL MONITORAMENTO DIARIO",
   "pasta_dashboard_acompanhamento": "C:\\Users\\agenor.sales\\Desktop\\dashboard acompanhamento",
   "url_painel_vercel": "https://acompanhameto-fluxo-diario-de-taref.vercel.app/",
@@ -18,7 +14,7 @@
   "dashboard_html": "dashboard.html",
   "whatsapp": {
     "ativo": true,
-    "porta_chrome": 9222,
+    "porta_edge": 9222,
     "resumo_a_cada_min": 360,
     "horarios_resumo": [
       "00:00",
@@ -28,8 +24,8 @@
       "23:59"
     ],
     "alerta_imediato_erro": false,
-    "perfil_chrome": "C:\\chrome_whatsapp_monitor",
-    "chrome_exe": "",
+    "perfil_edge": "C:\\edge_whatsapp_monitor",
+    "edge_exe": "",
     "destinos": [
       {
         "nome": "Agenor",
@@ -41,272 +37,6 @@
       }
     ]
   },
-  "bis_pbix": [
-    {
-      "nome": "Relatório Alerta de Vagas v2",
-      "busca": [
-        "alerta",
-        "vagas",
-        "v2"
-      ],
-      "prio": "P0",
-      "regra": "intervalo_horas",
-      "intervalo_h": 2,
-      "excluir": [
-        "sub",
-        "tele"
-      ]
-    },
-    {
-      "nome": "Alerta Diário de Vagas_Sub",
-      "busca": [
-        "alerta",
-        "vagas",
-        "sub"
-      ],
-      "prio": "P0",
-      "regra": "intervalo_horas",
-      "intervalo_h": 2
-    },
-    {
-      "nome": "BI_Alerta_Vagas_TeleSaude",
-      "busca": [
-        "vagas",
-        "tele"
-      ],
-      "prio": "P0",
-      "regra": "intervalo_horas",
-      "intervalo_h": 2
-    },
-    {
-      "nome": "BI_NECESSIDADE_COMPRA",
-      "busca": [
-        "necessidade",
-        "compra"
-      ],
-      "prio": "P0",
-      "regra": "diaria",
-      "hora_limite": "11:00"
-    },
-    {
-      "nome": "Painel Médicos Hapclinicas V2",
-      "busca": [
-        "painel",
-        "medicos"
-      ],
-      "prio": "P1",
-      "regra": "diaria",
-      "hora_limite": "11:00"
-    },
-    {
-      "nome": "Relatório Indicadores Rede Cred",
-      "busca": [
-        "indicadores",
-        "rede"
-      ],
-      "prio": "P1",
-      "regra": "diaria",
-      "hora_limite": "11:00"
-    },
-    {
-      "nome": "Relatório de Consultas Disponibilizadas v2",
-      "busca": [
-        "consultas",
-        "disponibilizadas"
-      ],
-      "prio": "P1",
-      "regra": "diaria",
-      "hora_limite": "11:00"
-    },
-    {
-      "nome": "Captacao_de_Agendas",
-      "busca": [
-        "captacao",
-        "agendas"
-      ],
-      "prio": "P1",
-      "regra": "ate_hora",
-      "hora_limite": "17:00",
-      "tolerancia_min": 30
-    },
-    {
-      "nome": "Controle_Agendas",
-      "busca": [
-        "controle",
-        "agendas"
-      ],
-      "prio": "P1",
-      "regra": "ate_hora",
-      "hora_limite": "17:00",
-      "tolerancia_min": 30
-    },
-    {
-      "nome": "Farol de Indice Consultas por Hora - ICH",
-      "busca": [
-        "farol"
-      ],
-      "prio": "P1",
-      "regra": "ate_hora",
-      "hora_limite": "14:00",
-      "tolerancia_min": 30
-    },
-    {
-      "nome": "Relatório de Estoque e Abastecimento v2",
-      "busca": [
-        "estoque",
-        "abastecimento"
-      ],
-      "prio": "P1",
-      "regra": "diaria",
-      "hora_limite": "11:00"
-    },
-    {
-      "nome": "Acompanhamento de Pagamentos Prestadores",
-      "busca": [
-        "pagamentos",
-        "prestadores"
-      ],
-      "prio": "P1",
-      "regra": "ultima",
-      "limite_dias": 2
-    },
-    {
-      "nome": "ESCALA ESPECIAL",
-      "busca": [
-        "escala",
-        "especial"
-      ],
-      "prio": "P2",
-      "regra": "d_menos_5"
-    },
-    {
-      "nome": "Relatório Atraso dos Médicos",
-      "busca": [
-        "atraso",
-        "medicos"
-      ],
-      "prio": "P2",
-      "regra": "diaria",
-      "hora_limite": "11:00"
-    },
-    {
-      "nome": "RELATORIO DE CONSULTAS EM TRANSFERENCIA",
-      "busca": [
-        "transferencia"
-      ],
-      "prio": "P2",
-      "regra": "diaria",
-      "hora_limite": "11:00"
-    },
-    {
-      "nome": "Relatório de Cancelamento v2",
-      "busca": [
-        "cancelamento"
-      ],
-      "prio": "P2",
-      "regra": "diaria",
-      "hora_limite": "11:00"
-    },
-    {
-      "nome": "Relatório de Acompanhamento de Mensageria",
-      "busca": [
-        "mensageria"
-      ],
-      "prio": "P2",
-      "regra": "diaria",
-      "hora_limite": "11:00"
-    },
-    {
-      "nome": "Monitoramento de Marcação",
-      "busca": [
-        "monitoramento",
-        "marcacao"
-      ],
-      "prio": "P2",
-      "regra": "ate_hora",
-      "hora_limite": "06:00",
-      "tolerancia_min": 60
-    },
-    {
-      "nome": "Relatório de Cirurgias",
-      "busca": [
-        "cirurgias"
-      ],
-      "prio": "P2",
-      "regra": "diaria",
-      "hora_limite": "11:00"
-    },
-    {
-      "nome": "Relatorio de Tagueamento",
-      "busca": [
-        "tagueamento"
-      ],
-      "prio": "P2",
-      "regra": "d_menos_5"
-    },
-    {
-      "nome": "Relatorio_SAC (3x ao dia / Mensal)",
-      "busca": [
-        "sac"
-      ],
-      "prio": "P2",
-      "regra": "d_menos_5",
-      "excluir": [
-        "nip"
-      ]
-    },
-    {
-      "nome": "Relatório de SAC e NIP (desenvolvimento)",
-      "busca": [
-        "sac",
-        "nip"
-      ],
-      "prio": "P2",
-      "regra": "d_menos_5"
-    },
-    {
-      "nome": "Acompanhamento de Valores Pagos por Especialidade",
-      "busca": [
-        "valores",
-        "pagos",
-        "especialidade"
-      ],
-      "prio": "P2",
-      "regra": "d_menos_5"
-    },
-    {
-      "nome": "Relatório Check-up da mulher",
-      "busca": [
-        "check",
-        "mulher"
-      ],
-      "prio": "P2",
-      "regra": "ultima",
-      "limite_dias": 3
-    },
-    {
-      "nome": "Relatório_Forecast_Monitoramento_Limites_e_Mediana",
-      "busca": [
-        "forecast"
-      ],
-      "prio": "P2",
-      "regra": "ultima",
-      "limite_dias": 3
-    },
-    {
-      "nome": "Relatório Pacotes (3x: 08:30, 11:00, 17:30)",
-      "busca": [
-        "pacotes"
-      ],
-      "prio": "P2",
-      "regra": "ignorar",
-      "horarios": [
-        "08:30",
-        "11:00",
-        "17:30"
-      ]
-    }
-  ],
   "monitores": [
     {
       "nome": "BI Alerta Vagas v2",
@@ -363,22 +93,9 @@
           "conf_mensal": false,
           "arquivos_obrigatorios": [],
           "prefixos": []
-        },
-        {
-          "rotulo": "PARQUET DA HORA (F_vagas_atual)",
-          "caminho": "1 - RELATORIOS\\47 - BI_TELESSAUDE\\FATO",
-          "caminho_fallback": "\\\\10.1.17.4\\Usuarios\\Credenciamento Medico\\NUCLEO DE AGENDAS\\RAFAEL FERNANDES\\1 - RELATORIOS\\47 - BI_TELESSAUDE\\FATO",
-          "esperado": 1,
-          "contem": "F_vagas_atual.parquet",
-          "so_hoje": true,
-          "regra": "",
-          "conf_mensal": false,
-          "arquivos_obrigatorios": [
-            "F_vagas_atual.parquet"
-          ],
-          "prefixos": []
         }
-      ]
+      ],
+      "responsavel": "Karine"
     },
     {
       "nome": "BI Alerta Vagas Tele Saúde",
@@ -402,7 +119,8 @@
           ],
           "prefixos": []
         }
-      ]
+      ],
+      "responsavel": "Karine"
     },
     {
       "nome": "BI Necessidade de Compra",
@@ -442,7 +160,8 @@
           ],
           "prefixos": []
         }
-      ]
+      ],
+      "responsavel": "Agenor"
     },
     {
       "nome": "T0012 - Disponibilidade / Marcada",
@@ -476,29 +195,8 @@
           "arquivos_obrigatorios": [],
           "prefixos": []
         }
-      ]
-    },
-    {
-      "nome": "Tabela DB mensal T0012",
-      "categoria": "base",
-      "prio": "P1",
-      "regra": "",
-      "log": "",
-      "min_linhas": 0,
-      "pastas": [
-        {
-          "rotulo": "DB_T0012 FLUXO PYTHON",
-          "caminho": "7 - BASES DE RELATORIOS\\DB_T0012\\FLUXO PYTHON",
-          "caminho_fallback": "",
-          "esperado": 3,
-          "contem": "",
-          "so_hoje": true,
-          "regra": "",
-          "conf_mensal": true,
-          "arquivos_obrigatorios": [],
-          "prefixos": []
-        }
-      ]
+      ],
+      "responsavel": "Agenor"
     },
     {
       "nome": "T22J2 - Consultas Disponibilizadas",
@@ -526,7 +224,8 @@
             "HAP"
           ]
         }
-      ]
+      ],
+      "responsavel": "Karine"
     },
     {
       "nome": "T22J3 - Base diária",
@@ -541,17 +240,18 @@
           "caminho": "7 - BASES DE RELATORIOS\\T22J3 - BASE DIARIA\\{YYYY}\\{MM} - {MES}",
           "caminho_fallback": "",
           "esperado": 1,
-          "contem": "T22J3_{DD}{MM}{YYYY}",
+          "contem": "{DD}{MM}{YYYY}",
           "so_hoje": true,
           "regra": "",
           "conf_mensal": true,
           "arquivos_obrigatorios": [],
           "prefixos": []
         }
-      ]
+      ],
+      "responsavel": ""
     },
     {
-      "nome": "T9016 - Base mensal (Dias 1, 5 e 10)",
+      "nome": "T9016 - Base mensal",
       "categoria": "base",
       "prio": "P1",
       "regra": "",
@@ -559,11 +259,6 @@
       "min_linhas": 0,
       "pastas": [
         {
-          "dias_mes": [
-            1,
-            5,
-            10
-          ],
           "rotulo": "T9016",
           "caminho": "7 - BASES DE RELATORIOS\\T9016 - BASE MENSAL\\{YYYY}\\{MM} - {MES}",
           "caminho_fallback": "",
@@ -579,112 +274,15 @@
             "NDIMINAS",
             "CLINIPAM",
             "CCG"
+          ],
+          "dias_mes": [
+            1,
+            5,
+            10
           ]
         }
-      ]
-    },
-    {
-      "nome": "Estoque e Abastecimento",
-      "categoria": "bi",
-      "prio": "P1",
-      "regra": "",
-      "log": "log_execucao_estoque_abastecimento_{YYYY}_{MM}.xlsx",
-      "min_linhas": 4,
-      "pastas": []
-    },
-    {
-      "nome": "BI Painel dos Médicos",
-      "categoria": "bi",
-      "prio": "P1",
-      "regra": "",
-      "log": "log_execucao_painel_medicos_{YYYY}_{MM}.xlsx",
-      "min_linhas": 8,
-      "hora_inicio": "07:10",
-      "hora_fim": "11:30",
-      "pastas": []
-    },
-    {
-      "nome": "BI Farol ICH (DGE)",
-      "categoria": "bi",
-      "prio": "P1",
-      "regra": "",
-      "log": "log_execucao_farol_de_indice_consultas_por_hora_ich_{YYYY}_{MM}.xlsx",
-      "min_linhas": 4,
-      "hora_inicio": "14:50",
-      "hora_fim": "15:10",
-      "pastas": [
-        {
-          "hora_limite": "10:00",
-          "rotulo": "BASE CLIENTE OCULTO (DGE)",
-          "caminho": "7 - BASES DE RELATORIOS\\BI_INDICADORES_CRED\\CLIENTE_OCULTO",
-          "caminho_fallback": "",
-          "esperado": 1,
-          "contem": "BASE_CLIENTE_OCULTO",
-          "so_hoje": true,
-          "regra": "",
-          "conf_mensal": true,
-          "arquivos_obrigatorios": [],
-          "prefixos": []
-        }
-      ]
-    },
-    {
-      "nome": "BASES Relatório de Consultas Disponibilizadas",
-      "categoria": "bi",
-      "prio": "P1",
-      "regra": "",
-      "log": "log_execucao_consultas_disponibilizadas_{YYYY}_{MM}.xlsx",
-      "min_linhas": 5,
-      "hora_inicio": "02:00",
-      "hora_fim": "03:30",
-      "pastas": []
-    },
-    {
-      "nome": "BI Controle Agendas",
-      "categoria": "bi",
-      "prio": "P1",
-      "regra": "",
-      "log": "log_controle_agendas_{YYYY}_{MM}.xlsx",
-      "min_linhas": 5,
-      "hora_inicio": "16:50",
-      "hora_fim": "17:30",
-      "pastas": []
-    },
-    {
-      "nome": "INDICADORES REDE CRED (Diário e Mensal)",
-      "categoria": "base",
-      "prio": "P1",
-      "regra": "",
-      "log": "",
-      "min_linhas": 0,
-      "pastas": [
-        {
-          "hora_limite": "10:00",
-          "rotulo": "CLIENTE_OCULTO HISTORICO (Até 10h)",
-          "caminho": "7 - BASES DE RELATORIOS\\BI_INDICADORES_CRED\\CLIENTE_OCULTO\\HISTORICO",
-          "caminho_fallback": "",
-          "esperado": 1,
-          "contem": "BASE_CLIENTE_OCULTO",
-          "so_hoje": true,
-          "regra": "",
-          "conf_mensal": true,
-          "arquivos_obrigatorios": [],
-          "prefixos": []
-        },
-        {
-          "hora_limite": "10:00",
-          "rotulo": "CLIENTE_OCULTO MENSAL (Até 10h)",
-          "caminho": "7 - BASES DE RELATORIOS\\BI_INDICADORES_CRED\\CLIENTE_OCULTO",
-          "caminho_fallback": "",
-          "esperado": 1,
-          "contem": "BASE_CLIENTE_OCULTO",
-          "so_hoje": true,
-          "regra": "",
-          "conf_mensal": true,
-          "arquivos_obrigatorios": [],
-          "prefixos": []
-        }
-      ]
+      ],
+      "responsavel": ""
     },
     {
       "nome": "T9033 - Atraso Médico",
@@ -693,21 +291,21 @@
       "regra": "",
       "log": "",
       "min_linhas": 0,
-      "d_menos_1": true,
       "pastas": [
         {
           "rotulo": "ATRASO MEDICO",
           "caminho": "7 - BASES DE RELATORIOS\\BASE_PAINEL DOS MEDICOS\\BASE_ATRASO MEDICO\\{YYYY}\\{MM} - {MES}",
           "caminho_fallback": "7 - BASES DE RELATORIOS\\BASE_PAINEL DOS MEDICOS BASE_ATRASO MEDICO\\{YYYY}\\{MM} - {MES}",
           "esperado": 1,
-          "contem": "T9033_",
+          "contem": "",
           "so_hoje": true,
           "regra": "",
-          "conf_mensal": false,
+          "conf_mensal": true,
           "arquivos_obrigatorios": [],
           "prefixos": []
         }
-      ]
+      ],
+      "responsavel": "Karine"
     },
     {
       "nome": "T9033 - Horas Médicos",
@@ -716,7 +314,6 @@
       "regra": "",
       "log": "",
       "min_linhas": 0,
-      "d_menos_1": true,
       "pastas": [
         {
           "rotulo": "HORAS MEDICOS",
@@ -735,7 +332,96 @@
             "NDISPRJ"
           ]
         }
-      ]
+      ],
+      "responsavel": "Karine"
+    },
+    {
+      "nome": "Estoque e Abastecimento",
+      "categoria": "bi",
+      "prio": "P1",
+      "regra": "",
+      "log": "log_execucao_estoque_abastecimento_{YYYY}_{MM}.xlsx",
+      "min_linhas": 4,
+      "pastas": [],
+      "responsavel": "Agenor"
+    },
+    {
+      "nome": "BI Painel dos Médicos",
+      "categoria": "bi",
+      "prio": "P1",
+      "regra": "",
+      "log": "log_execucao_painel_medicos_{YYYY}_{MM}.xlsx",
+      "min_linhas": 8,
+      "pastas": [],
+      "responsavel": "Karine",
+      "hora_inicio": "07:10",
+      "hora_fim": "11:30"
+    },
+    {
+      "nome": "BI Farol ICH (DGE)",
+      "categoria": "bi",
+      "prio": "P1",
+      "regra": "",
+      "log": "log_execucao_farol_de_indice_consultas_por_hora_ich_{YYYY}_{MM}.xlsx",
+      "min_linhas": 4,
+      "pastas": [],
+      "responsavel": "Karine",
+      "hora_inicio": "14:50",
+      "hora_fim": "15:10"
+    },
+    {
+      "nome": "BI Relatório de Consultas Disponibilizadas",
+      "categoria": "bi",
+      "prio": "P1",
+      "regra": "",
+      "log": "log_execucao_consultas_disponibilizadas_{YYYY}_{MM}.xlsx",
+      "min_linhas": 5,
+      "pastas": [],
+      "responsavel": "Karine",
+      "hora_inicio": "02:00",
+      "hora_fim": "03:30"
+    },
+    {
+      "nome": "BI Controle Agendas",
+      "categoria": "bi",
+      "prio": "P1",
+      "regra": "",
+      "log": "log_controle_agendas_{YYYY}_{MM}.xlsx",
+      "min_linhas": 5,
+      "pastas": [],
+      "responsavel": "Karine",
+      "hora_inicio": "16:50",
+      "hora_fim": "17:30"
+    },
+    {
+      "nome": "BI Captação de Agendas",
+      "categoria": "bi",
+      "prio": "P1",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": [],
+      "responsavel": "Karine"
+    },
+    {
+      "nome": "BI INDICADORES REDE CRED",
+      "categoria": "bi",
+      "prio": "P1",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": [],
+      "responsavel": "Karine"
+    },
+    {
+      "nome": "Logs Projetos (Automações)",
+      "categoria": "bi",
+      "prio": "P2",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": [],
+      "responsavel": ""
     },
     {
       "nome": "BI Relatório de Consultas em Transferência",
@@ -744,10 +430,20 @@
       "regra": "",
       "log": "log_execucao_consultas_em_transferencia_{YYYY}_{MM}.xlsx",
       "min_linhas": 4,
+      "pastas": [],
+      "responsavel": "Karine",
       "hora_inicio": "22:00",
-      "hora_fim": "22:30",
-      "d_menos_1": true,
-      "pastas": []
+      "hora_fim": "22:30"
+    },
+    {
+      "nome": "BI Relatório de Cirurgias",
+      "categoria": "bi",
+      "prio": "P2",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": [],
+      "responsavel": "Karine"
     },
     {
       "nome": "BI Relatório Atraso dos Médicos",
@@ -756,10 +452,10 @@
       "regra": "",
       "log": "log_Atraso_dos_Medicos_{YYYY}_{MM}.xlsx",
       "min_linhas": 6,
+      "pastas": [],
+      "responsavel": "Karine",
       "hora_inicio": "07:30",
-      "hora_fim": "09:00",
-      "d_menos_1": true,
-      "pastas": []
+      "hora_fim": "09:00"
     },
     {
       "nome": "BI Relatório de Acompanhamento de Mensageria",
@@ -768,10 +464,20 @@
       "regra": "",
       "log": "log_relatorio_mensageria_{YYYY}_{MM}.xlsx",
       "min_linhas": 4,
+      "pastas": [],
+      "responsavel": "Karine",
       "hora_inicio": "22:00",
-      "hora_fim": "22:30",
-      "d_menos_1": true,
-      "pastas": []
+      "hora_fim": "22:30"
+    },
+    {
+      "nome": "BI Relatorio_SAC",
+      "categoria": "bi",
+      "prio": "P2",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": [],
+      "responsavel": "Karine"
     },
     {
       "nome": "CAPTADOS FORA DE ALERTA",
@@ -780,19 +486,78 @@
       "regra": "",
       "log": "log_Script_Tabela_Captados_Fora_Alerta_{YYYY}_{MM}.xlsx",
       "min_linhas": 8,
+      "pastas": [],
+      "responsavel": "Karine",
       "hora_inicio": "01:00",
-      "hora_fim": "01:30",
-      "d_menos_1": true,
-      "pastas": []
+      "hora_fim": "01:30"
     },
     {
-      "nome": "Base DGE (Produtividade / Tipo Pagamento)",
+      "nome": "DB T0012 (mensal)",
+      "categoria": "base",
+      "prio": "P1",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": [
+        {
+          "rotulo": "DB_T0012 FLUXO PYTHON",
+          "caminho": "7 - BASES DE RELATORIOS\\DB_T0012\\FLUXO PYTHON",
+          "caminho_fallback": "",
+          "esperado": 3,
+          "contem": "",
+          "so_hoje": true,
+          "regra": "",
+          "conf_mensal": true,
+          "arquivos_obrigatorios": [],
+          "prefixos": []
+        }
+      ],
+      "responsavel": "Agenor"
+    },
+    {
+      "nome": "Indicadores Rede Cred (bases)",
+      "categoria": "base",
+      "prio": "P1",
+      "regra": "",
+      "log": "",
+      "min_linhas": 0,
+      "pastas": [
+        {
+          "hora_limite": "10:00",
+          "rotulo": "CLIENTE_OCULTO HISTORICO",
+          "caminho": "7 - BASES DE RELATORIOS\\BI_INDICADORES_CRED\\CLIENTE_OCULTO\\HISTORICO",
+          "caminho_fallback": "",
+          "esperado": 1,
+          "contem": "",
+          "so_hoje": true,
+          "regra": "",
+          "conf_mensal": true,
+          "arquivos_obrigatorios": [],
+          "prefixos": []
+        },
+        {
+          "hora_limite": "10:00",
+          "rotulo": "CLIENTE_OCULTO MENSAL",
+          "caminho": "7 - BASES DE RELATORIOS\\BI_INDICADORES_CRED\\CLIENTE_OCULTO",
+          "caminho_fallback": "",
+          "esperado": 1,
+          "contem": "",
+          "so_hoje": true,
+          "regra": "",
+          "conf_mensal": true,
+          "arquivos_obrigatorios": [],
+          "prefixos": []
+        }
+      ],
+      "responsavel": "Karine"
+    },
+    {
+      "nome": "Base DGE (produtividade / pagamento)",
       "categoria": "base",
       "prio": "P2",
       "regra": "",
       "log": "",
       "min_linhas": 0,
-      "d_menos_1": true,
       "pastas": [
         {
           "so_mes": true,
@@ -834,18 +599,349 @@
           "prefixos": []
         }
       ]
+    }
+  ],
+  "pasta_pbix": "3 - ATUALIZAÇÃO PBIX\\PBIX OFICIAL",
+  "hora_limite_manha": "11:00",
+  "bi_checar_fim_de_semana": false,
+  "logs_ignorar": [],
+  "bis_pbix": [
+    {
+      "nome": "Alerta de Vagas v2",
+      "busca": [
+        "alerta",
+        "vagas",
+        "v2"
+      ],
+      "prio": "P0",
+      "regra": "horarios",
+      "horarios": [
+        "06:00",
+        "09:00",
+        "11:00",
+        "13:00",
+        "15:00",
+        "17:00"
+      ],
+      "tolerancia_min": 150,
+      "excluir": [
+        "sub",
+        "tele"
+      ],
+      "resp": "Karine"
     },
     {
-      "nome": "Base MONITORAMENTO ANS",
-      "categoria": "bi",
+      "nome": "Alerta Diário de Vagas_Sub",
+      "busca": [
+        "alerta",
+        "vagas",
+        "sub"
+      ],
+      "prio": "P0",
+      "regra": "horarios",
+      "horarios": [
+        "06:00",
+        "09:00",
+        "11:00",
+        "13:00",
+        "15:00",
+        "17:00"
+      ],
+      "tolerancia_min": 150,
+      "resp": "Karine"
+    },
+    {
+      "nome": "BI Alerta Vagas Tele Saúde",
+      "busca": [
+        "vagas",
+        "tele"
+      ],
+      "prio": "P0",
+      "regra": "horarios",
+      "horarios": [
+        "06:00",
+        "09:00",
+        "11:00",
+        "13:00",
+        "15:00",
+        "17:00"
+      ],
+      "tolerancia_min": 150,
+      "resp": "Karine"
+    },
+    {
+      "nome": "BI Necessidade de Compra",
+      "busca": [
+        "necessidade",
+        "compra"
+      ],
+      "prio": "P0",
+      "regra": "diaria",
+      "resp": "Agenor"
+    },
+    {
+      "nome": "Painel Médicos Hapclinicas V2",
+      "busca": [
+        "painel",
+        "medicos"
+      ],
+      "prio": "P1",
+      "regra": "diaria",
+      "resp": "Karine"
+    },
+    {
+      "nome": "Relatório Indicadores Rede Cred",
+      "busca": [
+        "indicadores",
+        "rede"
+      ],
+      "prio": "P1",
+      "regra": "diaria",
+      "resp": "Karine"
+    },
+    {
+      "nome": "Relatório de Consultas Disponibilizadas v2",
+      "busca": [
+        "consultas",
+        "disponibilizadas"
+      ],
+      "prio": "P1",
+      "regra": "diaria",
+      "resp": "Karine"
+    },
+    {
+      "nome": "Captação de Agendas",
+      "busca": [
+        "captacao",
+        "agendas"
+      ],
+      "prio": "P1",
+      "regra": "ate_hora",
+      "hora_limite": "17:00",
+      "tolerancia_min": 30,
+      "resp": "Karine"
+    },
+    {
+      "nome": "Controle de Agendas",
+      "busca": [
+        "controle",
+        "agendas"
+      ],
+      "prio": "P1",
+      "regra": "ate_hora",
+      "hora_limite": "17:00",
+      "tolerancia_min": 30,
+      "resp": "Karine"
+    },
+    {
+      "nome": "Farol de Índice Consultas por Hora - ICH",
+      "busca": [
+        "farol"
+      ],
+      "prio": "P1",
+      "regra": "ate_hora",
+      "hora_limite": "14:00",
+      "tolerancia_min": 30,
+      "resp": "Karine"
+    },
+    {
+      "nome": "Relatório de Estoque e Abastecimento v2",
+      "busca": [
+        "estoque",
+        "abastecimento"
+      ],
+      "prio": "P1",
+      "regra": "diaria",
+      "resp": "Agenor"
+    },
+    {
+      "nome": "Acompanhamento de Pagamentos Prestadores",
+      "busca": [
+        "pagamentos",
+        "prestadores"
+      ],
+      "prio": "P1",
+      "regra": "ultima",
+      "resp": "Agenor"
+    },
+    {
+      "nome": "Escala Especial",
+      "busca": [
+        "escala",
+        "especial"
+      ],
       "prio": "P2",
-      "regra": "",
-      "log": "log_execucao_consultas_em_transferencia_{YYYY}_{MM}.xlsx",
-      "min_linhas": 4,
-      "hora_inicio": "22:00",
-      "hora_fim": "22:30",
-      "d_menos_1": true,
-      "pastas": []
+      "regra": "diaria",
+      "resp": "Agenor"
+    },
+    {
+      "nome": "Relatório Atraso dos Médicos",
+      "busca": [
+        "atraso",
+        "medicos"
+      ],
+      "prio": "P2",
+      "regra": "diaria",
+      "resp": "Karine"
+    },
+    {
+      "nome": "Relatório de Consultas em Transferência",
+      "busca": [
+        "transferencia"
+      ],
+      "prio": "P2",
+      "regra": "diaria",
+      "resp": "Karine"
+    },
+    {
+      "nome": "Relatório de Cancelamento v2",
+      "busca": [
+        "cancelamento"
+      ],
+      "prio": "P2",
+      "regra": "diaria",
+      "resp": "Karine"
+    },
+    {
+      "nome": "Relatório de Acompanhamento de Mensageria",
+      "busca": [
+        "mensageria"
+      ],
+      "prio": "P2",
+      "regra": "diaria",
+      "resp": "Karine"
+    },
+    {
+      "nome": "Monitoramento de Marcação",
+      "busca": [
+        "monitoramento",
+        "marcacao"
+      ],
+      "prio": "P2",
+      "regra": "ate_hora",
+      "hora_limite": "06:00",
+      "tolerancia_min": 60,
+      "resp": "Karine"
+    },
+    {
+      "nome": "Relatório de Cirurgias",
+      "busca": [
+        "cirurgias"
+      ],
+      "prio": "P2",
+      "regra": "diaria",
+      "resp": "Karine"
+    },
+    {
+      "nome": "Relatório SAC (mensal)",
+      "busca": [
+        "sac"
+      ],
+      "prio": "P2",
+      "regra": "mensal",
+      "excluir": [
+        "nip"
+      ],
+      "resp": "Karine"
+    },
+    {
+      "nome": "Médicos Novos (mensal)",
+      "busca": [
+        "medicos",
+        "novos"
+      ],
+      "prio": "P2",
+      "regra": "mensal",
+      "resp": "Karine"
+    },
+    {
+      "nome": "Relatório de SAC e NIP (desenvolvimento)",
+      "busca": [
+        "sac",
+        "nip"
+      ],
+      "prio": "P2",
+      "regra": "horarios",
+      "horarios": [
+        "07:30",
+        "09:00",
+        "13:00",
+        "22:30"
+      ],
+      "tolerancia_min": 90,
+      "resp": "Daniel"
+    },
+    {
+      "nome": "Relatório de Tagueamento",
+      "busca": [
+        "tagueamento"
+      ],
+      "prio": "P2",
+      "regra": "horarios",
+      "horarios": [
+        "08:00",
+        "11:30",
+        "17:00"
+      ],
+      "tolerancia_min": 90,
+      "resp": "Miller"
+    },
+    {
+      "nome": "Acompanhamento de Valores Pagos por Especialidade",
+      "busca": [
+        "valores",
+        "pagos",
+        "especialidade"
+      ],
+      "prio": "P2",
+      "regra": "ate_hora",
+      "hora_limite": "05:00",
+      "tolerancia_min": 60,
+      "resp": "Agenor"
+    },
+    {
+      "nome": "Forecast Monitoramento Limites e Mediana",
+      "busca": [
+        "forecast"
+      ],
+      "prio": "P2",
+      "regra": "ultima",
+      "resp": "Miller e Agenor"
+    },
+    {
+      "nome": "Relatório Check-up da Mulher (versão antiga)",
+      "busca": [
+        "check",
+        "mulher"
+      ],
+      "prio": "P2",
+      "regra": "ultima"
+    },
+    {
+      "nome": "Censo_Medicos",
+      "busca": [],
+      "prio": "P2",
+      "regra": "pausa"
+    },
+    {
+      "nome": "Relatório Captação de Médicos",
+      "busca": [],
+      "prio": "P2",
+      "regra": "pausa"
+    },
+    {
+      "nome": "Relatórios Governança de Agendas",
+      "busca": [],
+      "prio": "P2",
+      "regra": "pausa"
+    },
+    {
+      "nome": "Relatório Pacotes",
+      "busca": [
+        "pacotes"
+      ],
+      "prio": "P2",
+      "regra": "ignorar"
     }
   ]
 }

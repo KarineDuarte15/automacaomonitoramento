@@ -1,3 +1,3 @@
 @echo off
-REM Abre um Chrome exclusivo do monitor. Faca login no WhatsApp Web UMA vez (QR code) e deixe este Chrome aberto.
-start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\chrome_whatsapp_monitor" https://web.whatsapp.com
+REM Abre um Edge exclusivo do monitor. Faca login no WhatsApp Web UMA vez (QR code) e deixe este Edge aberto.
+start "" "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --remote-debugging-port=9222 --user-data-dir="C:\edge_whatsapp_monitor" https://web.whatsapp.com
