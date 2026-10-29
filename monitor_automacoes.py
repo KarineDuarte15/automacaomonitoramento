@@ -108,6 +108,9 @@ DEFAULT = {
         'enviar_pdf': True,
         'hora_relatorio_saude': 18,
         'exe': r'C:\Users\%USERNAME%\AppData\Local\Microsoft\Teams\current\ms-teams.exe',
+        'link_grupo': '',            # opcional: link do chat/canal (mais confiável que a pesquisa)
+        'verificar_planner': False,  # True = abre a aba Planner e conclui tarefas pendentes
+        'planner_max_cliques': 20,
     },
     'monitores': [
         {
@@ -2066,238 +2069,437 @@ def enviar_whatsapp(cfg, texto, imagem=None, pdf=None):
     return ok_all
 
 
-def _verificar_planner_teams(janela):
-    """Abre o Planner e clica apenas nos controles visíveis de conclusão pendente."""
-    aba = next(
-        (x for x in janela.descendants()
-         if x.is_visible() and x.is_enabled()
-         and re.search(r'\bplanner\b', x.window_text(), re.I)),
-        None
-    )
-    if not aba:
-        log.warning('Aba Planner não encontrada no grupo do Teams.')
-        return False, 'Planner: aba não encontrada'
+# ------------------------------------------------------------------------------
+# TEAMS DESKTOP - AUTOMAÇÃO COM TRAVAS DE SEGURANÇA
+# Regras: (1) só age na janela do ms-teams.exe, (2) só digita se o Teams estiver
+# em primeiro plano, (3) só clica em elementos com posição válida dentro da
+# janela, (4) só envia depois de CONFIRMAR que o grupo certo está aberto.
+# ------------------------------------------------------------------------------
+def _norm_teams(s):
+    import unicodedata
+    s = unicodedata.normalize('NFKD', str(s or ''))
+    s = ''.join(c for c in s if not unicodedata.combining(c))
+    return re.sub(r'\s+', ' ', s).strip().casefold()
 
-    aba.click_input()
-    time.sleep(3)
-    pendentes = []
-    for controle in janela.descendants():
+
+def _nome_processo(pid):
+    """Nome do .exe dono da janela (evita confundir Edge/Chrome com o Teams)."""
+    try:
+        import ctypes
+        from ctypes import wintypes
+        k32 = ctypes.windll.kernel32
+        k32.OpenProcess.restype = wintypes.HANDLE
+        k32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        k32.CloseHandle.argtypes = [wintypes.HANDLE]
+        h = k32.OpenProcess(0x1000, False, int(pid))
+        if not h:
+            return ''
         try:
-            if not controle.is_visible() or not controle.is_enabled():
+            buf = ctypes.create_unicode_buffer(1024)
+            n = wintypes.DWORD(1024)
+            if k32.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(n)):
+                return Path(buf.value).name.lower()
+        finally:
+            k32.CloseHandle(h)
+    except Exception:
+        pass
+    return ''
+
+
+def _hwnd_primeiro_plano():
+    import ctypes
+    return ctypes.windll.user32.GetForegroundWindow()
+
+
+def _classe_janela(hwnd):
+    import ctypes
+    buf = ctypes.create_unicode_buffer(256)
+    ctypes.windll.user32.GetClassNameW(hwnd, buf, 256)
+    return buf.value
+
+
+def _localizar_janela_teams(desktop):
+    """Retorna a janela principal do Teams (ms-teams.exe / teams.exe) ou None."""
+    achadas = []
+    for w in desktop.windows():
+        try:
+            info = w.element_info
+            titulo = (info.name or '').casefold()
+            if (info.class_name or '') != 'TeamsWebView' and 'microsoft teams' not in titulo:
                 continue
-            info = controle.element_info
-            texto = ' '.join(filter(None, [
-                controle.window_text(), getattr(info, 'name', ''),
-                getattr(info, 'automation_id', ''), getattr(info, 'rich_text', '')
-            ]))
-            tipo = str(getattr(info, 'control_type', ''))
+            if _nome_processo(info.process_id) not in ('ms-teams.exe', 'teams.exe'):
+                continue
+            r = w.rectangle()
+            achadas.append((r.width() * r.height(), w))
         except Exception:
             continue
-        pendente = re.search(
-            r'mark task as complete|complete task|concluir tarefa|marcar como conclu[ií]da|not completed|incomplete|pendente',
-            texto, re.I
-        )
-        concluida = re.search(r'already completed|completed|conclu[ií]da|conclu[ií]do', texto, re.I)
-        if pendente and not concluida and tipo.lower() in ('button', 'checkbox', 'listitem'):
-            pendentes.append(controle)
+    if not achadas:
+        return None
+    achadas.sort(key=lambda t: t[0], reverse=True)
+    return achadas[0][1]
 
-    concluidas = 0
-    vistos = set()
-    for controle in pendentes:
+
+def _focar_janela_teams(janela, maximizar=False):
+    """Traz o Teams para frente e CONFIRMA. Se não conseguir, aborta (não digita em outra janela)."""
+    import ctypes
+    for tentativa in range(5):
         try:
-            chave = str(controle.element_info.runtime_id)
+            if janela.is_minimized():
+                janela.restore()
         except Exception:
-            chave = str(id(controle))
-        if chave in vistos:
-            continue
-        vistos.add(chave)
+            pass
         try:
-            controle.click_input()
-            concluidas += 1
-            time.sleep(.4)
-        except Exception as e:
-            log.warning('Não foi possível concluir uma tarefa no Planner: %s', str(e)[:120])
-    return True, f'Planner: {concluidas} tarefa(s) concluída(s)'
+            janela.set_focus()
+        except Exception:
+            try:
+                ctypes.windll.user32.SwitchToThisWindow(janela.handle, True)
+            except Exception:
+                pass
+        time.sleep(.7)
+        if maximizar and tentativa == 0:
+            try:
+                janela.maximize()
+                time.sleep(.6)
+            except Exception:
+                pass
+        if _hwnd_primeiro_plano() == janela.handle:
+            return
+    raise RuntimeError('Teams não ficou em primeiro plano; abortado para não enviar teclas a outra janela.')
 
 
-def _voltar_conversa_teams(janela):
-    """Retorna da aba Planner para a área de conversa antes do envio."""
-    aba_conversa = next(
-        (x for x in janela.descendants()
-         if x.is_visible() and x.is_enabled()
-         and re.search(r'^(posts?|conversa|publica[cç][oõ]es?)$', x.window_text(), re.I)),
-        None
-    )
-    if aba_conversa:
-        aba_conversa.click_input()
-        time.sleep(2)
-
-
-def _anexar_pdf_teams_pyautogui(pdf):
-    """Preenche o seletor Win32 do Teams usando teclado como fallback do WebView."""
-    import pyautogui
-
-    caminho = str(Path(pdf).resolve())
-    pyautogui.PAUSE = 0.4
-    pyautogui.FAILSAFE = True
-    pyautogui.hotkey('alt', 'n')
-    time.sleep(.5)
-    pyautogui.hotkey('ctrl', 'a')
-    pyautogui.write(caminho, interval=.01)
-    pyautogui.press('enter')
-    time.sleep(3)
-    pyautogui.press('enter')
-    log.info('Teams: PDF anexado pelo fallback PyAutoGUI: %s.', Path(pdf).name)
-
-
-def _focar_janela_teams(janela):
-    """Garante que os atalhos do Teams não sejam enviados para outra janela."""
-    try:
-        janela.restore()
-    except Exception:
-        pass
-    janela.set_focus()
-    time.sleep(.8)
-    try:
-        janela.maximize()
-    except Exception:
-        pass
-    janela.set_focus()
-    time.sleep(.8)
-    log.info('Teams em foco: %s', janela.window_text())
-
-
-def _pesquisar_grupo_teams(janela, grupo, send_keys):
-    """Pesquisa um grupo usando o campo global do Teams, após focar a janela."""
+def _clicar_seguro(janela, ctrl):
+    """Clica só se o elemento tiver tamanho/posição válidos DENTRO da janela do Teams."""
+    jr = janela.rectangle()
+    r = ctrl.rectangle()
+    if r.width() <= 2 or r.height() <= 2:
+        raise RuntimeError(f'Elemento sem tamanho válido: {ctrl.element_info.name!r}')
+    cx, cy = (r.left + r.right) // 2, (r.top + r.bottom) // 2
+    if not (jr.left < cx < jr.right and jr.top < cy < jr.bottom):
+        raise RuntimeError(f'Elemento fora da janela do Teams: {ctrl.element_info.name!r}')
     _focar_janela_teams(janela)
-    edits = janela.descendants(control_type='Edit')
-    busca = next(
-        (x for x in edits
-         if x.is_visible() and x.is_enabled()
-         and re.search(r'pesquis|search|buscar', x.window_text(), re.I)),
-        None
-    )
+    ctrl.click_input()
+
+
+def _controles(janela, tipos):
+    """Controles visíveis, habilitados e com tamanho real, dos tipos informados."""
+    saida = []
+    for tipo in tipos:
+        try:
+            lista = janela.descendants(control_type=tipo)
+        except Exception:
+            continue
+        for c in lista:
+            try:
+                if not c.is_visible() or not c.is_enabled():
+                    continue
+                r = c.rectangle()
+                if r.width() <= 2 or r.height() <= 2:
+                    continue
+                saida.append((tipo, _norm_teams(c.element_info.name), c))
+            except Exception:
+                continue
+    return saida
+
+
+def _destino_aberto(janela, gn):
+    """True somente se o grupo `gn` (normalizado) estiver realmente aberto como conversa."""
+    titulo = _norm_teams(janela.window_text())
+    if re.match(r'(pesquisa|search)\b', titulo):
+        return False
+    if gn in titulo:
+        return True
+    jr = janela.rectangle()
+    topo = jr.top + int(jr.height() * 0.18)
+    esq = jr.left + int(jr.width() * 0.30)
+    for tipo, nome, c in _controles(janela, ('Text', 'Header', 'Button', 'Group')):
+        if gn not in nome or len(nome) > len(gn) + 40:
+            continue
+        r = c.rectangle()
+        if r.top <= topo and r.left >= esq:
+            return True
+    return False
+
+
+def _copiar_para_clipboard(texto):
+    try:
+        import pyperclip
+        pyperclip.copy(texto)
+        return True
+    except Exception:
+        return False
+
+
+def _abrir_grupo_teams(janela, teams, grupo, send_keys):
+    gn = _norm_teams(grupo)
+    link = str(teams.get('link_grupo') or '').strip()
+    if link:
+        uri = re.sub(r'^https?://teams\.microsoft\.com/', 'msteams:/', link)
+        try:
+            os.startfile(uri)
+            for _ in range(15):
+                time.sleep(1)
+                if _destino_aberto(janela, gn):
+                    log.info('Teams: grupo aberto pelo link direto.')
+                    return
+            log.warning('Teams: link_grupo não abriu o grupo; tentando pela pesquisa.')
+        except Exception as e:
+            log.warning('Teams: falha ao abrir link_grupo (%s); tentando pela pesquisa.', str(e)[:120])
+
+    _focar_janela_teams(janela, maximizar=True)
+    busca = next((c for _, n, c in _controles(janela, ('Edit',))
+                  if re.search(r'pesquis|search|buscar', n)), None)
     if busca:
-        busca.click_input()
-        busca.type_keys('^a')
-        busca.type_keys(grupo, with_spaces=True)
+        _clicar_seguro(janela, busca)
     else:
         send_keys('^e')
-        time.sleep(1)
-        try:
-            import pyperclip
-            pyperclip.copy(grupo)
-            send_keys('^a')
-            send_keys('^v')
-        except ImportError:
-            send_keys('^a')
-            send_keys(grupo, with_spaces=True)
+    time.sleep(1)
+    _focar_janela_teams(janela)
+    if _copiar_para_clipboard(grupo):
+        send_keys('^a')
+        send_keys('^v')
+    else:
+        send_keys('^a')
+        send_keys(grupo, with_spaces=True)
+    time.sleep(1)
     send_keys('{ENTER}')
     time.sleep(3)
 
+    gn_sem_de = re.sub(r'\bde\b', '', gn)
+    gn_sem_de = re.sub(r'\s+', ' ', gn_sem_de).strip()
+    prioridade = {'ListItem': 0, 'Button': 1, 'Group': 2, 'MenuItem': 0}
+    candidatos = []
+    for _ in range(15):
+        candidatos = []
+        for tipo, nome, c in _controles(janela, ('ListItem', 'Button', 'Group', 'MenuItem')):
+            nome_cmp = re.sub(r'\s+', ' ', re.sub(r'\bde\b', '', nome)).strip()
+            if gn_sem_de in nome_cmp and len(nome_cmp) <= len(gn_sem_de) + 60:
+                candidatos.append((prioridade.get(tipo, 9), len(nome_cmp), c))
+        if candidatos:
+            break
+        time.sleep(1)
+    if not candidatos:
+        raise RuntimeError(f'Grupo do Teams não encontrado após a pesquisa: {grupo}')
+    candidatos.sort(key=lambda t: (t[0], t[1]))
+    _clicar_seguro(janela, candidatos[0][2])
+    for _ in range(8):
+        time.sleep(1)
+        if _destino_aberto(janela, gn):
+            return
+    _focar_janela_teams(janela)
+    send_keys('{ENTER}')
+    for _ in range(6):
+        time.sleep(1)
+        if _destino_aberto(janela, gn):
+            return
+    raise RuntimeError(f'Não consegui confirmar que o grupo "{grupo}" foi aberto; nada foi enviado.')
 
-def enviar_teams_desktop(cfg, texto, pdf=None):
-    """Verifica o Planner e envia texto e PDF no grupo do Teams."""
+
+def _verificar_planner_teams(janela, max_cliques=20):
+    """OPCIONAL (teams.verificar_planner). Abre a aba Planner e conclui tarefas pendentes."""
+    aba = next((c for t, n, c in _controles(janela, ('TabItem', 'Button'))
+                if re.fullmatch(r'planner', n)), None)
+    if not aba:
+        return False, 'Planner: aba não encontrada'
+    _clicar_seguro(janela, aba)
+    time.sleep(4)
+    jr = janela.rectangle()
+    esq = jr.left + int(jr.width() * 0.25)
+    padrao = re.compile(r'^(mark (the )?task as complete|marcar (a )?tarefa como conclu[ií]d[ao])')
+    alvos = [c for t, n, c in _controles(janela, ('Button', 'CheckBox'))
+             if padrao.match(n) and c.rectangle().left >= esq]
+    feitas = 0
+    for c in alvos[:max_cliques]:
+        try:
+            _clicar_seguro(janela, c)
+            feitas += 1
+            time.sleep(.5)
+        except Exception as e:
+            log.warning('Planner: não foi possível concluir uma tarefa: %s', str(e)[:120])
+    return True, f'Planner: {feitas} tarefa(s) concluída(s)'
+
+
+def _voltar_conversa_teams(janela, gn):
+    """Sai do Planner e volta para a aba de conversa; confirma o destino."""
+    aba = next((c for t, n, c in _controles(janela, ('TabItem', 'Button'))
+                if re.fullmatch(r'posts?|conversa|publica[cç](ao|oes)|chat', n)), None)
+    if aba:
+        _clicar_seguro(janela, aba)
+        time.sleep(2)
+    return _destino_aberto(janela, gn)
+
+
+def _achar_caixa_mensagem(janela):
+    """Caixa de mensagem = campo de edição na parte INFERIOR da janela."""
+    jr = janela.rectangle()
+    corte = jr.top + int(jr.height() * 0.55)
+    campos = [(n, c) for t, n, c in _controles(janela, ('Edit',)) if c.rectangle().top >= corte]
+    if not campos:
+        return None
+    pref = [c for n, c in campos if re.search(r'mensagem|message|digite|type', n)]
+    if pref:
+        return pref[-1]
+    campos.sort(key=lambda t: t[1].rectangle().top)
+    return campos[-1][1]
+
+
+def _arquivo_para_clipboard(pdf):
+    caminho = str(Path(pdf).resolve()).replace("'", "''")
+    r = subprocess.run(
+        ['powershell', '-NoProfile', '-Command', f"Set-Clipboard -LiteralPath '{caminho}'"],
+        capture_output=True, timeout=30
+    )
+    return r.returncode == 0
+
+
+def _anexo_visivel(janela, nome_pdf):
+    alvo = _norm_teams(Path(nome_pdf).stem)
+    for tipo, nome, c in _controles(janela, ('Text', 'ListItem', 'Group', 'Button', 'Image')):
+        if alvo and alvo in nome:
+            return True
+    return False
+
+
+def _anexar_pdf_dialogo(janela, pdf, send_keys):
+    """Fallback: botão Anexar (estrito) + seletor de arquivos. Só digita se o diálogo abrir."""
+    import pyautogui
+    anexar = next((c for t, n, c in _controles(janela, ('Button',))
+                   if re.match(r'^(anexar|attach)', n)
+                   and c.rectangle().top >= janela.rectangle().top + int(janela.rectangle().height() * 0.55)), None)
+    if not anexar:
+        raise RuntimeError('Botão Anexar do Teams não encontrado')
+    _clicar_seguro(janela, anexar)
+    time.sleep(1)
+    item = next((c for t, n, c in _controles(janela, ('MenuItem', 'ListItem', 'Button'))
+                 if re.search(r'upload.*(computer|device)|carregar.*(computador|dispositivo)|fazer upload.*(computador|dispositivo)|deste dispositivo', n)), None)
+    if not item:
+        raise RuntimeError('Opção de upload do computador não encontrada')
+    _clicar_seguro(janela, item)
+    for _ in range(20):
+        time.sleep(.5)
+        if _classe_janela(_hwnd_primeiro_plano()) == '#32770':
+            break
+    else:
+        raise RuntimeError('Seletor de arquivos não abriu; nada foi digitado.')
+    pyautogui.PAUSE = 0.3
+    pyautogui.hotkey('alt', 'n')
+    time.sleep(.4)
+    pyautogui.hotkey('ctrl', 'a')
+    pyautogui.write(str(Path(pdf).resolve()), interval=.01)
+    pyautogui.press('enter')
+    for _ in range(20):
+        time.sleep(.5)
+        if _hwnd_primeiro_plano() == janela.handle:
+            break
+    time.sleep(2)
+
+
+def enviar_teams_desktop(cfg, texto, pdf=None, simular=False):
+    """Abre o grupo do Teams (confirmando), opcionalmente verifica o Planner e envia texto/PDF.
+    simular=True faz tudo, mas NÃO envia (limpa a caixa de mensagem no final)."""
     teams = cfg.get('teams') or {}
     grupo = str(teams.get('grupo_rotina') or '').strip()
     if not teams.get('ativo') or not grupo:
         log.warning('Teams sem grupo_rotina configurado; envio ignorado.')
         return False
-    processo = None
     try:
         from pywinauto import Desktop
         from pywinauto.keyboard import send_keys
         desktop = Desktop(backend='uia')
-        janela = desktop.window(class_name='TeamsWebView')
-        if not janela.exists(timeout=2):
-            janela = desktop.window(title_re='.*Microsoft Teams.*')
-        if not janela.exists(timeout=5):
+        janela = _localizar_janela_teams(desktop)
+        if not janela:
             exe = os.path.expandvars(str(teams.get('exe') or ''))
             if exe and os.path.exists(exe):
-                processo = subprocess.Popen([exe])
-                time.sleep(8)
-            janela = Desktop(backend='uia').window(class_name='TeamsWebView')
-            if not janela.exists(timeout=2):
-                janela = Desktop(backend='uia').window(title_re='.*Microsoft Teams.*')
-        janela.wait('visible', timeout=30)
-        _focar_janela_teams(janela)
-
-        _pesquisar_grupo_teams(janela, grupo, send_keys)
-
-        grupo_busca = re.sub(r'\bde\b', '', grupo, flags=re.I)
-        grupo_busca = re.sub(r'\s+', ' ', grupo_busca).strip().casefold()
-        candidatos = []
-        for _ in range(15):
-            candidatos = [
-                x for x in janela.descendants()
-                if x.is_visible() and x.is_enabled()
-                and x.element_info.control_type in ('ListItem', 'Button', 'Group')
-                and grupo_busca in re.sub(r'\s+', ' ', x.window_text()).strip().casefold()
-            ]
-            if candidatos:
-                break
-            time.sleep(1)
-        if not candidatos:
-            raise RuntimeError(f'Grupo do Teams não encontrado após a pesquisa: {grupo}')
-        candidato = next(
-            (x for x in candidatos if x.element_info.control_type == 'ListItem'),
-            candidatos[0]
-        )
-        candidato.click_input()
-        time.sleep(1)
-        if 'Pesquisa' in janela.window_text():
-            candidato.double_click_input()
-            time.sleep(2)
-            if 'Pesquisa' in janela.window_text():
-                send_keys('{ENTER}')
-        time.sleep(4)
-        try:
-            planner_ok, planner_resumo = _verificar_planner_teams(janela)
-        except Exception as e:
-            planner_ok = False
-            planner_resumo = f'Planner: falha na consulta ({str(e)[:160]})'
-            log.warning('Falha ao consultar o Planner; o envio continuará: %s', str(e)[:200])
-        if not planner_ok:
-            log.warning('Não foi possível verificar o Planner; o envio continuará: %s', planner_resumo)
-        log.info('Verificação do Planner no grupo %s: %s', grupo, planner_resumo)
-        campos = [x for x in janela.descendants(control_type='Edit') if x.is_visible() and x.is_enabled()]
-        caixa = campos[-1] if campos else None
-        if not caixa:
-            raise RuntimeError('Caixa de mensagem do Teams não encontrada')
-        if pdf and teams.get('enviar_pdf') and Path(pdf).exists():
-            anexar = next((x for x in janela.descendants() if x.is_visible() and x.is_enabled() and re.search(r'anex|attach', x.window_text(), re.I)), None)
-            if not anexar:
-                raise RuntimeError('Botão de anexo do Teams não encontrado')
-            log.info('Teams: abrindo anexo do PDF %s.', Path(pdf).name)
-            anexar.click_input()
-            time.sleep(1)
-            item_upload = next((x for x in janela.descendants()
-                                if x.is_visible() and x.is_enabled()
-                                and re.search(r'upload.*computer|carregar.*computador|carregar deste dispositivo|meu computador', x.window_text(), re.I)), None)
-            if item_upload:
-                item_upload.click_input()
+                subprocess.Popen([exe])
             else:
-                send_keys('{DOWN}{ENTER}')
-            _anexar_pdf_teams_pyautogui(pdf)
-            time.sleep(2)
+                os.startfile('msteams:')
+            for _ in range(40):
+                time.sleep(1)
+                janela = _localizar_janela_teams(desktop)
+                if janela:
+                    break
+            if not janela:
+                raise RuntimeError('Janela do Teams não encontrada (ms-teams.exe).')
+            time.sleep(5)
+            log.info('Teams Desktop iniciado automaticamente para o envio.')
 
-        caixa.click_input()
-        try:
-            import pyperclip
-            pyperclip.copy(texto)
-            send_keys('^v{ENTER}')
-        except ImportError:
+        gn = _norm_teams(grupo)
+        _focar_janela_teams(janela, maximizar=True)
+        _abrir_grupo_teams(janela, teams, grupo, send_keys)
+
+        if teams.get('verificar_planner'):
+            try:
+                ok, resumo_pl = _verificar_planner_teams(janela, int(teams.get('planner_max_cliques', 20)))
+            except Exception as e:
+                ok, resumo_pl = False, f'Planner: falha ({str(e)[:160]})'
+            log.info('Verificação do Planner no grupo %s: %s', grupo, resumo_pl)
+            if not _voltar_conversa_teams(janela, gn):
+                _abrir_grupo_teams(janela, teams, grupo, send_keys)
+
+        if not _destino_aberto(janela, gn):
+            raise RuntimeError('Destino não confirmado antes do envio; nada foi enviado.')
+
+        caixa = _achar_caixa_mensagem(janela)
+        if not caixa:
+            raise RuntimeError('Caixa de mensagem do Teams não encontrada; nada foi enviado.')
+        _clicar_seguro(janela, caixa)
+        time.sleep(.5)
+
+        if pdf and teams.get('enviar_pdf') and Path(pdf).exists():
+            anexado = False
+            try:
+                if _arquivo_para_clipboard(pdf):
+                    _focar_janela_teams(janela)
+                    send_keys('^v')
+                    for _ in range(12):
+                        time.sleep(1)
+                        if _anexo_visivel(janela, pdf):
+                            anexado = True
+                            break
+            except Exception as e:
+                log.warning('Teams: colar PDF falhou (%s); usando o seletor de arquivos.', str(e)[:120])
+            if not anexado:
+                _anexar_pdf_dialogo(janela, pdf, send_keys)
+            log.info('Teams: PDF anexado: %s', Path(pdf).name)
+            caixa = _achar_caixa_mensagem(janela) or caixa
+            _clicar_seguro(janela, caixa)
+            time.sleep(.5)
+
+        _focar_janela_teams(janela)
+        if _copiar_para_clipboard(texto):
+            send_keys('^v')
+        else:
             caixa.type_keys(texto, with_spaces=True)
-            send_keys('{ENTER}')
+        time.sleep(1)
+        if simular:
+            send_keys('^a{DELETE}')
+            log.info('Teams (simulação): fluxo completo até o envio; nada foi enviado.')
+            return True
+        _focar_janela_teams(janela)
+        send_keys('{ENTER}')
         log.info('Teams: resumo enviado para %s.', grupo)
-        log.info('Teams enviado para o grupo %s', grupo)
         return True
     except Exception as e:
         log.error('Falha no Teams Desktop: %s', str(e)[:250])
         return False
-    finally:
-        if processo:
-            log.info('Teams Desktop iniciado automaticamente para o envio.')
+
+
+def diagnosticar_teams():
+    """Lista os controles do Teams (tipo | nome | posição) em teams_controles.txt."""
+    from pywinauto import Desktop
+    janela = _localizar_janela_teams(Desktop(backend='uia'))
+    if not janela:
+        print('Teams não encontrado. Abra o Teams no grupo desejado e rode de novo.')
+        return
+    linhas = [f'Janela: {janela.window_text()!r} {janela.rectangle()}']
+    for tipo in ('Edit', 'Button', 'TabItem', 'ListItem', 'MenuItem', 'CheckBox', 'Text', 'Header'):
+        for c in janela.descendants(control_type=tipo)[:400]:
+            try:
+                if c.is_visible():
+                    linhas.append(f'{tipo} | {c.element_info.name[:80]!r} | {c.rectangle()}')
+            except Exception:
+                pass
+    (AQUI / 'teams_controles.txt').write_text('\n'.join(linhas), encoding='utf-8')
+    print(f'Salvo em {AQUI / "teams_controles.txt"} ({len(linhas)} linhas)')
 
 
 def rotina_canais_2h(cfg, res, enviar):
@@ -2899,6 +3101,8 @@ if __name__ == '__main__':
     ap.add_argument('--sem-whatsapp', action='store_true')
     ap.add_argument('--testar-whatsapp', action='store_true')
     ap.add_argument('--testar-teams', action='store_true', help='Testa busca do grupo, Planner e envio de mensagem curta')
+    ap.add_argument('--teams-simular', action='store_true', help='Com --testar-teams: executa tudo mas NÃO envia')
+    ap.add_argument('--diagnosticar-teams', action='store_true', help='Salva teams_controles.txt com os controles visíveis do Teams')
     ap.add_argument('--testar-resumo', action='store_true', help='Gera o resumo real + print da Visão Geral e envia agora')
     ap.add_argument('--so-print', action='store_true', help='Só gera o print visao_geral.png (sem enviar)')
     ap.add_argument('--gerar-relatorio', action='store_true')
@@ -2911,9 +3115,13 @@ if __name__ == '__main__':
         print('Enviado!' if sucesso else 'Falhou - veja monitor.log')
         sys.exit()
 
+    if a.diagnosticar_teams:
+        diagnosticar_teams()
+        sys.exit()
+
     if a.testar_teams:
         cfg_t = ciclo(enviar=False)
-        sucesso = enviar_teams_desktop(cfg_t, resumo(ULTIMO_ESTADO_GLOBAL['res']))
+        sucesso = enviar_teams_desktop(cfg_t, resumo(ULTIMO_ESTADO_GLOBAL['res']), simular=a.teams_simular)
         print('Teams enviado!' if sucesso else 'Falhou - veja monitor.log')
         sys.exit()
 
