@@ -2892,6 +2892,7 @@ if __name__ == '__main__':
     ap.add_argument('--uma-vez', action='store_true')
     ap.add_argument('--sem-whatsapp', action='store_true')
     ap.add_argument('--testar-whatsapp', action='store_true')
+    ap.add_argument('--testar-teams', action='store_true', help='Testa busca do grupo, Planner e envio de mensagem curta')
     ap.add_argument('--testar-resumo', action='store_true', help='Gera o resumo real + print da Visão Geral e envia agora')
     ap.add_argument('--so-print', action='store_true', help='Só gera o print visao_geral.png (sem enviar)')
     ap.add_argument('--gerar-relatorio', action='store_true')
@@ -2902,6 +2903,12 @@ if __name__ == '__main__':
     if a.testar_whatsapp:
         sucesso = enviar_whatsapp(sincronizar_config_automatico(), 'Teste Monitoramento OptimusBI ✅ (1 mensagem por contato)')
         print('Enviado!' if sucesso else 'Falhou - veja monitor.log')
+        sys.exit()
+
+    if a.testar_teams:
+        cfg_t = ciclo(enviar=False)
+        sucesso = enviar_teams_desktop(cfg_t, resumo(ULTIMO_ESTADO_GLOBAL['res']))
+        print('Teams enviado!' if sucesso else 'Falhou - veja monitor.log')
         sys.exit()
 
     if a.testar_resumo or a.so_print:
