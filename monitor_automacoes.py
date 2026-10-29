@@ -2066,13 +2066,7 @@ def enviar_whatsapp(cfg, texto, imagem=None, pdf=None):
 
 
 def _verificar_planner_teams(janela):
-<<<<<<< HEAD
-    """Abre o Planner, clica nas tarefas de hoje e devolve um resumo."""
-    from pywinauto.keyboard import send_keys
-
-=======
     """Abre o Planner e clica apenas nos controles visíveis de conclusão pendente."""
->>>>>>> 214b9cb65a5feeb6d78bef5dfad1a52d5ac4c33b
     aba = next(
         (x for x in janela.descendants()
          if x.is_visible() and x.is_enabled()
@@ -2085,20 +2079,7 @@ def _verificar_planner_teams(janela):
 
     aba.click_input()
     time.sleep(3)
-<<<<<<< HEAD
-    hoje = date.today()
-    datas_hoje = {
-        hoje.strftime('%d/%m'),
-        hoje.strftime('%d/%m/%Y'),
-        hoje.strftime('%d de %B de %Y'),
-        hoje.strftime('%d de outubro de %Y') if hoje.month == 10 else ''
-    }
-    textos = []
-    vistos = set()
-    tarefas = []
-=======
     pendentes = []
->>>>>>> 214b9cb65a5feeb6d78bef5dfad1a52d5ac4c33b
     for controle in janela.descendants():
         try:
             if not controle.is_visible() or not controle.is_enabled():
@@ -2111,38 +2092,6 @@ def _verificar_planner_teams(janela):
             tipo = str(getattr(info, 'control_type', ''))
         except Exception:
             continue
-<<<<<<< HEAD
-        texto = re.sub(r'\s+', ' ', controle.window_text()).strip()
-        if texto and texto.lower() not in vistos and len(texto) <= 180:
-            vistos.add(texto.lower())
-            textos.append(texto)
-            if (
-                any(data and data.casefold() in texto.casefold() for data in datas_hoje)
-                or re.search(r'\bhoje\b', texto, re.I)
-            ):
-                tarefas.append(controle)
-
-    candidatos = [
-        texto for texto in textos
-        if any(data and data.casefold() in texto.casefold() for data in datas_hoje)
-        or re.search(r'\bhoje\b|\bpendente\b|\batrasad[ao]\b|\bconclu[ií]d[ao]\b', texto, re.I)
-    ]
-    clicadas = 0
-    for tarefa in tarefas[:20]:
-        try:
-            tarefa.click_input()
-            time.sleep(.4)
-            send_keys('{ESC}')
-            clicadas += 1
-        except Exception as e:
-            log.warning('Não foi possível clicar em uma tarefa do Planner: %s', str(e)[:160])
-    log.info('Planner: %s tarefa(s) de hoje clicada(s).', clicadas)
-    if candidatos:
-        return True, f'Planner (rotinas do dia; {clicadas} clicada(s)): ' + ' | '.join(candidatos[:12])
-    if textos:
-        return True, f'Planner aberto; nenhuma rotina de hoje identificada ({clicadas} clicada(s)).'
-    return True, 'Planner aberto; nenhuma rotina visível foi encontrada.'
-=======
         pendente = re.search(
             r'mark task as complete|complete task|concluir tarefa|marcar como conclu[ií]da|not completed|incomplete|pendente',
             texto, re.I
@@ -2168,7 +2117,6 @@ def _verificar_planner_teams(janela):
         except Exception as e:
             log.warning('Não foi possível concluir uma tarefa no Planner: %s', str(e)[:120])
     return True, f'Planner: {concluidas} tarefa(s) concluída(s)'
->>>>>>> 214b9cb65a5feeb6d78bef5dfad1a52d5ac4c33b
 
 
 def _voltar_conversa_teams(janela):
@@ -2271,35 +2219,7 @@ def enviar_teams_desktop(cfg, texto, pdf=None):
             if not janela.exists(timeout=2):
                 janela = Desktop(backend='uia').window(title_re='.*Microsoft Teams.*')
         janela.wait('visible', timeout=30)
-<<<<<<< HEAD
         _focar_janela_teams(janela)
-        # Primeiro consulta o Planner global; a conversa é localizada somente depois.
-        try:
-            planner_ok, planner_resumo = _verificar_planner_teams(janela)
-        except Exception as e:
-            planner_ok = False
-            planner_resumo = f'Planner: falha na consulta ({str(e)[:160]})'
-            log.warning('Falha ao consultar o Planner; o envio continuará: %s', str(e)[:200])
-=======
-        janela.set_focus()
-        edits = janela.descendants(control_type='Edit')
-        busca = next((x for x in edits if x.is_visible() and x.is_enabled()), None)
-        if not busca:
-            raise RuntimeError('Campo de pesquisa do Teams não encontrado')
-        busca.click_input()
-        busca.type_keys('^a')
-        busca.type_keys(grupo, with_spaces=True)
-        time.sleep(2)
-        resultado = janela.child_window(title=grupo, control_type='ListItem')
-        if not resultado.exists(timeout=10):
-            resultado = janela.child_window(title=grupo)
-        resultado.click_input()
-        time.sleep(2)
-        planner_ok, planner_resumo = _verificar_planner_teams(janela)
-        log.info('%s no grupo %s', planner_resumo, grupo)
->>>>>>> 214b9cb65a5feeb6d78bef5dfad1a52d5ac4c33b
-        if not planner_ok:
-            log.warning('Não foi possível verificar o Planner; o envio continuará: %s', planner_resumo)
 
         _pesquisar_grupo_teams(janela, grupo, send_keys)
 
@@ -2328,9 +2248,16 @@ def enviar_teams_desktop(cfg, texto, pdf=None):
             candidato.double_click_input()
             time.sleep(2)
             if 'Pesquisa' in janela.window_text():
-                    send_keys('{ENTER}')
+                send_keys('{ENTER}')
         time.sleep(4)
-        texto = f'{texto}\n\n{planner_resumo}'
+        try:
+            planner_ok, planner_resumo = _verificar_planner_teams(janela)
+        except Exception as e:
+            planner_ok = False
+            planner_resumo = f'Planner: falha na consulta ({str(e)[:160]})'
+            log.warning('Falha ao consultar o Planner; o envio continuará: %s', str(e)[:200])
+        if not planner_ok:
+            log.warning('Não foi possível verificar o Planner; o envio continuará: %s', planner_resumo)
         log.info('Verificação do Planner no grupo %s: %s', grupo, planner_resumo)
         campos = [x for x in janela.descendants(control_type='Edit') if x.is_visible() and x.is_enabled()]
         caixa = campos[-1] if campos else None
