@@ -1828,12 +1828,7 @@ def resumo(res, titulo='Monitoramento OptimusBI', max_chars=3500):
             continue
         status = item.get('status', 'warn')
         marca = ICON.get(status, '⚠️')
-        detalhe = ''
-        if status in ('err', 'warn'):
-            motivos = item.get('erros') or item.get('avisos') or []
-            if motivos:
-                detalhe = f' - {_cut(_motivo_curto(motivos[0]), 64)}'
-        linhas.append(f' {nome_exibicao} {marca}{detalhe}')
+        linhas.append(f' {nome_exibicao} {marca}')
     texto = '\n'.join(linhas)
     return texto if len(texto) <= max_chars else texto[:max_chars - 3].rstrip() + '...'
 
