@@ -91,7 +91,7 @@ DEFAULT = {
         'ativo': True,
         'porta_edge': 9222,
         'resumo_a_cada_min': 120,
-        'grupo_rotina': 'TIME BI OPTIMUS TEAMS',
+        'grupo_rotina': 'TIME BI OPTIMUS',
         'enviar_para_destinos_individuais': True,
         'horarios_resumo': ['00:00', '06:00', '12:00', '18:00', '23:59'],
         'alerta_imediato_erro': False,
@@ -1942,15 +1942,23 @@ def _enviar_imagem(drv, caminho_img, legenda):
 
 def _enviar_arquivo_whatsapp(drv, caminho, legenda):
     from selenium.webdriver.common.by import By
-    from selenium.webdriver.common.keys import Keys
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
     icones = "@data-icon='plus' or @data-icon='attach-menu-plus' or @data-icon='clip'"
     WebDriverWait(drv, 30).until(EC.element_to_be_clickable((By.XPATH, f"//footer//span[{icones}]"))).click()
-    inp = WebDriverWait(drv, 15).until(EC.presence_of_element_located((By.XPATH, "//input[@type='file']")))
+    def campo_documento(driver):
+        campos = driver.find_elements(By.XPATH, "//input[@type='file']")
+        documento = [x for x in campos if 'image' not in (x.get_attribute('accept') or '').lower()]
+        return documento[0] if documento else (campos[-1] if campos else False)
+
+    inp = WebDriverWait(drv, 15).until(campo_documento)
+    if not inp:
+        raise RuntimeError('Campo de anexo de documento não encontrado no WhatsApp')
     inp.send_keys(str(Path(caminho).resolve()))
-    time.sleep(3)
-    caixas = drv.find_elements(By.XPATH, "//div[@contenteditable='true']")
+    time.sleep(4)
+    caixas = drv.find_elements(By.XPATH, "//div[@contenteditable='true' and @role='textbox']")
+    if not caixas:
+        caixas = drv.find_elements(By.XPATH, "//div[@contenteditable='true']")
     if caixas:
         caixa = caixas[-1]
         caixa.click()
@@ -2038,14 +2046,12 @@ def enviar_whatsapp(cfg, texto, imagem=None, pdf=None):
                 time.sleep(5)
                 log.info('WhatsApp enviado para %s (texto). Fechando janela...', d['nome'])
             if pdf and Path(pdf).exists():
-                if d.get('grupo'):
-                    drv.get('https://web.whatsapp.com')
-                    _abrir_grupo_whatsapp(drv, d['nome'])
-                else:
-                    drv.get(f"https://web.whatsapp.com/send?phone={d['numero']}")
-                WebDriverWait(drv, 90).until(EC.presence_of_element_located((By.XPATH, xp_caixa)))
-                _enviar_arquivo_whatsapp(drv, pdf, f'Relatório PDF completo das abas do monitoramento: {Path(pdf).name}')
-                log.info('PDF enviado para WhatsApp: %s', d['nome'])
+                try:
+                    time.sleep(2)
+                    _enviar_arquivo_whatsapp(drv, pdf, f'Relatório PDF completo das abas do monitoramento: {Path(pdf).name}')
+                    log.info('PDF enviado para WhatsApp: %s', d['nome'])
+                except Exception as e:
+                    log.error('Falha ao anexar PDF para %s; texto já foi enviado: %s', d['nome'], str(e)[:250])
         except Exception as e:
             ok_all = False
             log.error('Falha WhatsApp %s: %s', d['nome'], str(e)[:200])
