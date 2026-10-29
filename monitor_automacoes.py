@@ -2066,7 +2066,13 @@ def enviar_whatsapp(cfg, texto, imagem=None, pdf=None):
 
 
 def _verificar_planner_teams(janela):
+<<<<<<< HEAD
+    """Abre o Planner, clica nas tarefas de hoje e devolve um resumo."""
+    from pywinauto.keyboard import send_keys
+
+=======
     """Abre o Planner e clica apenas nos controles visíveis de conclusão pendente."""
+>>>>>>> 214b9cb65a5feeb6d78bef5dfad1a52d5ac4c33b
     aba = next(
         (x for x in janela.descendants()
          if x.is_visible() and x.is_enabled()
@@ -2079,7 +2085,20 @@ def _verificar_planner_teams(janela):
 
     aba.click_input()
     time.sleep(3)
+<<<<<<< HEAD
+    hoje = date.today()
+    datas_hoje = {
+        hoje.strftime('%d/%m'),
+        hoje.strftime('%d/%m/%Y'),
+        hoje.strftime('%d de %B de %Y'),
+        hoje.strftime('%d de outubro de %Y') if hoje.month == 10 else ''
+    }
+    textos = []
+    vistos = set()
+    tarefas = []
+=======
     pendentes = []
+>>>>>>> 214b9cb65a5feeb6d78bef5dfad1a52d5ac4c33b
     for controle in janela.descendants():
         try:
             if not controle.is_visible() or not controle.is_enabled():
@@ -2092,6 +2111,38 @@ def _verificar_planner_teams(janela):
             tipo = str(getattr(info, 'control_type', ''))
         except Exception:
             continue
+<<<<<<< HEAD
+        texto = re.sub(r'\s+', ' ', controle.window_text()).strip()
+        if texto and texto.lower() not in vistos and len(texto) <= 180:
+            vistos.add(texto.lower())
+            textos.append(texto)
+            if (
+                any(data and data.casefold() in texto.casefold() for data in datas_hoje)
+                or re.search(r'\bhoje\b', texto, re.I)
+            ):
+                tarefas.append(controle)
+
+    candidatos = [
+        texto for texto in textos
+        if any(data and data.casefold() in texto.casefold() for data in datas_hoje)
+        or re.search(r'\bhoje\b|\bpendente\b|\batrasad[ao]\b|\bconclu[ií]d[ao]\b', texto, re.I)
+    ]
+    clicadas = 0
+    for tarefa in tarefas[:20]:
+        try:
+            tarefa.click_input()
+            time.sleep(.4)
+            send_keys('{ESC}')
+            clicadas += 1
+        except Exception as e:
+            log.warning('Não foi possível clicar em uma tarefa do Planner: %s', str(e)[:160])
+    log.info('Planner: %s tarefa(s) de hoje clicada(s).', clicadas)
+    if candidatos:
+        return True, f'Planner (rotinas do dia; {clicadas} clicada(s)): ' + ' | '.join(candidatos[:12])
+    if textos:
+        return True, f'Planner aberto; nenhuma rotina de hoje identificada ({clicadas} clicada(s)).'
+    return True, 'Planner aberto; nenhuma rotina visível foi encontrada.'
+=======
         pendente = re.search(
             r'mark task as complete|complete task|concluir tarefa|marcar como conclu[ií]da|not completed|incomplete|pendente',
             texto, re.I
@@ -2117,6 +2168,7 @@ def _verificar_planner_teams(janela):
         except Exception as e:
             log.warning('Não foi possível concluir uma tarefa no Planner: %s', str(e)[:120])
     return True, f'Planner: {concluidas} tarefa(s) concluída(s)'
+>>>>>>> 214b9cb65a5feeb6d78bef5dfad1a52d5ac4c33b
 
 
 def _voltar_conversa_teams(janela):
@@ -2124,12 +2176,75 @@ def _voltar_conversa_teams(janela):
     aba_conversa = next(
         (x for x in janela.descendants()
          if x.is_visible() and x.is_enabled()
-         and re.search(r'^(posts?|conversa|chat|publica[cç][oõ]es?)$', x.window_text(), re.I)),
+         and re.search(r'^(posts?|conversa|publica[cç][oõ]es?)$', x.window_text(), re.I)),
         None
     )
     if aba_conversa:
         aba_conversa.click_input()
         time.sleep(2)
+
+
+def _anexar_pdf_teams_pyautogui(pdf):
+    """Preenche o seletor Win32 do Teams usando teclado como fallback do WebView."""
+    import pyautogui
+
+    caminho = str(Path(pdf).resolve())
+    pyautogui.PAUSE = 0.4
+    pyautogui.FAILSAFE = True
+    pyautogui.hotkey('alt', 'n')
+    time.sleep(.5)
+    pyautogui.hotkey('ctrl', 'a')
+    pyautogui.write(caminho, interval=.01)
+    pyautogui.press('enter')
+    time.sleep(3)
+    pyautogui.press('enter')
+    log.info('Teams: PDF anexado pelo fallback PyAutoGUI: %s.', Path(pdf).name)
+
+
+def _focar_janela_teams(janela):
+    """Garante que os atalhos do Teams não sejam enviados para outra janela."""
+    try:
+        janela.restore()
+    except Exception:
+        pass
+    janela.set_focus()
+    time.sleep(.8)
+    try:
+        janela.maximize()
+    except Exception:
+        pass
+    janela.set_focus()
+    time.sleep(.8)
+    log.info('Teams em foco: %s', janela.window_text())
+
+
+def _pesquisar_grupo_teams(janela, grupo, send_keys):
+    """Pesquisa um grupo usando o campo global do Teams, após focar a janela."""
+    _focar_janela_teams(janela)
+    edits = janela.descendants(control_type='Edit')
+    busca = next(
+        (x for x in edits
+         if x.is_visible() and x.is_enabled()
+         and re.search(r'pesquis|search|buscar', x.window_text(), re.I)),
+        None
+    )
+    if busca:
+        busca.click_input()
+        busca.type_keys('^a')
+        busca.type_keys(grupo, with_spaces=True)
+    else:
+        send_keys('^e')
+        time.sleep(1)
+        try:
+            import pyperclip
+            pyperclip.copy(grupo)
+            send_keys('^a')
+            send_keys('^v')
+        except ImportError:
+            send_keys('^a')
+            send_keys(grupo, with_spaces=True)
+    send_keys('{ENTER}')
+    time.sleep(3)
 
 
 def enviar_teams_desktop(cfg, texto, pdf=None):
@@ -2144,14 +2259,28 @@ def enviar_teams_desktop(cfg, texto, pdf=None):
         from pywinauto import Desktop
         from pywinauto.keyboard import send_keys
         desktop = Desktop(backend='uia')
-        janela = desktop.window(title_re='.*Microsoft Teams.*')
+        janela = desktop.window(class_name='TeamsWebView')
+        if not janela.exists(timeout=2):
+            janela = desktop.window(title_re='.*Microsoft Teams.*')
         if not janela.exists(timeout=5):
             exe = os.path.expandvars(str(teams.get('exe') or ''))
             if exe and os.path.exists(exe):
                 processo = subprocess.Popen([exe])
                 time.sleep(8)
-            janela = Desktop(backend='uia').window(title_re='.*Microsoft Teams.*')
+            janela = Desktop(backend='uia').window(class_name='TeamsWebView')
+            if not janela.exists(timeout=2):
+                janela = Desktop(backend='uia').window(title_re='.*Microsoft Teams.*')
         janela.wait('visible', timeout=30)
+<<<<<<< HEAD
+        _focar_janela_teams(janela)
+        # Primeiro consulta o Planner global; a conversa é localizada somente depois.
+        try:
+            planner_ok, planner_resumo = _verificar_planner_teams(janela)
+        except Exception as e:
+            planner_ok = False
+            planner_resumo = f'Planner: falha na consulta ({str(e)[:160]})'
+            log.warning('Falha ao consultar o Planner; o envio continuará: %s', str(e)[:200])
+=======
         janela.set_focus()
         edits = janela.descendants(control_type='Edit')
         busca = next((x for x in edits if x.is_visible() and x.is_enabled()), None)
@@ -2168,13 +2297,62 @@ def enviar_teams_desktop(cfg, texto, pdf=None):
         time.sleep(2)
         planner_ok, planner_resumo = _verificar_planner_teams(janela)
         log.info('%s no grupo %s', planner_resumo, grupo)
+>>>>>>> 214b9cb65a5feeb6d78bef5dfad1a52d5ac4c33b
         if not planner_ok:
-            log.warning('Não foi possível verificar o Planner do grupo %s.', grupo)
-        _voltar_conversa_teams(janela)
+            log.warning('Não foi possível verificar o Planner; o envio continuará: %s', planner_resumo)
+
+        _pesquisar_grupo_teams(janela, grupo, send_keys)
+
+        grupo_busca = re.sub(r'\bde\b', '', grupo, flags=re.I)
+        grupo_busca = re.sub(r'\s+', ' ', grupo_busca).strip().casefold()
+        candidatos = []
+        for _ in range(15):
+            candidatos = [
+                x for x in janela.descendants()
+                if x.is_visible() and x.is_enabled()
+                and x.element_info.control_type in ('ListItem', 'Button', 'Group')
+                and grupo_busca in re.sub(r'\s+', ' ', x.window_text()).strip().casefold()
+            ]
+            if candidatos:
+                break
+            time.sleep(1)
+        if not candidatos:
+            raise RuntimeError(f'Grupo do Teams não encontrado após a pesquisa: {grupo}')
+        candidato = next(
+            (x for x in candidatos if x.element_info.control_type == 'ListItem'),
+            candidatos[0]
+        )
+        candidato.click_input()
+        time.sleep(1)
+        if 'Pesquisa' in janela.window_text():
+            candidato.double_click_input()
+            time.sleep(2)
+            if 'Pesquisa' in janela.window_text():
+                    send_keys('{ENTER}')
+        time.sleep(4)
+        texto = f'{texto}\n\n{planner_resumo}'
+        log.info('Verificação do Planner no grupo %s: %s', grupo, planner_resumo)
         campos = [x for x in janela.descendants(control_type='Edit') if x.is_visible() and x.is_enabled()]
         caixa = campos[-1] if campos else None
         if not caixa:
             raise RuntimeError('Caixa de mensagem do Teams não encontrada')
+        if pdf and teams.get('enviar_pdf') and Path(pdf).exists():
+            anexar = next((x for x in janela.descendants() if x.is_visible() and x.is_enabled() and re.search(r'anex|attach', x.window_text(), re.I)), None)
+            if not anexar:
+                raise RuntimeError('Botão de anexo do Teams não encontrado')
+            log.info('Teams: abrindo anexo do PDF %s.', Path(pdf).name)
+            anexar.click_input()
+            time.sleep(1)
+            item_upload = next((x for x in janela.descendants()
+                                if x.is_visible() and x.is_enabled()
+                                and re.search(r'upload.*computer|carregar.*computador|carregar deste dispositivo|meu computador', x.window_text(), re.I)), None)
+            if item_upload:
+                item_upload.click_input()
+            else:
+                send_keys('{DOWN}{ENTER}')
+            _anexar_pdf_teams_pyautogui(pdf)
+            time.sleep(2)
+
         caixa.click_input()
         try:
             import pyperclip
@@ -2183,26 +2361,7 @@ def enviar_teams_desktop(cfg, texto, pdf=None):
         except ImportError:
             caixa.type_keys(texto, with_spaces=True)
             send_keys('{ENTER}')
-        if pdf and teams.get('enviar_pdf') and Path(pdf).exists():
-            anexar = next((x for x in janela.descendants() if x.is_visible() and x.is_enabled() and re.search(r'anex|attach', x.window_text(), re.I)), None)
-            if not anexar:
-                raise RuntimeError('Botão de anexo do Teams não encontrado')
-            anexar.click_input()
-            time.sleep(1)
-            item_upload = next((x for x in janela.descendants()
-                                if x.is_visible() and x.is_enabled()
-                                and re.search(r'upload.*computer|carregar.*computador|meu computador', x.window_text(), re.I)), None)
-            if item_upload:
-                item_upload.click_input()
-            else:
-                send_keys('{DOWN}{ENTER}')
-            dialogo = Desktop(backend='uia').window(title_re='.*(Open|Abrir|Selecionar).*')
-            dialogo.wait('visible', timeout=15)
-            arquivo = dialogo.child_window(control_type='Edit')
-            arquivo.type_keys(str(Path(pdf).resolve()), with_spaces=True)
-            send_keys('{ENTER}')
-            time.sleep(3)
-            send_keys('{ENTER}')
+        log.info('Teams: resumo enviado para %s.', grupo)
         log.info('Teams enviado para o grupo %s', grupo)
         return True
     except Exception as e:
