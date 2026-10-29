@@ -1565,12 +1565,12 @@ function renderGeral(list, ativos, hVal) {
   ].map(([a, b, col]) => `<div class="k" style="--c:${col}"><b>${b}</b><span>${a}</span></div>`).join('');
 
   // BIs: área empilhada — horas x atualizações de BI (uma série por BI)
-  const snapOn = hVal !== 'now' && snaps[hVal];
-  const hLim = snapOn ? parseInt(hVal) : 23;
+    const snapOn = hVal !== 'now' && snaps[hVal];
+    const hInicioBi = 6, hFimBi = 20;
+    const hLim = snapOn ? Math.min(hFimBi, Math.max(hInicioBi, parseInt(hVal))) : hFimBi;
   const hBi = h => +h.t.slice(11, 13);
-  const ev = (D.bi_ev || []).filter(e => e.t.slice(0, 10) === D.hoje && hBi(e) <= hLim);
-  const maxH = Math.max(1, snapOn ? hLim : new Date().getHours(), ...ev.map(hBi));
-  const horasBi = Array.from({ length: maxH + 1 }, (_, i) => i);
+    const ev = (D.bi_ev || []).filter(e => e.t.slice(0, 10) === D.hoje && hBi(e) >= hInicioBi && hBi(e) <= hLim);
+    const horasBi = Array.from({ length: hFimBi - hInicioBi + 1 }, (_, i) => i + hInicioBi);
   const nomesBi = [...new Set(ev.map(e => e.bi))].sort();
   const dsBi = nomesBi.map((n, i) => {
     const hue = Math.round(360 * i / Math.max(1, nomesBi.length)), dono = ev.find(e => e.bi === n).resp || 'Equipe';
