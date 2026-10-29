@@ -16,7 +16,7 @@
     "ativo": true,
     "porta_edge": 9222,
     "resumo_a_cada_min": 120,
-    "grupo_rotina": "",
+    "grupo_rotina": "TIME BI OPTIMUS TEAMS",
     "enviar_para_destinos_individuais": true,
     "horarios_resumo": [
       "00:00",
@@ -41,8 +41,9 @@
   },
   "teams": {
     "ativo": true,
-    "grupo_rotina": "acompanhamento de rotinas",
+    "grupo_rotina": "TIME BI OPTIMUS TEAMS",
     "enviar_pdf": true,
+    "hora_relatorio_saude": 18,
     "exe": "C:\\Users\\%USERNAME%\\AppData\\Local\\Microsoft\\Teams\\current\\ms-teams.exe"
   },
   "monitores": [
