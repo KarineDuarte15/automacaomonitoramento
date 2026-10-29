@@ -91,7 +91,7 @@ DEFAULT = {
         'ativo': True,
         'porta_edge': 9222,
         'resumo_a_cada_min': 120,
-        'grupo_rotina': '',
+        'grupo_rotina': 'TIME BI OPTIMUS TEAMS',
         'enviar_para_destinos_individuais': True,
         'horarios_resumo': ['00:00', '06:00', '12:00', '18:00', '23:59'],
         'alerta_imediato_erro': False,
@@ -104,8 +104,9 @@ DEFAULT = {
     },
     'teams': {
         'ativo': True,
-        'grupo_rotina': 'acompanhamento de rotinas',
+        'grupo_rotina': 'TIME BI OPTIMUS',
         'enviar_pdf': True,
+        'hora_relatorio_saude': 18,
         'exe': r'C:\Users\%USERNAME%\AppData\Local\Microsoft\Teams\current\ms-teams.exe',
     },
     'monitores': [
@@ -1771,6 +1772,26 @@ def gerar_dashboard(cfg, res):
 # ==============================================================================
 ICON = {'ok': '✅', 'err': '❌', 'warn': '⚠️', 'run': '🔄', 'nd': '➖'}
 
+ITENS_MENSAGEM = [
+    ('P0', 'BI Alerta Vagas Tele Saúde', ('BI Alerta Vagas Tele Saúde',)),
+    ('P0', 'BI Alerta Vagas v2', ('BI Alerta Vagas v2', 'PBIX · Alerta de Vagas v2')),
+    ('P0', 'BI Alerta Vagas sub', ('BI Alerta Vagas sub', 'Alerta Diário de Vagas_Sub', 'PBIX · Alerta Diário de Vagas_Sub')),
+    ('P0', 'BI NECESSIDADE DE COMPRA', ('BI Necessidade de Compra',)),
+    ('P1', 'BI Painel dos Médicos', ('BI Painel dos Médicos', 'PBIX · Painel Médicos Hapclinicas V2')),
+    ('P1', 'BI Farol ICH (DGE)', ('BI Farol ICH (DGE)', 'PBIX · Farol de Índice Consultas por Hora - ICH')),
+    ('P1', 'BI Relatório de Consultas Disponibilizadas', ('BI Relatório de Consultas Disponibilizadas', 'PBIX · Relatório de Consultas Disponibilizadas v2')),
+    ('P1', 'BI Controle Agendas', ('BI Controle Agendas',)),
+    ('P1', 'BI Captação de Agendas', ('BI Captação de Agendas', 'PBIX · Captação de Agendas')),
+    ('P1', 'BI INDICADORES REDE CRED', ('BI INDICADORES REDE CRED', 'PBIX · Relatório Indicadores Rede Cred')),
+    ('P2', 'Logs Projetos (Automações)', ('Auditoria de Logs (Pasta 52)', 'Logs Projetos (Automações)')),
+    ('P2', 'BI Relatório de Consultas em Transferência', ('BI Relatório de Consultas em Transferência', 'PBIX · Relatório de Consultas em Transferência')),
+    ('P2', 'BI Relatório de Cirurgias', ('BI Relatório de Cirurgias', 'PBIX · Relatório de Cirurgias')),
+    ('P2', 'BI Relatório Atraso dos Médicos', ('BI Relatório Atraso dos Médicos', 'PBIX · Relatório Atraso dos Médicos')),
+    ('P2', 'BI Relatório de Acompanhamento de Mensageria', ('BI Relatório de Acompanhamento de Mensageria', 'PBIX · Relatório de Acompanhamento de Mensageria')),
+    ('P2', 'BI Relatorio_SAC', ('BI Relatorio_SAC', 'PBIX · Relatório SAC (mensal)')),
+    ('P2', 'CAPTADOS FORA DE ALERTA', ('CAPTADOS FORA DE ALERTA',)),
+]
+
 
 def _cut(s, n):
     s = ' '.join(str(s).split())
@@ -1790,29 +1811,31 @@ def _motivo_curto(msg):
 
 
 def resumo(res, titulo='Monitoramento OptimusBI', max_chars=3500):
-    """Monta a mensagem completa por prioridade, no formato usado no grupo de rotina."""
-    ativos = [x for x in res if x['status'] != 'nd']
-    nomes_prio = {'P0': '🔴 P0 — Crítica', 'P1': '🟠 P1 — Alta', 'P2': '🟡 P2 — Média', 'P3': '🔵 P3 — Baixa'}
-    linhas = [f'*{titulo}* · {datetime.now():%d/%m/%Y %H:%M}', '',
-              'Bom diaa a todos!!!',
-              'Atualização do grupo de acompanhamento de rotinas:', '']
-    for prio in ('P0', 'P1', 'P2', 'P3'):
-        itens = sorted((x for x in ativos if x.get('prio') == prio), key=lambda x: x['nome'])
-        if not itens:
+    """Monta somente os itens do modelo operacional, na ordem fixa do grupo."""
+    por_nome = {item.get('nome', ''): item for item in res}
+    titulos = {'P0': '🔴 P0 — Crítica', 'P1': '🟠 P1 — Alta', 'P2': '🟡 P2 — Média'}
+    linhas = []
+    prioridade_atual = None
+    for prioridade, nome_exibicao, candidatos in ITENS_MENSAGEM:
+        item = next((por_nome.get(nome) for nome in candidatos if por_nome.get(nome)), None)
+        if prioridade != prioridade_atual:
+            if linhas:
+                linhas.append('')
+            linhas.append(titulos[prioridade])
+            prioridade_atual = prioridade
+        if not item:
+            linhas.append(f' {nome_exibicao} ⚠️')
             continue
-        linhas.append(nomes_prio[prio])
-        for item in itens:
-            nome = item['nome'].replace('PBIX · ', '')
-            marca = ICON.get(item.get('status'), '➖')
-            detalhe = ''
-            if item.get('status') in ('err', 'warn'):
-                motivos = item.get('erros') or item.get('avisos') or []
-                if motivos:
-                    detalhe = f' — {_cut(_motivo_curto(motivos[0]), 110)}'
-            linhas.append(f' {nome} {marca}{detalhe}')
-        linhas.append('')
-    texto = '\n'.join(linhas).rstrip()
-    return texto if len(texto) <= max_chars else texto[:max_chars - 40].rstrip() + '\n... veja o painel localhost.'
+        status = item.get('status', 'warn')
+        marca = ICON.get(status, '⚠️')
+        detalhe = ''
+        if status in ('err', 'warn'):
+            motivos = item.get('erros') or item.get('avisos') or []
+            if motivos:
+                detalhe = f' - {_cut(_motivo_curto(motivos[0]), 64)}'
+        linhas.append(f' {nome_exibicao} {marca}{detalhe}')
+    texto = '\n'.join(linhas)
+    return texto if len(texto) <= max_chars else texto[:max_chars - 3].rstrip() + '...'
 
 
 def _achar_edge(cfg):
@@ -2043,7 +2066,7 @@ def enviar_whatsapp(cfg, texto, imagem=None, pdf=None):
 
 
 def _verificar_planner_teams(janela):
-    """Abre a aba Planner e devolve o texto visível das rotinas do dia."""
+    """Abre o Planner e clica apenas nos controles visíveis de conclusão pendente."""
     aba = next(
         (x for x in janela.descendants()
          if x.is_visible() and x.is_enabled()
@@ -2056,26 +2079,44 @@ def _verificar_planner_teams(janela):
 
     aba.click_input()
     time.sleep(3)
-    textos = []
-    vistos = set()
+    pendentes = []
     for controle in janela.descendants():
-        if not controle.is_visible():
+        try:
+            if not controle.is_visible() or not controle.is_enabled():
+                continue
+            info = controle.element_info
+            texto = ' '.join(filter(None, [
+                controle.window_text(), getattr(info, 'name', ''),
+                getattr(info, 'automation_id', ''), getattr(info, 'rich_text', '')
+            ]))
+            tipo = str(getattr(info, 'control_type', ''))
+        except Exception:
             continue
-        texto = re.sub(r'\s+', ' ', controle.window_text()).strip()
-        if texto and texto.lower() not in vistos and len(texto) <= 180:
-            vistos.add(texto.lower())
-            textos.append(texto)
+        pendente = re.search(
+            r'mark task as complete|complete task|concluir tarefa|marcar como conclu[ií]da|not completed|incomplete|pendente',
+            texto, re.I
+        )
+        concluida = re.search(r'already completed|completed|conclu[ií]da|conclu[ií]do', texto, re.I)
+        if pendente and not concluida and tipo.lower() in ('button', 'checkbox', 'listitem'):
+            pendentes.append(controle)
 
-    hoje = date.today().strftime('%d/%m')
-    candidatos = [
-        texto for texto in textos
-        if hoje in texto or re.search(r'\bhoje\b|\bpendente\b|\batrasad[ao]\b|\bconclu[ií]d[ao]\b', texto, re.I)
-    ]
-    if candidatos:
-        return True, 'Planner (rotinas do dia): ' + ' | '.join(candidatos[:12])
-    if textos:
-        return True, 'Planner aberto; não foram identificadas rotinas com data de hoje na tela.'
-    return True, 'Planner aberto; nenhuma rotina visível foi encontrada.'
+    concluidas = 0
+    vistos = set()
+    for controle in pendentes:
+        try:
+            chave = str(controle.element_info.runtime_id)
+        except Exception:
+            chave = str(id(controle))
+        if chave in vistos:
+            continue
+        vistos.add(chave)
+        try:
+            controle.click_input()
+            concluidas += 1
+            time.sleep(.4)
+        except Exception as e:
+            log.warning('Não foi possível concluir uma tarefa no Planner: %s', str(e)[:120])
+    return True, f'Planner: {concluidas} tarefa(s) concluída(s)'
 
 
 def _voltar_conversa_teams(janela):
@@ -2126,7 +2167,7 @@ def enviar_teams_desktop(cfg, texto, pdf=None):
         resultado.click_input()
         time.sleep(2)
         planner_ok, planner_resumo = _verificar_planner_teams(janela)
-        texto = f'{texto}\n\n{planner_resumo}'
+        log.info('%s no grupo %s', planner_resumo, grupo)
         if not planner_ok:
             log.warning('Não foi possível verificar o Planner do grupo %s.', grupo)
         _voltar_conversa_teams(janela)
@@ -2173,7 +2214,7 @@ def enviar_teams_desktop(cfg, texto, pdf=None):
 
 
 def rotina_canais_2h(cfg, res, enviar):
-    """Gera uma mensagem e envia texto + PDF aos canais uma vez por faixa de 2 horas."""
+    """Envia a mensagem curta a cada 2 horas e o PDF somente no fechamento do dia."""
     w = cfg['whatsapp']
     teams = cfg.get('teams') or {}
     if not enviar or not (w.get('ativo') or teams.get('ativo')):
@@ -2188,17 +2229,22 @@ def rotina_canais_2h(cfg, res, enviar):
 
     faixa = f'{date.today().isoformat()}_{agora.hour * 60 // freq_min:04d}'
     if ultimo is None or est.get('ultimo_canais_faixa') != faixa or (agora - ultimo) >= timedelta(minutes=freq_min):
-        titulo = 'ALERTA - Monitoramento OptimusBI' if erros else 'Monitoramento OptimusBI'
         est['ultimo_resumo'] = agora.isoformat()
         est['ultimo_canais_faixa'] = faixa
         ESTADO.write_text(json.dumps(est, ensure_ascii=False), encoding='utf-8')
-        imagem = capturar_visao_geral(cfg)
-        pdf_cfg = _ler_json(ESTADO, {})
-        pdf = Path(pdf_cfg['ultimo_pdf_arquivo']) if pdf_cfg.get('ultimo_pdf_arquivo') else gerar_pdf_saude(cfg, res)
-        whatsapp_ok = enviar_whatsapp(cfg, resumo(res, titulo), imagem, pdf)
-        teams_ok = enviar_teams_desktop(cfg, resumo(res, titulo), pdf)
+        hora_pdf = int(teams.get('hora_relatorio_saude', cfg.get('hora_relatorio_diario', 18)))
+        fechamento = agora.hour >= hora_pdf and est.get('ultimo_pdf_enviado_dia') != date.today().isoformat()
+        pdf = None
+        if fechamento:
+            pdf_cfg = _ler_json(ESTADO, {})
+            pdf = Path(pdf_cfg['ultimo_pdf_arquivo']) if pdf_cfg.get('ultimo_pdf_arquivo') else gerar_pdf_saude(cfg, res)
+        texto = resumo(res)
+        whatsapp_ok = enviar_whatsapp(cfg, texto, pdf=pdf)
+        teams_ok = enviar_teams_desktop(cfg, texto, pdf)
         if whatsapp_ok or teams_ok:
             est['ultima_assinatura'] = sig
+            if fechamento and pdf:
+                est['ultimo_pdf_enviado_dia'] = date.today().isoformat()
             ESTADO.write_text(json.dumps(est, ensure_ascii=False), encoding='utf-8')
 
 
